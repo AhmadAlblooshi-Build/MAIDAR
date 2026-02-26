@@ -1,5 +1,5 @@
 /**
- * Main Dashboard Page
+ * Main Dashboard Page - Company Risk Health
  *
  * Executive overview with key metrics and charts
  */
@@ -9,19 +9,22 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
-import { analyticsAPI, employeeAPI, simulationAPI } from '@/lib/api';
+import { analyticsAPI, employeeAPI } from '@/lib/api';
+import Layout from '@/components/Layout';
 import {
-  BarChart,
   TrendingUp,
+  TrendingDown,
   Users,
   Shield,
   AlertTriangle,
   Activity,
+  Target,
+  Award,
 } from 'lucide-react';
 
 export default function Dashboard() {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
   const [riskDistribution, setRiskDistribution] = useState<any>(null);
@@ -59,151 +62,155 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+      <Layout>
+        <div className="flex items-center justify-center h-[80vh]">
+          <div className="text-center">
+            <div className="relative inline-block">
+              <div className="absolute inset-0 bg-teal-400 rounded-full blur-xl opacity-50 animate-pulse"></div>
+              <div className="relative animate-spin rounded-full h-16 w-16 border-4 border-slate-200 border-t-teal-500"></div>
+            </div>
+            <p className="mt-6 text-slate-600 font-medium">Loading dashboard...</p>
+          </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">MAIDAR</h1>
-              <p className="text-sm text-gray-500">Human Risk Intelligence Platform</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-700">{user?.full_name}</span>
-              <button
-                onClick={() => useAuthStore.getState().logout()}
-                className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700"
-              >
-                Logout
-              </button>
-            </div>
+    <Layout>
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+              Company Risk Health
+            </h1>
+            <p className="text-slate-500 mt-1">Real-time security posture overview</p>
+          </div>
+          <div className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/50">
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+            <span className="text-sm font-medium text-emerald-700">Live Monitoring</span>
           </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Executive Summary */}
+        {/* Executive Summary Cards */}
         {executiveSummary && (
-          <div className="mb-8 bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg shadow-lg p-6 text-white">
-            <h2 className="text-2xl font-bold mb-2">Executive Summary</h2>
-            <p className="text-primary-100 mb-4">
-              {executiveSummary.tenant_name} • {new Date().toLocaleDateString()}
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <div className="text-3xl font-bold">{executiveSummary.total_employees}</div>
-                <div className="text-primary-100 text-sm">Total Employees</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold">{executiveSummary.average_risk_score}</div>
-                <div className="text-primary-100 text-sm">Average Risk Score</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold">{executiveSummary.total_simulations}</div>
-                <div className="text-primary-100 text-sm">Simulations Run</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold">{executiveSummary.average_click_rate.toFixed(1)}%</div>
-                <div className="text-primary-100 text-sm">Avg Click Rate</div>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <MetricCard
+              title="Total Employees"
+              value={executiveSummary.total_employees}
+              icon={<Users className="w-6 h-6" />}
+              trend={null}
+              color="blue"
+            />
+            <MetricCard
+              title="Average Risk Score"
+              value={executiveSummary.average_risk_score}
+              icon={<Shield className="w-6 h-6" />}
+              trend={-5.2}
+              color="teal"
+            />
+            <MetricCard
+              title="Simulations Run"
+              value={executiveSummary.total_simulations}
+              icon={<Activity className="w-6 h-6" />}
+              trend={12.5}
+              color="purple"
+            />
+            <MetricCard
+              title="Avg Click Rate"
+              value={`${executiveSummary.average_click_rate.toFixed(1)}%`}
+              icon={<Target className="w-6 h-6" />}
+              trend={-3.8}
+              color="rose"
+            />
           </div>
         )}
 
         {/* Risk Distribution */}
         {riskDistribution && (
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Risk Distribution</h2>
+          <div className="backdrop-blur-xl bg-white/60 rounded-2xl border border-white/20 shadow-xl p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-slate-900">Risk Distribution</h2>
+              <div className="flex items-center space-x-2 text-sm text-slate-500">
+                <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
+                <span>Updated just now</span>
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <StatCard
+              <RiskCard
                 title="Critical Risk"
-                value={riskDistribution.critical_count}
+                count={riskDistribution.critical_count}
                 percentage={riskDistribution.critical_percentage}
-                color="risk-critical"
-                icon={<AlertTriangle />}
+                color="red"
+                icon={<AlertTriangle className="w-5 h-5" />}
               />
-              <StatCard
+              <RiskCard
                 title="High Risk"
-                value={riskDistribution.high_count}
+                count={riskDistribution.high_count}
                 percentage={riskDistribution.high_percentage}
-                color="risk-high"
-                icon={<TrendingUp />}
+                color="orange"
+                icon={<TrendingUp className="w-5 h-5" />}
               />
-              <StatCard
+              <RiskCard
                 title="Medium Risk"
-                value={riskDistribution.medium_count}
+                count={riskDistribution.medium_count}
                 percentage={riskDistribution.medium_percentage}
-                color="risk-medium"
-                icon={<Activity />}
+                color="yellow"
+                icon={<Activity className="w-5 h-5" />}
               />
-              <StatCard
+              <RiskCard
                 title="Low Risk"
-                value={riskDistribution.low_count}
+                count={riskDistribution.low_count}
                 percentage={riskDistribution.low_percentage}
-                color="risk-low"
-                icon={<Shield />}
+                color="green"
+                icon={<Shield className="w-5 h-5" />}
               />
             </div>
           </div>
         )}
 
-        {/* Quick Actions */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <ActionCard
-              title="Manage Employees"
-              description="View, import, and manage employee data"
-              icon={<Users className="w-8 h-8" />}
-              onClick={() => router.push('/employees')}
-            />
-            <ActionCard
-              title="Run Simulation"
-              description="Launch a new phishing simulation"
-              icon={<Activity className="w-8 h-8" />}
-              onClick={() => router.push('/simulations/create')}
-            />
-            <ActionCard
-              title="View Analytics"
-              description="Analyze risk trends and metrics"
-              icon={<BarChart className="w-8 h-8" />}
-              onClick={() => router.push('/analytics')}
-            />
-          </div>
-        </div>
+        {/* Key Findings & Actions */}
+        {executiveSummary && (executiveSummary.key_findings || executiveSummary.immediate_actions) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Key Findings */}
+            {executiveSummary.key_findings && (
+              <div className="backdrop-blur-xl bg-white/60 rounded-2xl border border-white/20 shadow-xl p-6">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
+                    <Award className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="text-lg font-bold text-slate-900">Key Findings</h2>
+                </div>
+                <ul className="space-y-3">
+                  {executiveSummary.key_findings.map((finding: string, idx: number) => (
+                    <li key={idx} className="flex items-start group">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center mr-3 mt-0.5 group-hover:scale-110 transition-transform">
+                        <span className="text-xs font-bold text-blue-600">{idx + 1}</span>
+                      </div>
+                      <span className="text-sm text-slate-700 leading-relaxed">{finding}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-        {/* Key Findings */}
-        {executiveSummary && executiveSummary.key_findings && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Key Findings</h2>
-            <ul className="space-y-2">
-              {executiveSummary.key_findings.map((finding: string, idx: number) => (
-                <li key={idx} className="flex items-start">
-                  <span className="text-primary-600 mr-2">•</span>
-                  <span className="text-gray-700">{finding}</span>
-                </li>
-              ))}
-            </ul>
-
+            {/* Immediate Actions */}
             {executiveSummary.immediate_actions && executiveSummary.immediate_actions.length > 0 && (
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Immediate Actions</h3>
-                <ul className="space-y-2">
+              <div className="backdrop-blur-xl bg-white/60 rounded-2xl border border-white/20 shadow-xl p-6">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-orange-500 to-red-500">
+                    <AlertTriangle className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="text-lg font-bold text-slate-900">Immediate Actions</h2>
+                </div>
+                <ul className="space-y-3">
                   {executiveSummary.immediate_actions.map((action: string, idx: number) => (
-                    <li key={idx} className="flex items-start">
-                      <span className="text-orange-600 mr-2">→</span>
-                      <span className="text-gray-700">{action}</span>
+                    <li key={idx} className="flex items-start group">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-orange-100 to-red-100 flex items-center justify-center mr-3 mt-0.5 group-hover:scale-110 transition-transform">
+                        <span className="text-orange-600 font-bold text-sm">→</span>
+                      </div>
+                      <span className="text-sm text-slate-700 leading-relaxed">{action}</span>
                     </li>
                   ))}
                 </ul>
@@ -211,38 +218,132 @@ export default function Dashboard() {
             )}
           </div>
         )}
-      </main>
+
+        {/* Quick Actions */}
+        <div className="backdrop-blur-xl bg-white/60 rounded-2xl border border-white/20 shadow-xl p-6">
+          <h2 className="text-xl font-bold text-slate-900 mb-6">Quick Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <ActionCard
+              title="Manage Employees"
+              description="View and manage employee data"
+              icon={<Users className="w-8 h-8" />}
+              onClick={() => router.push('/employees')}
+              gradient="from-blue-500 to-cyan-500"
+            />
+            <ActionCard
+              title="Run Simulation"
+              description="Launch a phishing simulation"
+              icon={<Activity className="w-8 h-8" />}
+              onClick={() => router.push('/simulations')}
+              gradient="from-purple-500 to-pink-500"
+            />
+            <ActionCard
+              title="View Analytics"
+              description="Analyze risk trends"
+              icon={<TrendingUp className="w-8 h-8" />}
+              onClick={() => router.push('/analytics')}
+              gradient="from-orange-500 to-red-500"
+            />
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+}
+
+// Metric Card Component
+interface MetricCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  trend: number | null;
+  color: 'blue' | 'teal' | 'purple' | 'rose';
+}
+
+function MetricCard({ title, value, icon, trend, color }: MetricCardProps) {
+  const gradients = {
+    blue: 'from-blue-500 to-cyan-500',
+    teal: 'from-teal-500 to-emerald-500',
+    purple: 'from-purple-500 to-pink-500',
+    rose: 'from-rose-500 to-orange-500',
+  };
+
+  const glows = {
+    blue: 'shadow-blue-500/20',
+    teal: 'shadow-teal-500/20',
+    purple: 'shadow-purple-500/20',
+    rose: 'shadow-rose-500/20',
+  };
+
+  return (
+    <div className="group relative">
+      <div className={`absolute inset-0 bg-gradient-to-br ${gradients[color]} rounded-2xl blur-xl opacity-0 group-hover:opacity-20 transition-opacity`}></div>
+      <div className={`relative backdrop-blur-xl bg-white/60 rounded-2xl border border-white/20 shadow-xl ${glows[color]} p-6 hover:scale-105 transition-transform`}>
+        <div className="flex items-center justify-between mb-4">
+          <div className={`p-3 rounded-xl bg-gradient-to-br ${gradients[color]} shadow-lg`}>
+            <div className="text-white">{icon}</div>
+          </div>
+          {trend !== null && (
+            <div className={`flex items-center space-x-1 ${trend > 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {trend > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+              <span className="text-sm font-semibold">{Math.abs(trend)}%</span>
+            </div>
+          )}
+        </div>
+        <div className="text-3xl font-bold text-slate-900 mb-1">{value}</div>
+        <div className="text-sm text-slate-500 font-medium">{title}</div>
+      </div>
     </div>
   );
 }
 
-// Stat Card Component
-type RiskColor = 'risk-critical' | 'risk-high' | 'risk-medium' | 'risk-low';
-
-interface StatCardProps {
+// Risk Card Component
+interface RiskCardProps {
   title: string;
-  value: number;
+  count: number;
   percentage: number;
-  color: RiskColor;
+  color: 'red' | 'orange' | 'yellow' | 'green';
   icon: React.ReactNode;
 }
 
-function StatCard({ title, value, percentage, color, icon }: StatCardProps) {
-  const colorClasses: Record<RiskColor, string> = {
-    'risk-critical': 'bg-red-50 text-red-600 border-red-200',
-    'risk-high': 'bg-orange-50 text-orange-600 border-orange-200',
-    'risk-medium': 'bg-yellow-50 text-yellow-600 border-yellow-200',
-    'risk-low': 'bg-green-50 text-green-600 border-green-200',
+function RiskCard({ title, count, percentage, color, icon }: RiskCardProps) {
+  const styles = {
+    red: {
+      gradient: 'from-red-500 to-rose-500',
+      bg: 'bg-red-50',
+      text: 'text-red-600',
+      border: 'border-red-200',
+    },
+    orange: {
+      gradient: 'from-orange-500 to-amber-500',
+      bg: 'bg-orange-50',
+      text: 'text-orange-600',
+      border: 'border-orange-200',
+    },
+    yellow: {
+      gradient: 'from-yellow-500 to-orange-500',
+      bg: 'bg-yellow-50',
+      text: 'text-yellow-600',
+      border: 'border-yellow-200',
+    },
+    green: {
+      gradient: 'from-green-500 to-emerald-500',
+      bg: 'bg-green-50',
+      text: 'text-green-600',
+      border: 'border-green-200',
+    },
   };
 
+  const style = styles[color];
+
   return (
-    <div className={`bg-white rounded-lg shadow p-6 border-2 ${colorClasses[color]}`}>
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-medium text-gray-600">{title}</h3>
-        <div className="text-gray-400">{icon}</div>
+    <div className={`${style.bg} rounded-xl border-2 ${style.border} p-4 hover:scale-105 transition-all group`}>
+      <div className="flex items-center justify-between mb-3">
+        <span className={`text-sm font-semibold ${style.text}`}>{title}</span>
+        <div className={`${style.text} group-hover:scale-110 transition-transform`}>{icon}</div>
       </div>
-      <div className="text-3xl font-bold text-gray-900">{value}</div>
-      <div className="text-sm text-gray-500 mt-1">{percentage.toFixed(1)}% of total</div>
+      <div className="text-3xl font-bold text-slate-900 mb-1">{count}</div>
+      <div className={`text-sm ${style.text} font-medium`}>{percentage.toFixed(1)}% of total</div>
     </div>
   );
 }
@@ -253,17 +354,23 @@ interface ActionCardProps {
   description: string;
   icon: React.ReactNode;
   onClick: () => void;
+  gradient: string;
 }
 
-function ActionCard({ title, description, icon, onClick }: ActionCardProps) {
+function ActionCard({ title, description, icon, onClick, gradient }: ActionCardProps) {
   return (
     <button
       onClick={onClick}
-      className="bg-white rounded-lg shadow p-6 text-left hover:shadow-lg transition-shadow border border-gray-200 hover:border-primary-500"
+      className="group relative overflow-hidden backdrop-blur-xl bg-white/60 rounded-xl border border-white/20 shadow-lg p-6 text-left hover:scale-105 transition-all"
     >
-      <div className="text-primary-600 mb-3">{icon}</div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-      <p className="text-sm text-gray-600">{description}</p>
+      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-10 transition-opacity`}></div>
+      <div className="relative">
+        <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${gradient} text-white shadow-lg mb-4 group-hover:scale-110 transition-transform`}>
+          {icon}
+        </div>
+        <h3 className="text-lg font-bold text-slate-900 mb-2">{title}</h3>
+        <p className="text-sm text-slate-600">{description}</p>
+      </div>
     </button>
   );
 }

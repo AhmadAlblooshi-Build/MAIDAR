@@ -10,7 +10,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { simulationAPI } from '@/lib/api';
-import { Activity, Plus, BarChart, PlayCircle } from 'lucide-react';
+import Layout from '@/components/Layout';
+import { Activity, Plus, BarChart, PlayCircle, Target, Users, Clock } from 'lucide-react';
 
 export default function SimulationsPage() {
   const router = useRouter();
@@ -44,159 +45,260 @@ export default function SimulationsPage() {
 
   const getStatusBadge = (status: string) => {
     const styles = {
-      draft: 'bg-gray-100 text-gray-800',
-      scheduled: 'bg-blue-100 text-blue-800',
-      in_progress: 'bg-yellow-100 text-yellow-800',
-      completed: 'bg-green-100 text-green-800',
-      cancelled: 'bg-red-100 text-red-800',
+      draft: { bg: 'from-slate-100 to-slate-200', text: 'text-slate-700', border: 'border-slate-300' },
+      scheduled: { bg: 'from-blue-100 to-cyan-100', text: 'text-blue-700', border: 'border-blue-300' },
+      in_progress: { bg: 'from-yellow-100 to-orange-100', text: 'text-yellow-700', border: 'border-yellow-300' },
+      completed: { bg: 'from-green-100 to-emerald-100', text: 'text-green-700', border: 'border-green-300' },
+      cancelled: { bg: 'from-red-100 to-rose-100', text: 'text-red-700', border: 'border-red-300' },
     };
+
+    const style = styles[status as keyof typeof styles] || styles.draft;
 
     return (
       <span
-        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-          styles[status as keyof typeof styles] || styles.draft
-        }`}
+        className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-gradient-to-r ${style.bg} ${style.text} border ${style.border}`}
       >
-        {status.replace('_', ' ')}
+        {status.replace('_', ' ').toUpperCase()}
       </span>
     );
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600"></div>
-      </div>
+      <Layout>
+        <div className="flex items-center justify-center h-[80vh]">
+          <div className="text-center">
+            <div className="relative inline-block">
+              <div className="absolute inset-0 bg-teal-400 rounded-full blur-xl opacity-50 animate-pulse"></div>
+              <div className="relative animate-spin rounded-full h-16 w-16 border-4 border-slate-200 border-t-teal-500"></div>
+            </div>
+            <p className="mt-6 text-slate-600 font-medium">Loading simulations...</p>
+          </div>
+        </div>
+      </Layout>
     );
   }
 
+  const activeSimulations = simulations.filter(s => s.status === 'in_progress').length;
+  const completedSimulations = simulations.filter(s => s.status === 'completed').length;
+  const totalTargets = simulations.reduce((sum, s) => sum + (s.total_targets || 0), 0);
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Simulation Campaigns</h1>
-              <p className="text-sm text-gray-500">Manage phishing simulations</p>
+    <Layout>
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+              Phishing Simulations
+            </h1>
+            <p className="text-slate-500 mt-1">Manage and track simulation campaigns</p>
+          </div>
+          <button
+            onClick={() => alert('Create simulation flow would go here')}
+            className="group relative px-6 py-3 rounded-xl font-semibold text-white overflow-hidden shadow-lg hover:shadow-xl transition-all hover:scale-105"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-cyan-500"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-teal-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center space-x-2">
+              <Plus className="w-5 h-5" />
+              <span>New Simulation</span>
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => router.push('/')}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                ← Back
-              </button>
+          </button>
+        </div>
+
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <StatCard
+            title="Active Simulations"
+            value={activeSimulations}
+            icon={<Activity className="w-6 h-6" />}
+            gradient="from-yellow-500 to-orange-500"
+          />
+          <StatCard
+            title="Completed Campaigns"
+            value={completedSimulations}
+            icon={<BarChart className="w-6 h-6" />}
+            gradient="from-green-500 to-emerald-500"
+          />
+          <StatCard
+            title="Total Targets"
+            value={totalTargets}
+            icon={<Users className="w-6 h-6" />}
+            gradient="from-purple-500 to-pink-500"
+          />
+        </div>
+
+        {/* Simulations Grid */}
+        {simulations.length === 0 ? (
+          <div className="backdrop-blur-xl bg-white/60 rounded-2xl border border-white/20 shadow-xl p-16">
+            <div className="text-center">
+              <div className="relative inline-block mb-6">
+                <div className="absolute inset-0 bg-teal-400 rounded-full blur-2xl opacity-20"></div>
+                <div className="relative p-6 rounded-full bg-gradient-to-br from-teal-100 to-cyan-100">
+                  <Activity className="w-16 h-16 text-teal-600" />
+                </div>
+              </div>
+              <p className="text-lg font-semibold text-slate-700 mb-2">No simulations found</p>
+              <p className="text-slate-500 mb-6">Create your first phishing simulation campaign</p>
               <button
                 onClick={() => alert('Create simulation flow would go here')}
-                className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 flex items-center"
+                className="group relative inline-flex items-center space-x-2 px-6 py-3 rounded-xl font-semibold text-white overflow-hidden shadow-lg hover:shadow-xl transition-all hover:scale-105"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                New Simulation
+                <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-cyan-500"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-teal-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <Plus className="relative w-5 h-5" />
+                <span className="relative">Create Simulation</span>
               </button>
             </div>
           </div>
-        </div>
-      </header>
+        ) : (
+          <div className="grid grid-cols-1 gap-6">
+            {simulations.map((sim) => (
+              <SimulationCard
+                key={sim.id}
+                simulation={sim}
+                onViewResults={() => router.push(`/simulations/${sim.id}`)}
+                onLaunch={async () => {
+                  try {
+                    await simulationAPI.launch(sim.id, { send_immediately: true });
+                    alert('Simulation launched!');
+                    loadSimulations();
+                  } catch (error: any) {
+                    alert(`Failed to launch: ${error.detail}`);
+                  }
+                }}
+                getStatusBadge={getStatusBadge}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </Layout>
+  );
+}
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Simulations Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Scenario
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Targets
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Created
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {simulations.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                    <Activity className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                    <p>No simulations found</p>
-                    <button
-                      onClick={() => alert('Create simulation flow would go here')}
-                      className="mt-4 text-primary-600 hover:text-primary-700 font-medium"
-                    >
-                      Create your first simulation
-                    </button>
-                  </td>
-                </tr>
-              ) : (
-                simulations.map((sim) => (
-                  <tr key={sim.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{sim.name}</div>
-                      {sim.description && (
-                        <div className="text-sm text-gray-500">{sim.description}</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{sim.scenario_name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(sim.status)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{sim.total_targets}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">
-                        {new Date(sim.created_at).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() =>
-                            router.push(`/simulations/${sim.id}`)
-                          }
-                          className="text-primary-600 hover:text-primary-900 flex items-center"
-                        >
-                          <BarChart className="w-4 h-4 mr-1" />
-                          Results
-                        </button>
-                        {sim.status === 'draft' && (
-                          <button
-                            onClick={async () => {
-                              try {
-                                await simulationAPI.launch(sim.id, { send_immediately: true });
-                                alert('Simulation launched!');
-                                loadSimulations();
-                              } catch (error: any) {
-                                alert(`Failed to launch: ${error.detail}`);
-                              }
-                            }}
-                            className="text-green-600 hover:text-green-900 flex items-center"
-                          >
-                            <PlayCircle className="w-4 h-4 mr-1" />
-                            Launch
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+// Stat Card Component
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  gradient: string;
+}
+
+function StatCard({ title, value, icon, gradient }: StatCardProps) {
+  return (
+    <div className="group relative">
+      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-20 transition-opacity`}></div>
+      <div className="relative backdrop-blur-xl bg-white/60 rounded-2xl border border-white/20 shadow-xl p-6 hover:scale-105 transition-transform">
+        <div className="flex items-center justify-between mb-4">
+          <div className={`p-3 rounded-xl bg-gradient-to-br ${gradient} shadow-lg`}>
+            <div className="text-white">{icon}</div>
+          </div>
         </div>
-      </main>
+        <div className="text-3xl font-bold text-slate-900 mb-1">{value}</div>
+        <div className="text-sm text-slate-500 font-medium">{title}</div>
+      </div>
+    </div>
+  );
+}
+
+// Simulation Card Component
+interface SimulationCardProps {
+  simulation: any;
+  onViewResults: () => void;
+  onLaunch: () => void;
+  getStatusBadge: (status: string) => React.ReactNode;
+}
+
+function SimulationCard({ simulation, onViewResults, onLaunch, getStatusBadge }: SimulationCardProps) {
+  return (
+    <div className="group backdrop-blur-xl bg-white/60 rounded-2xl border border-white/20 shadow-xl hover:shadow-2xl transition-all overflow-hidden">
+      <div className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1">
+            <div className="flex items-center space-x-3 mb-2">
+              <h3 className="text-xl font-bold text-slate-900">{simulation.name}</h3>
+              {getStatusBadge(simulation.status)}
+            </div>
+            {simulation.description && (
+              <p className="text-slate-600 text-sm mb-3">{simulation.description}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="flex items-center space-x-3 p-3 rounded-xl bg-white/50">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
+              <Target className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <div className="text-xs text-slate-500 font-medium">Scenario</div>
+              <div className="text-sm font-bold text-slate-900">{simulation.scenario_name}</div>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3 p-3 rounded-xl bg-white/50">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
+              <Users className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <div className="text-xs text-slate-500 font-medium">Targets</div>
+              <div className="text-sm font-bold text-slate-900">{simulation.total_targets}</div>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3 p-3 rounded-xl bg-white/50">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-orange-500 to-red-500">
+              <Clock className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <div className="text-xs text-slate-500 font-medium">Created</div>
+              <div className="text-sm font-bold text-slate-900">
+                {new Date(simulation.created_at).toLocaleDateString()}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3 p-3 rounded-xl bg-white/50">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500">
+              <Activity className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <div className="text-xs text-slate-500 font-medium">Status</div>
+              <div className="text-sm font-bold text-slate-900">{simulation.status.replace('_', ' ')}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={onViewResults}
+            className="flex-1 group/btn relative px-4 py-3 rounded-xl font-semibold text-white overflow-hidden shadow-lg hover:shadow-xl transition-all hover:scale-105"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-cyan-500"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-teal-500 opacity-0 group-hover/btn:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center justify-center space-x-2">
+              <BarChart className="w-4 h-4" />
+              <span>View Results</span>
+            </div>
+          </button>
+
+          {simulation.status === 'draft' && (
+            <button
+              onClick={onLaunch}
+              className="flex-1 group/btn relative px-4 py-3 rounded-xl font-semibold text-white overflow-hidden shadow-lg hover:shadow-xl transition-all hover:scale-105"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-green-500 opacity-0 group-hover/btn:opacity-100 transition-opacity"></div>
+              <div className="relative flex items-center justify-center space-x-2">
+                <PlayCircle className="w-4 h-4" />
+                <span>Launch Now</span>
+              </div>
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
