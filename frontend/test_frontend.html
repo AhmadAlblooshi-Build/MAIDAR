@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MAIDAR Frontend Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .pass { background: #d4edda; color: #155724; }
+        .fail { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        h1 { color: #14b8a6; }
+        h2 { color: #0d9488; border-bottom: 2px solid #14b8a6; padding-bottom: 10px; }
+        button {
+            background: #14b8a6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0d9488; }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 MAIDAR Frontend Testing Dashboard</h1>
+
+    <div class="test-section">
+        <h2>Test Environment</h2>
+        <div class="test-result info">
+            <strong>Backend API:</strong> <span id="backend-url">http://localhost:8001/api/v1</span><br>
+            <strong>Frontend:</strong> <span id="frontend-url">http://localhost:3000</span><br>
+            <strong>Status:</strong> <span id="env-status">Checking...</span>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Automated Tests</h2>
+        <button onclick="testBackendHealth()">Test Backend Connection</button>
+        <button onclick="testFrontendPages()">Test All Pages Load</button>
+        <button onclick="testAPIIntegration()">Test API Integration</button>
+        <button onclick="runAllTests()">Run All Tests</button>
+        <div id="test-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Manual Page Tests</h2>
+        <button onclick="loadPage('http://localhost:3000/')">Load Dashboard</button>
+        <button onclick="loadPage('http://localhost:3000/login')">Load Login</button>
+        <button onclick="loadPage('http://localhost:3000/employees')">Load Employees</button>
+        <button onclick="loadPage('http://localhost:3000/simulations')">Load Simulations</button>
+        <div id="page-frame" style="margin-top: 20px;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Console Output</h2>
+        <pre id="console-output"></pre>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8001/api/v1';
+        const FRONTEND_BASE = 'http://localhost:3000';
+        let testResults = [];
+
+        function log(message, type = 'info') {
+            const output = document.getElementById('console-output');
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent += `[${timestamp}] ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function addTestResult(name, passed, details = '') {
+            testResults.push({ name, passed, details });
+            const resultsDiv = document.getElementById('test-results');
+            const resultClass = passed ? 'pass' : 'fail';
+            const statusIcon = passed ? '✓' : '✗';
+            resultsDiv.innerHTML += `
+                <div class="test-result ${resultClass}">
+                    <strong>${statusIcon} ${name}</strong>
+                    ${details ? `<br><small>${details}</small>` : ''}
+                </div>
+            `;
+        }
+
+        async function testBackendHealth() {
+            log('Testing backend health...');
+            try {
+                const response = await fetch(`${API_BASE.replace('/api/v1', '')}/health`);
+                const data = await response.json();
+                if (response.ok && data.status === 'healthy') {
+                    addTestResult('Backend Health Check', true, `Status: ${data.status}`);
+                    log('Backend is healthy');
+                } else {
+                    addTestResult('Backend Health Check', false, `Unexpected response: ${JSON.stringify(data)}`);
+                }
+            } catch (error) {
+                addTestResult('Backend Health Check', false, error.message);
+                log(`Backend health check failed: ${error.message}`);
+            }
+        }
+
+        async function testFrontendPages() {
+            log('Testing frontend pages...');
+            const pages = ['/', '/login', '/employees', '/simulations'];
+
+            for (const page of pages) {
+                try {
+                    const response = await fetch(`${FRONTEND_BASE}${page}`);
+                    if (response.ok) {
+                        addTestResult(`Page Load: ${page}`, true, `Status: ${response.status}`);
+                        log(`Page ${page} loaded successfully`);
+                    } else {
+                        addTestResult(`Page Load: ${page}`, false, `Status: ${response.status}`);
+                    }
+                } catch (error) {
+                    addTestResult(`Page Load: ${page}`, false, error.message);
+                    log(`Failed to load ${page}: ${error.message}`);
+                }
+            }
+        }
+
+        async function testAPIIntegration() {
+            log('Testing API integration...');
+
+            // Test 1: Public endpoints
+            try {
+                const response = await fetch(`${API_BASE.replace('/api/v1', '')}/`);
+                const data = await response.json();
+                if (data.app === 'MAIDAR') {
+                    addTestResult('API Root Endpoint', true, `App: ${data.app}, Version: ${data.version}`);
+                    log('API root endpoint working');
+                } else {
+                    addTestResult('API Root Endpoint', false, 'Unexpected response');
+                }
+            } catch (error) {
+                addTestResult('API Root Endpoint', false, error.message);
+                log(`API test failed: ${error.message}`);
+            }
+
+            // Test 2: CORS
+            try {
+                const response = await fetch(`${API_BASE}/employees/statistics`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                // Should get 401 or 403, not CORS error
+                if (response.status === 401 || response.status === 403) {
+                    addTestResult('CORS Configuration', true, 'No CORS errors (auth required as expected)');
+                    log('CORS is properly configured');
+                } else if (response.ok) {
+                    addTestResult('CORS Configuration', true, 'Request succeeded');
+                } else {
+                    addTestResult('CORS Configuration', false, `Status: ${response.status}`);
+                }
+            } catch (error) {
+                if (error.message.includes('CORS')) {
+                    addTestResult('CORS Configuration', false, 'CORS error detected');
+                    log(`CORS error: ${error.message}`);
+                } else {
+                    addTestResult('CORS Configuration', true, 'No CORS issues');
+                }
+            }
+        }
+
+        async function runAllTests() {
+            document.getElementById('test-results').innerHTML = '';
+            testResults = [];
+            log('=== Starting All Tests ===');
+
+            await testBackendHealth();
+            await testFrontendPages();
+            await testAPIIntegration();
+
+            const passed = testResults.filter(t => t.passed).length;
+            const total = testResults.length;
+            const percentage = ((passed / total) * 100).toFixed(1);
+
+            log(`\n=== Test Summary ===`);
+            log(`Total: ${total}, Passed: ${passed}, Failed: ${total - passed}`);
+            log(`Success Rate: ${percentage}%`);
+
+            addTestResult('Overall Test Suite', passed === total, `${passed}/${total} tests passed (${percentage}%)`);
+        }
+
+        function loadPage(url) {
+            const frameDiv = document.getElementById('page-frame');
+            frameDiv.innerHTML = `<iframe src="${url}"></iframe>`;
+            log(`Loading page: ${url}`);
+        }
+
+        // Check environment on load
+        window.onload = async () => {
+            log('Frontend test page loaded');
+            document.getElementById('env-status').textContent = 'Ready';
+
+            // Auto-run health check
+            setTimeout(() => {
+                log('Running initial health check...');
+                testBackendHealth();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

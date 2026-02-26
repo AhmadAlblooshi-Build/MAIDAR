@@ -1,0 +1,59 @@
+"""User database model for RBAC."""
+
+from enum import Enum
+
+from sqlalchemy import Column, String, Boolean, ForeignKey, Enum as SQLEnum, DateTime
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+
+from .base import Base, UUIDMixin, TimestampMixin
+
+
+class UserRole(str, Enum):
+    """User roles for RBAC."""
+    PLATFORM_SUPER_ADMIN = "PLATFORM_SUPER_ADMIN"  # Global admin
+    TENANT_ADMIN = "TENANT_ADMIN"  # Organization admin
+    ANALYST = "ANALYST"  # Read-only analyst
+
+
+class User(Base, UUIDMixin, TimestampMixin):
+    """
+    User model for authentication and authorization.
+
+    Implements role-based access control (RBAC) per UAE compliance.
+    """
+
+    __tablename__ = 'users'
+
+    # Tenant isolation (nullable for PLATFORM_SUPER_ADMIN)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey('tenants.id', ondelete='CASCADE'), nullable=True, index=True)
+
+    # Authentication
+    email = Column(String(255), nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)  # Bcrypt hashed
+
+    # Profile
+    full_name = Column(String(255), nullable=False)
+    role = Column(String(50), nullable=False, default="ANALYST", index=True)  # Validated by schema
+
+    # Status
+    is_active = Column(Boolean, default=True)
+    email_verified = Column(Boolean, default=False, index=True)
+    verification_code = Column(String(6), nullable=True)
+    verification_code_expires_at = Column(DateTime(timezone=True), nullable=True)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Relationships
+    tenant = relationship("Tenant", back_populates="users")
+    created_scenarios = relationship("Scenario", back_populates="created_by_user", foreign_keys="Scenario.created_by")
+    created_simulations = relationship("Simulation", back_populates="created_by_user", foreign_keys="Simulation.created_by")
+    audit_logs = relationship("AuditLog", back_populates="user")
+
+    def __repr__(self) -> str:
+        return f"<User {self.email} ({self.role})>"
+
+    def can_access_tenant(self, tenant_id: str) -> bool:
+        """Check if user can access a specific tenant."""
+        if self.role == UserRole.PLATFORM_SUPER_ADMIN:
+            return True
+        return str(self.tenant_id) == str(tenant_id)

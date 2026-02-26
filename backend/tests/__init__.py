@@ -1,0 +1,1 @@
+"""MAIDAR Tests."""

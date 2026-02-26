@@ -1,0 +1,10 @@
+{
+  "employee_id": "EMP001",
+  "email": "employee1@testorg.com",
+  "full_name": "John Doe",
+  "department": "IT",
+  "seniority": "senior",
+  "technical_literacy": 8,
+  "age_range": "35_44",
+  "languages": ["en"]
+}

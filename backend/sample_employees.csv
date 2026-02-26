@@ -1,0 +1,11 @@
+employee_id,email,full_name,age_range,gender,languages,technical_literacy,seniority,department,job_title
+EMP001,john.doe@company.com,John Doe,35_44,male,"en,ar",8,senior,IT,Senior Software Engineer
+EMP002,jane.smith@company.com,Jane Smith,25_34,female,"en",7,mid,IT,Software Developer
+EMP003,ahmed.ali@company.com,Ahmed Ali,45_54,male,"ar,en",5,executive,Finance,CFO
+EMP004,sarah.jones@company.com,Sarah Jones,35_44,female,"en",9,senior,IT,DevOps Engineer
+EMP005,omar.hassan@company.com,Omar Hassan,18_24,male,"ar",3,junior,Marketing,Marketing Assistant
+EMP006,fatima.khan@company.com,Fatima Khan,25_34,female,"ar,en",4,mid,HR,HR Coordinator
+EMP007,mike.wilson@company.com,Mike Wilson,55_plus,male,"en",6,c_level,Executive,CEO
+EMP008,layla.mansour@company.com,Layla Mansour,35_44,female,"ar,en,fr",7,senior,Finance,Finance Manager
+EMP009,david.brown@company.com,David Brown,25_34,male,"en",8,mid,IT,Data Analyst
+EMP010,aisha.rahman@company.com,Aisha Rahman,18_24,female,"ar",2,junior,Operations,Operations Assistant
