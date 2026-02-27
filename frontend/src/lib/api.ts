@@ -174,4 +174,33 @@ export const analyticsAPI = {
   export: (data: any) => apiCall<any>('POST', '/analytics/export', data),
 };
 
+// Tenant Management API (Super Admin)
+export const tenantAPI = {
+  create: (data: any) => apiCall('POST', '/tenants/', data),
+  get: (id: string) => apiCall('GET', `/tenants/${id}`),
+  update: (id: string, data: any) => apiCall('PUT', `/tenants/${id}`, data),
+  delete: (id: string) => apiCall('DELETE', `/tenants/${id}`),
+  search: (filters: any) => apiCall('POST', '/tenants/search', filters),
+  suspend: (id: string) => apiCall('POST', `/tenants/${id}/suspend`),
+  activate: (id: string) => apiCall('POST', `/tenants/${id}/activate`),
+};
+
+// Admin Users API (Super Admin)
+export const adminUserAPI = {
+  create: (data: any) => apiCall('POST', '/admin-users/', data),
+  get: (id: string) => apiCall('GET', `/admin-users/${id}`),
+  update: (id: string, data: any) => apiCall('PUT', `/admin-users/${id}`, data),
+  search: (filters: any) => apiCall('POST', '/admin-users/search', filters),
+  suspend: (id: string) => apiCall('POST', `/admin-users/${id}/suspend`),
+  activate: (id: string) => apiCall('POST', `/admin-users/${id}/activate`),
+  reassignTenant: (id: string, tenantId: string) =>
+    apiCall('PUT', `/admin-users/${id}/reassign-tenant`, { new_tenant_id: tenantId }),
+};
+
+// Audit Logs API (Super Admin)
+export const auditLogAPI = {
+  search: (filters: any) => apiCall('POST', '/audit-logs/search', filters),
+  get: (id: string) => apiCall('GET', `/audit-logs/${id}`),
+};
+
 export default api;

@@ -1,7 +1,8 @@
 """Tenant database model for multi-tenancy."""
 
-from sqlalchemy import Column, String, Boolean
+from sqlalchemy import Column, String, Boolean, Integer, DateTime
 from sqlalchemy.orm import relationship
+from datetime import datetime
 
 from .base import Base, UUIDMixin, TimestampMixin, SoftDeleteMixin
 
@@ -18,7 +19,14 @@ class Tenant(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
 
     # Basic info
     name = Column(String(255), nullable=False)
+    domain = Column(String(255), nullable=False)  # e.g., "acme.com"
     subdomain = Column(String(100), unique=True, nullable=False, index=True)
+
+    # License information
+    license_tier = Column(String(50), default='Professional', nullable=False)  # Starter, Business, Professional, Enterprise
+    seats_total = Column(Integer, default=100, nullable=False)
+    seats_used = Column(Integer, default=0, nullable=False)
+    provisioned_date = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
     # Compliance
     country_code = Column(String(3), default='UAE')

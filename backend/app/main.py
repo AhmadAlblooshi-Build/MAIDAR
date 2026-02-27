@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config.settings import settings
-from app.api import auth, risk, employees, analytics, scenarios, simulations
+from app.api import auth, risk, employees, analytics, scenarios, simulations, tenants, admin_users, audit_logs
 
 # Create FastAPI app
 app = FastAPI(
@@ -86,6 +86,24 @@ app.include_router(
     simulations.router,
     prefix=f"{settings.API_V1_PREFIX}/simulations",
     tags=["Simulations"]
+)
+
+app.include_router(
+    tenants.router,
+    prefix=f"{settings.API_V1_PREFIX}/tenants",
+    tags=["Tenants"]
+)
+
+app.include_router(
+    admin_users.router,
+    prefix=f"{settings.API_V1_PREFIX}/admin-users",
+    tags=["Admin Users"]
+)
+
+app.include_router(
+    audit_logs.router,
+    prefix=f"{settings.API_V1_PREFIX}/audit-logs",
+    tags=["Audit Logs"]
 )
 
 
