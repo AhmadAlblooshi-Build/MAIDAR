@@ -1,45 +1,62 @@
 /**
- * Employee Management Page
- *
- * List, search, and manage employees
+ * Employees Directory Page
+ * Manage employees with risk profiles and bulk operations
  */
 
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/authStore';
+import TenantAdminGuard from '@/components/guards/TenantAdminGuard';
+import TenantAdminLayout from '@/components/tenant-admin/TenantAdminLayout';
 import { employeeAPI } from '@/lib/api';
-import Layout from '@/components/Layout';
-import { Users, Upload, Search, TrendingUp, Building2, Award } from 'lucide-react';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import Select from '@/components/ui/Select';
+import Badge from '@/components/ui/Badge';
+import Spinner from '@/components/ui/Spinner';
+import Table, { Pagination } from '@/components/ui/Table';
+import Modal from '@/components/ui/Modal';
+import { Search, Upload, UserPlus, Download, Filter } from 'lucide-react';
 
 export default function EmployeesPage() {
+  return (
+    <TenantAdminGuard>
+      <TenantAdminLayout>
+        <EmployeesContent />
+      </TenantAdminLayout>
+    </TenantAdminGuard>
+  );
+}
+
+function EmployeesContent() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
-  const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [stats, setStats] = useState<any>(null);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterRole, setFilterRole] = useState('all');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [statistics, setStatistics] = useState<any>(null);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-
     loadEmployees();
     loadStatistics();
-  }, [isAuthenticated]);
+  }, [currentPage, searchTerm, filterRole]);
 
   const loadEmployees = async () => {
     try {
       setLoading(true);
       const response = await employeeAPI.search({
-        page: 1,
-        page_size: 50,
-        query: search,
+        page: currentPage,
+        page_size: 10,
+        search: searchTerm || undefined,
+        role: filterRole !== 'all' ? filterRole : undefined,
       });
-      setEmployees(response.employees);
+      setEmployees(response.employees || []);
+      setTotalPages(response.total_pages || 1);
     } catch (error) {
       console.error('Failed to load employees:', error);
     } finally {
@@ -49,264 +66,286 @@ export default function EmployeesPage() {
 
   const loadStatistics = async () => {
     try {
-      const response = await employeeAPI.statistics();
-      setStats(response);
+      const stats = await employeeAPI.statistics();
+      setStatistics(stats);
     } catch (error) {
       console.error('Failed to load statistics:', error);
     }
   };
 
-  const handleSearch = () => {
-    loadEmployees();
+  const getRiskBadge = (score: number) => {
+    if (score >= 8) return { variant: 'danger' as const, label: 'Critical', color: 'text-red-600' };
+    if (score >= 6) return { variant: 'warning' as const, label: 'High', color: 'text-orange-600' };
+    if (score >= 4) return { variant: 'warning' as const, label: 'Medium', color: 'text-yellow-600' };
+    return { variant: 'success' as const, label: 'Low', color: 'text-green-600' };
   };
 
-  const handleCSVUpload = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.csv';
-    input.onchange = async (e: any) => {
-      const file = e.target.files[0];
-      if (file) {
-        try {
-          await employeeAPI.uploadCSV(file);
-          alert('CSV uploaded successfully!');
-          loadEmployees();
-          loadStatistics();
-        } catch (error: any) {
-          alert(`Upload failed: ${error.detail}`);
-        }
-      }
-    };
-    input.click();
+  const getRiskColor = (score: number) => {
+    if (score >= 8) return 'bg-red-500';
+    if (score >= 6) return 'bg-orange-500';
+    if (score >= 4) return 'bg-yellow-500';
+    return 'bg-green-500';
   };
-
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-[80vh]">
-          <div className="text-center">
-            <div className="relative inline-block">
-              <div className="absolute inset-0 bg-teal-400 rounded-full blur-xl opacity-50 animate-pulse"></div>
-              <div className="relative animate-spin rounded-full h-16 w-16 border-4 border-slate-200 border-t-teal-500"></div>
-            </div>
-            <p className="mt-6 text-slate-600 font-medium">Loading employees...</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
 
   return (
-    <Layout>
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-              Employee Management
-            </h1>
-            <p className="text-slate-500 mt-1">Manage employee data and risk profiles</p>
-          </div>
-          <button
-            onClick={handleCSVUpload}
-            className="group relative px-6 py-3 rounded-xl font-semibold text-white overflow-hidden shadow-lg hover:shadow-xl transition-all hover:scale-105"
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+            Employees
+          </h1>
+          <p className="text-slate-500 mt-1">
+            Directory and Human Risk profiles for {statistics?.total_count?.toLocaleString() || '...'} managed people
+          </p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <Button
+            variant="secondary"
+            icon={<Upload className="w-4 h-4" />}
+            onClick={() => alert('Bulk import functionality coming soon')}
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-cyan-500"></div>
-            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-teal-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <div className="relative flex items-center space-x-2">
-              <Upload className="w-5 h-5" />
-              <span>Upload CSV</span>
-            </div>
-          </button>
-        </div>
-
-        {/* Statistics Cards */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <StatCard
-              title="Total Employees"
-              value={stats.total_employees}
-              icon={<Users className="w-6 h-6" />}
-              gradient="from-blue-500 to-cyan-500"
-            />
-            <StatCard
-              title="Avg Technical Literacy"
-              value={`${stats.avg_technical_literacy.toFixed(1)}/10`}
-              icon={<TrendingUp className="w-6 h-6" />}
-              gradient="from-teal-500 to-emerald-500"
-            />
-            <StatCard
-              title="Departments"
-              value={Object.keys(stats.by_department).length}
-              icon={<Building2 className="w-6 h-6" />}
-              gradient="from-purple-500 to-pink-500"
-            />
-            <StatCard
-              title="Seniority Levels"
-              value={Object.keys(stats.by_seniority).length}
-              icon={<Award className="w-6 h-6" />}
-              gradient="from-orange-500 to-red-500"
-            />
-          </div>
-        )}
-
-        {/* Search Bar */}
-        <div className="backdrop-blur-xl bg-white/60 rounded-2xl border border-white/20 shadow-xl p-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-slate-400 group-focus-within:text-teal-500 transition-colors" />
-              </div>
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="Search employees by name, email, or department..."
-                className="pl-12 w-full px-4 py-3 bg-white/80 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-teal-500/20 focus:border-teal-500 transition-all outline-none text-slate-900 placeholder-slate-400"
-              />
-            </div>
-            <button
-              onClick={handleSearch}
-              className="group relative px-8 py-3 rounded-xl font-semibold text-white overflow-hidden shadow-lg hover:shadow-xl transition-all hover:scale-105"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-cyan-500"></div>
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-teal-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <span className="relative">Search</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Employee Table */}
-        <div className="backdrop-blur-xl bg-white/60 rounded-2xl border border-white/20 shadow-xl overflow-hidden">
-          {employees.length === 0 ? (
-            <div className="px-6 py-16 text-center">
-              <div className="relative inline-block mb-6">
-                <div className="absolute inset-0 bg-slate-400 rounded-full blur-2xl opacity-20"></div>
-                <div className="relative p-6 rounded-full bg-gradient-to-br from-slate-100 to-slate-200">
-                  <Users className="w-16 h-16 text-slate-400" />
-                </div>
-              </div>
-              <p className="text-lg font-semibold text-slate-700 mb-2">No employees found</p>
-              <p className="text-slate-500 mb-6">Upload a CSV file to get started</p>
-              <button
-                onClick={handleCSVUpload}
-                className="group relative inline-flex items-center space-x-2 px-6 py-3 rounded-xl font-semibold text-white overflow-hidden shadow-lg hover:shadow-xl transition-all hover:scale-105"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-cyan-500"></div>
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-teal-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <Upload className="relative w-5 h-5" />
-                <span className="relative">Upload CSV</span>
-              </button>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="border-b border-white/20">
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
-                      Email
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
-                      Department
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
-                      Seniority
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
-                      Tech Literacy
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {employees.map((employee, idx) => (
-                    <tr
-                      key={employee.id}
-                      className={`border-b border-white/10 hover:bg-white/40 transition-colors ${
-                        idx % 2 === 0 ? 'bg-white/20' : 'bg-transparent'
-                      }`}
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="relative group/avatar">
-                            <div className="absolute inset-0 bg-gradient-to-r from-teal-400 to-cyan-500 rounded-full blur-md opacity-0 group-hover/avatar:opacity-50 transition-opacity"></div>
-                            <img
-                              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(employee.full_name)}&background=14b8a6&color=fff&bold=true`}
-                              alt={employee.full_name}
-                              className="relative w-10 h-10 rounded-full ring-2 ring-white"
-                            />
-                          </div>
-                          <span className="font-medium text-slate-900">{employee.full_name}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-slate-600">{employee.email}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-slate-900 font-medium">{employee.department}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border border-blue-200">
-                          {employee.seniority}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-2">
-                          <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full"
-                              style={{ width: `${(employee.technical_literacy / 10) * 100}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-sm font-semibold text-slate-700 min-w-[3ch]">
-                            {employee.technical_literacy}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <button className="text-teal-600 hover:text-teal-700 font-semibold text-sm hover:underline">
-                          View Details
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+            Bulk Import
+          </Button>
+          <Button
+            variant="primary"
+            icon={<UserPlus className="w-4 h-4" />}
+            onClick={() => setShowAddModal(true)}
+          >
+            Add Employee
+          </Button>
         </div>
       </div>
-    </Layout>
+
+      {statistics && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card className="p-4">
+            <div className="text-sm text-slate-600 mb-1">Total Employees</div>
+            <div className="text-2xl font-bold text-slate-900">{statistics.total_count}</div>
+          </Card>
+          <Card className="p-4">
+            <div className="text-sm text-slate-600 mb-1">Average Risk Score</div>
+            <div className="text-2xl font-bold text-orange-600">{statistics.avg_risk_score?.toFixed(1)}</div>
+          </Card>
+          <Card className="p-4">
+            <div className="text-sm text-slate-600 mb-1">High Risk</div>
+            <div className="text-2xl font-bold text-red-600">{statistics.high_risk_count}</div>
+          </Card>
+          <Card className="p-4">
+            <div className="text-sm text-slate-600 mb-1">Tech Literacy</div>
+            <div className="text-2xl font-bold text-teal-600">{statistics.avg_technical_literacy?.toFixed(1)}/10</div>
+          </Card>
+        </div>
+      )}
+
+      <Card>
+        <div className="flex items-center space-x-4">
+          <div className="flex-1">
+            <Input
+              placeholder="Search employees..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              icon={<Search className="w-4 h-4" />}
+            />
+          </div>
+          <Select
+            value={filterRole}
+            onChange={(e) => setFilterRole(e.target.value)}
+            options={[
+              { value: 'all', label: 'All Roles' },
+              { value: 'Engineer', label: 'Engineer' },
+              { value: 'Manager', label: 'Manager' },
+              { value: 'Executive', label: 'Executive' },
+              { value: 'Analyst', label: 'Analyst' },
+            ]}
+          />
+          <Button variant="secondary" icon={<Filter className="w-4 h-4" />}>
+            Filters
+          </Button>
+          <Button variant="secondary" icon={<Download className="w-4 h-4" />}>
+            Export
+          </Button>
+        </div>
+      </Card>
+
+      <Card>
+        {loading ? (
+          <Spinner />
+        ) : (
+          <>
+            <Table
+              columns={[
+                {
+                  key: 'full_name',
+                  label: 'Employee',
+                  render: (value: string, row: any) => (
+                    <div>
+                      <div className="font-semibold text-slate-900">{value}</div>
+                      <div className="text-sm text-slate-500">{row.email}</div>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'department',
+                  label: 'Dept & Role',
+                  render: (value: string, row: any) => (
+                    <div>
+                      <div className="text-sm font-medium text-slate-900">{value}</div>
+                      <div className="text-xs text-slate-500">{row.job_title}</div>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'risk_score',
+                  label: 'Risk Index',
+                  render: (value: number) => {
+                    const badge = getRiskBadge(value);
+                    return (
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden max-w-[80px]">
+                          <div
+                            className={`h-full ${getRiskColor(value)} rounded-full transition-all duration-500`}
+                            style={{ width: `${(value / 10) * 100}%` }}
+                          />
+                        </div>
+                        <span className={`text-sm font-bold ${badge.color} min-w-[30px]`}>
+                          {value.toFixed(1)}
+                        </span>
+                      </div>
+                    );
+                  },
+                },
+                {
+                  key: 'status',
+                  label: 'Status',
+                  render: () => <Badge variant="success" dot>Active</Badge>,
+                },
+                {
+                  key: 'action',
+                  label: 'Action',
+                  render: (_, row: any) => (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/employees/${row.id}`);
+                      }}
+                    >
+                      View
+                    </Button>
+                  ),
+                },
+              ]}
+              data={employees}
+              onRowClick={(row) => router.push(`/employees/${row.id}`)}
+            />
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </>
+        )}
+      </Card>
+
+      <AddEmployeeModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={() => {
+          setShowAddModal(false);
+          loadEmployees();
+        }}
+      />
+    </div>
   );
 }
 
-// Stat Card Component
-interface StatCardProps {
-  title: string;
-  value: string | number;
-  icon: React.ReactNode;
-  gradient: string;
-}
+function AddEmployeeModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    full_name: '',
+    email: '',
+    department: '',
+    job_title: '',
+    seniority: 'Mid-Level',
+  });
 
-function StatCard({ title, value, icon, gradient }: StatCardProps) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      await employeeAPI.create(formData);
+      onSuccess();
+    } catch (error) {
+      console.error('Failed to create employee:', error);
+      alert('Failed to create employee');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="group relative">
-      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-20 transition-opacity`}></div>
-      <div className="relative backdrop-blur-xl bg-white/60 rounded-2xl border border-white/20 shadow-xl p-6 hover:scale-105 transition-transform">
-        <div className="flex items-center justify-between mb-4">
-          <div className={`p-3 rounded-xl bg-gradient-to-br ${gradient} shadow-lg`}>
-            <div className="text-white">{icon}</div>
-          </div>
+    <Modal isOpen={isOpen} onClose={onClose} title="Add Employee" subtitle="Add a new employee to your organization">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Input
+          label="Full Name"
+          required
+          value={formData.full_name}
+          onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+          placeholder="John Doe"
+        />
+        <Input
+          label="Email"
+          type="email"
+          required
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          placeholder="john@company.com"
+        />
+        <Input
+          label="Department"
+          required
+          value={formData.department}
+          onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+          placeholder="Engineering"
+        />
+        <Input
+          label="Job Title"
+          required
+          value={formData.job_title}
+          onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
+          placeholder="Software Engineer"
+        />
+        <Select
+          label="Seniority"
+          required
+          value={formData.seniority}
+          onChange={(e) => setFormData({ ...formData, seniority: e.target.value })}
+          options={[
+            { value: 'Entry', label: 'Entry Level' },
+            { value: 'Mid-Level', label: 'Mid-Level' },
+            { value: 'Senior', label: 'Senior' },
+            { value: 'Executive', label: 'Executive' },
+          ]}
+        />
+        <div className="flex items-center justify-end space-x-3 pt-4">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="primary" loading={loading}>
+            Add Employee
+          </Button>
         </div>
-        <div className="text-3xl font-bold text-slate-900 mb-1">{value}</div>
-        <div className="text-sm text-slate-500 font-medium">{title}</div>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 }

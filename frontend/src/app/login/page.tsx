@@ -41,7 +41,19 @@ export default function LoginPage() {
       if (response.ok) {
         const data = await response.json();
         setAuth(data.user, data.access_token);
-        router.push('/');
+
+        // Role-based redirect
+        switch (data.user.role) {
+          case 'PLATFORM_SUPER_ADMIN':
+            router.push('/super-admin/dashboard');
+            break;
+          case 'TENANT_ADMIN':
+          case 'ANALYST':
+            router.push('/dashboard');
+            break;
+          default:
+            router.push('/dashboard');
+        }
       } else {
         const errorData = await response.json();
         setError(errorData.detail || 'Authentication failed');

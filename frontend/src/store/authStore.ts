@@ -1,17 +1,19 @@
 /**
  * Authentication Store
  *
- * Global state management for user authentication
+ * Global state management for user authentication with role-based access
  */
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export type UserRole = 'PLATFORM_SUPER_ADMIN' | 'TENANT_ADMIN' | 'ANALYST';
+
 interface User {
   id: string;
   email: string;
   full_name: string;
-  role: string;
+  role: UserRole;
   tenant_id: string | null;
   is_active: boolean;
 }
@@ -23,11 +25,14 @@ interface AuthState {
   setAuth: (user: User, token: string) => void;
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
+  isSuperAdmin: () => boolean;
+  isTenantAdmin: () => boolean;
+  isAnalyst: () => boolean;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       token: null,
       isAuthenticated: false,
@@ -48,6 +53,18 @@ export const useAuthStore = create<AuthState>()(
         set((state) => ({
           user: state.user ? { ...state.user, ...updates } : null,
         })),
+
+      isSuperAdmin: () => {
+        return get().user?.role === 'PLATFORM_SUPER_ADMIN';
+      },
+
+      isTenantAdmin: () => {
+        return get().user?.role === 'TENANT_ADMIN';
+      },
+
+      isAnalyst: () => {
+        return get().user?.role === 'ANALYST';
+      },
     }),
     {
       name: 'auth-storage',

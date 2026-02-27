@@ -31,7 +31,9 @@
       "Bash(git add:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\n🔒 Security & Bug Fixes: Complete Production-Ready Platform\n\nFixed 8 critical bugs identified in comprehensive audit:\n\nCRITICAL SECURITY FIXES:\n- Added authentication to all risk API endpoints \\(risk.py\\)\n- Fixed tenant isolation bypass in UUID lookups \\(employees.py\\)\n- Added comprehensive CSV upload validation preventing DOS \\(employees.py\\)\n- Fixed field name mismatches in simulation tracking \\(simulation.py, simulations.py\\)\n- Fixed missing enum imports causing runtime crashes \\(employees.py\\)\n\nHIGH-PRIORITY FIXES:\n- Added pagination bounds validation \\(analytics.py\\)\n- Fixed missing foreign key cascade on scenario_id \\(simulation.py\\)\n\nMEDIUM-PRIORITY FIXES:\n- Fixed enum validation to return 400 instead of 500 \\(scenarios.py\\)\n\nTEST RESULTS:\n✅ Unit Tests: 41/41 \\(100%\\)\n✅ Integration Tests: 22/22 \\(100%\\)\n✅ End-to-End Tests: 54/54 \\(100%\\)\n✅ Total: 117/117 tests passing\n\nSECURITY IMPROVEMENTS:\n- 100% authentication coverage on risk endpoints\n- All database queries include tenant filtering\n- Input validation prevents DOS attacks\n- Resource protection with bounded pagination\n- Foreign key integrity maintained\n\nFILES MODIFIED:\n- backend/app/api/risk.py\n- backend/app/api/employees.py\n- backend/app/api/scenarios.py\n- backend/app/api/simulations.py\n- backend/app/api/analytics.py\n- backend/app/models/simulation.py\n\nDOCUMENTATION:\n- Added comprehensive bug fix documentation\n- Updated memory with critical bug patterns\n- Created BUG_FIXES_2026-02-27.md with full technical details\n\nPlatform is now production-ready with zero critical bugs.\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(docker-compose ps:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(unzip:*)",
+      "Bash(powershell -Command:*)"
     ]
   }
 }
