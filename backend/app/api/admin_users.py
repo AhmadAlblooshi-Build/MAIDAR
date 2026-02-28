@@ -44,7 +44,7 @@ class AdminUserResponse(BaseModel):
     role: str
     is_active: bool
     email_verified: bool
-    last_login_at: Optional[datetime]
+    last_login: Optional[datetime]
     created_at: datetime
     mfa_enabled: bool = False
 
@@ -125,7 +125,7 @@ async def create_admin_user(
         role=user.role,
         is_active=user.is_active,
         email_verified=user.email_verified,
-        last_login_at=user.last_login_at,
+        last_login=user.last_login,
         created_at=user.created_at,
         mfa_enabled=user_data.require_mfa
     )
@@ -160,7 +160,7 @@ async def get_admin_user(
         role=user.role,
         is_active=user.is_active,
         email_verified=user.email_verified,
-        last_login_at=user.last_login_at,
+        last_login=user.last_login,
         created_at=user.created_at,
         mfa_enabled=False
     )
@@ -204,7 +204,7 @@ async def update_admin_user(
         role=user.role,
         is_active=user.is_active,
         email_verified=user.email_verified,
-        last_login_at=user.last_login_at,
+        last_login=user.last_login,
         created_at=user.created_at,
         mfa_enabled=False
     )
@@ -266,7 +266,7 @@ async def search_admin_users(
             "role": user.role,
             "is_active": user.is_active,
             "email_verified": user.email_verified,
-            "last_login_at": user.last_login_at,
+            "last_login": user.last_login,
             "created_at": user.created_at,
             "mfa_enabled": False
         }
@@ -319,7 +319,7 @@ async def suspend_admin_user(
         role=user.role,
         is_active=user.is_active,
         email_verified=user.email_verified,
-        last_login_at=user.last_login_at,
+        last_login=user.last_login,
         created_at=user.created_at,
         mfa_enabled=False
     )
@@ -358,7 +358,7 @@ async def activate_admin_user(
         role=user.role,
         is_active=user.is_active,
         email_verified=user.email_verified,
-        last_login_at=user.last_login_at,
+        last_login=user.last_login,
         created_at=user.created_at,
         mfa_enabled=False
     )
@@ -400,7 +400,7 @@ async def reassign_tenant(
         role=user.role,
         is_active=user.is_active,
         email_verified=user.email_verified,
-        last_login_at=user.last_login_at,
+        last_login=user.last_login,
         created_at=user.created_at,
         mfa_enabled=False
     )

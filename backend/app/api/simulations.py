@@ -14,6 +14,9 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func, and_
 
+# Import Celery tasks
+from app.tasks.simulation_tasks import launch_simulation_emails
+
 from app.config.database import get_db
 from app.core.dependencies import get_current_user, get_current_admin_user, check_tenant_access
 from app.models.user import User
@@ -461,21 +464,18 @@ def launch_simulation(
     if launch_request.send_immediately:
         simulation.status = SimulationStatus.IN_PROGRESS
         simulation.started_at = datetime.utcnow()
-        status_message = "Simulation launched successfully"
+        status_message = "Simulation launched successfully. Emails are being sent in the background."
+
+        # Queue background task to send emails
+        launch_simulation_emails.delay(
+            simulation_id=str(simulation.id),
+            admin_email=current_user.email,
+            admin_name=current_user.full_name
+        )
     else:
         simulation.status = SimulationStatus.SCHEDULED
         simulation.scheduled_at = launch_request.scheduled_at
-        status_message = f"Simulation scheduled for {launch_request.scheduled_at}"
-
-    # Mark all results as email delivered (in real implementation, this would trigger email sending)
-    if launch_request.send_immediately:
-        results = db.query(SimulationResult).filter(
-            SimulationResult.simulation_id == simulation.id
-        ).all()
-
-        for result in results:
-            result.email_delivered = True
-            result.email_sent_at = datetime.utcnow()
+        status_message = f"Simulation scheduled for {launch_request.scheduled_at}. Emails will be sent automatically."
 
     db.commit()
 

@@ -17,6 +17,7 @@ class AuditAction(str, Enum):
     EMPLOYEE_UPDATED = "EMPLOYEE_UPDATED"
     EMPLOYEE_DELETED = "EMPLOYEE_DELETED"
     EMPLOYEE_EXPORTED = "EMPLOYEE_EXPORTED"
+    EMPLOYEE_VIEWED = "EMPLOYEE_VIEWED"  # Data access tracking
 
     # Risk scoring actions
     RISK_SCORE_CALCULATED = "RISK_SCORE_CALCULATED"
@@ -26,15 +27,24 @@ class AuditAction(str, Enum):
     SIMULATION_LAUNCHED = "SIMULATION_LAUNCHED"
     SIMULATION_COMPLETED = "SIMULATION_COMPLETED"
 
-    # User actions
+    # Authentication actions
     USER_LOGIN = "USER_LOGIN"
+    USER_LOGIN_FAILED = "USER_LOGIN_FAILED"
     USER_LOGOUT = "USER_LOGOUT"
+    MFA_ENABLED = "MFA_ENABLED"
+    MFA_DISABLED = "MFA_DISABLED"
+    MFA_BACKUP_CODES_REGENERATED = "MFA_BACKUP_CODES_REGENERATED"
+    SESSION_CREATED = "SESSION_CREATED"
+    SESSION_TERMINATED = "SESSION_TERMINATED"
+    ALL_SESSIONS_TERMINATED = "ALL_SESSIONS_TERMINATED"
 
     # Data export actions
     DATA_EXPORTED = "DATA_EXPORTED"
 
     # Configuration changes
     SETTINGS_CHANGED = "SETTINGS_CHANGED"
+    PERMISSION_CHANGED = "PERMISSION_CHANGED"
+    ROLE_ASSIGNED = "ROLE_ASSIGNED"
 
 
 class AuditLog(Base, UUIDMixin):
@@ -60,6 +70,10 @@ class AuditLog(Base, UUIDMixin):
     details = Column(JSONB, nullable=True)  # Flexible details storage
     ip_address = Column(INET, nullable=True)
     user_agent = Column(Text, nullable=True)
+
+    # Status tracking (Phase 2 enhancement)
+    status = Column(String(20), nullable=False, default="success")  # success, failure
+    error_message = Column(Text, nullable=True)  # Error details if status is failure
 
     # Timestamp (immutable, no update)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False, index=True)

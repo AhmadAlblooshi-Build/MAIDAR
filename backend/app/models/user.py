@@ -41,7 +41,7 @@ class User(Base, UUIDMixin, TimestampMixin):
     email_verified = Column(Boolean, default=False, index=True)
     verification_code = Column(String(6), nullable=True)
     verification_code_expires_at = Column(DateTime(timezone=True), nullable=True)
-    last_login_at = Column(DateTime(timezone=True), nullable=True)
+    last_login = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     tenant = relationship("Tenant", back_populates="users")
@@ -50,6 +50,7 @@ class User(Base, UUIDMixin, TimestampMixin):
     audit_logs = relationship("AuditLog", back_populates="user")
     roles = relationship("Role", secondary="user_roles", back_populates="users")
     notifications = relationship("Notification", back_populates="user")
+    sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<User {self.email} ({self.role})>"
