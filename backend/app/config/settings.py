@@ -44,7 +44,10 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
 
     # CORS (Cross-Origin Resource Sharing)
-    CORS_ORIGINS: list = ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:8000"]
+    CORS_ORIGINS: list = [
+        "http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:8000",
+        "http://127.0.0.1:3000", "http://127.0.0.1:3001", "http://127.0.0.1:3002", "http://127.0.0.1:8000"
+    ]
 
     # Monitoring
     SENTRY_DSN: Optional[str] = None

@@ -172,7 +172,7 @@ services:
     container_name: maidar-frontend-staging
     environment:
       NODE_ENV: staging
-      NEXT_PUBLIC_API_URL: http://localhost:8002/api/v1
+      NEXT_PUBLIC_API_URL: http://localhost:8002
       NEXT_PUBLIC_APP_URL: http://localhost:3001
     ports:
       - "3001:3000"
