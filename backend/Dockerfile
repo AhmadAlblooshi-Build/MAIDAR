@@ -21,6 +21,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY ./app ./app
 COPY ./alembic ./alembic
 COPY ./alembic.ini ./alembic.ini
+COPY ./start.sh ./start.sh
+
+# Make start script executable
+RUN chmod +x start.sh
 
 # Create non-root user for security
 RUN useradd -m -u 1000 maidar && chown -R maidar:maidar /app
@@ -34,5 +38,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:8000/health')"
 
 # Run application
-# --no-server-header: Don't send Server header for security
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-server-header"]
+# Uses start.sh to handle dynamic PORT variable for Railway
+CMD ["bash", "start.sh"]
