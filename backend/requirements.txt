@@ -66,3 +66,11 @@ pillow==10.2.0  # Image processing for QR codes
 # Monitoring
 sentry-sdk[fastapi]==2.19.2  # Error tracking and monitoring
 psutil==5.9.8  # System metrics (CPU, memory, disk)
+
+# Export & Reporting
+openpyxl==3.1.2  # Excel file generation and export
+reportlab==4.0.9  # PDF report generation
+xlsxwriter==3.1.9  # Alternative Excel library
+
+# AI Integration
+anthropic==0.39.0  # Claude AI SDK for AI-powered features
