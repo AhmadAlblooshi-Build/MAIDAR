@@ -56,7 +56,7 @@ class EmployeeBase(BaseModel):
     def validate_languages(cls, v):
         """Validate and normalize language codes."""
         if not v:
-            raise ValueError("At least one language must be provided")
+            return []  # Allow empty list (will use platform default)
         # Normalize to lowercase
         return [lang.lower() for lang in v]
 

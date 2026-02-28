@@ -104,3 +104,12 @@ class ChangePassword(BaseModel):
         if not any(char.islower() for char in v):
             raise ValueError('Password must contain at least one lowercase letter')
         return v
+
+
+class UpdateProfile(BaseModel):
+    """Schema for updating user profile."""
+    full_name: Optional[str] = Field(None, min_length=1, max_length=255)
+    email: Optional[EmailStr] = None
+
+    class Config:
+        from_attributes = True

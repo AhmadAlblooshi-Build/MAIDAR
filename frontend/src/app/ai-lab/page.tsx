@@ -12,7 +12,9 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Select from '@/components/ui/Select';
 import Badge from '@/components/ui/Badge';
-import { Brain, Zap, Sparkles, Target, Mail, Globe, Cpu } from 'lucide-react';
+import { Brain, Zap, Sparkles, Target, Mail, Globe, Cpu, AlertCircle, CheckCircle, Save } from 'lucide-react';
+import { scenarioAPI } from '@/lib/api';
+import { Scenario } from '@/types';
 
 export default function AILabPage() {
   return (
@@ -26,18 +28,80 @@ export default function AILabPage() {
 
 function AILabContent() {
   const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [contextType, setContextType] = useState('it_alert');
   const [targetSegment, setTargetSegment] = useState('finance');
   const [personalization, setPersonalization] = useState('department');
   const [tone, setTone] = useState('urgent');
+  const [language, setLanguage] = useState('en');
   const [showPreview, setShowPreview] = useState(false);
+  const [generatedScenario, setGeneratedScenario] = useState<Scenario | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const handleGenerate = () => {
-    setGenerating(true);
-    setTimeout(() => {
-      setGenerating(false);
+  const handleGenerate = async (autoSave: boolean = false) => {
+    try {
+      setGenerating(true);
+      setError(null);
+      setSuccessMessage(null);
+
+      const scenario = await scenarioAPI.generateAI({
+        context_type: contextType,
+        target_segment: targetSegment,
+        personalization_level: personalization,
+        tone,
+        language,
+        auto_save: autoSave,
+      });
+
+      setGeneratedScenario(scenario);
       setShowPreview(true);
-    }, 2000);
+
+      if (autoSave) {
+        setSuccessMessage('Scenario generated and saved to library successfully!');
+      }
+    } catch (err: any) {
+      console.error('Failed to generate scenario:', err);
+      setError(err.detail || 'Failed to generate scenario. Please try again.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleSaveToLibrary = async () => {
+    if (!generatedScenario) return;
+
+    try {
+      setSaving(true);
+      setError(null);
+
+      // If it's a preview (id = "preview"), save it
+      if (generatedScenario.id === 'preview') {
+        await scenarioAPI.create({
+          name: generatedScenario.name,
+          description: generatedScenario.description,
+          category: generatedScenario.category,
+          language: generatedScenario.language,
+          difficulty: generatedScenario.difficulty,
+          email_subject: generatedScenario.email_subject,
+          email_body_html: generatedScenario.email_body_html,
+          email_body_text: generatedScenario.email_body_text,
+          sender_name: generatedScenario.sender_name,
+          sender_email: generatedScenario.sender_email,
+          has_link: generatedScenario.has_link,
+          has_attachment: generatedScenario.has_attachment,
+          has_credential_form: generatedScenario.has_credential_form,
+        });
+        setSuccessMessage('Scenario saved to library successfully!');
+      } else {
+        setSuccessMessage('Scenario already saved to library!');
+      }
+    } catch (err: any) {
+      console.error('Failed to save scenario:', err);
+      setError(err.detail || 'Failed to save scenario. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -56,6 +120,22 @@ function AILabContent() {
           <span className="text-sm font-medium text-purple-700">AI Powered</span>
         </div>
       </div>
+
+      {/* Success Message */}
+      {successMessage && (
+        <div className="flex items-center space-x-3 p-4 bg-green-50 border border-green-200 rounded-xl">
+          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+          <p className="text-sm text-green-700">{successMessage}</p>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="flex items-center space-x-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
 
       <div className="relative overflow-hidden backdrop-blur-xl bg-white/60 rounded-2xl border border-white/20 shadow-xl">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-cyan-500/10" />
@@ -80,15 +160,25 @@ function AILabContent() {
             highly realistic and effective phishing scenarios tailored to your needs.
           </p>
 
-          <div className="flex justify-center">
+          <div className="flex justify-center space-x-4">
             <Button
-              onClick={handleGenerate}
+              onClick={() => handleGenerate(false)}
               disabled={generating}
               loading={generating}
               size="lg"
+              variant="secondary"
               icon={generating ? undefined : <Zap className="w-5 h-5" />}
             >
-              {generating ? 'Generating...' : 'Generate Scenario'}
+              {generating ? 'Generating...' : 'Generate Preview'}
+            </Button>
+            <Button
+              onClick={() => handleGenerate(true)}
+              disabled={generating}
+              loading={generating}
+              size="lg"
+              icon={generating ? undefined : <Save className="w-5 h-5" />}
+            >
+              {generating ? 'Generating...' : 'Generate & Save'}
             </Button>
           </div>
         </div>
@@ -101,17 +191,22 @@ function AILabContent() {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Context Type</label>
               <div className="grid grid-cols-2 gap-2">
-                {['IT Alert', 'HR Request', 'Payroll', 'Admin', 'Executive', 'Other'].map((type) => (
+                {[
+                  { value: 'it_alert', label: 'IT Alert' },
+                  { value: 'hr_notification', label: 'HR Notification' },
+                  { value: 'finance_request', label: 'Finance Request' },
+                  { value: 'executive_message', label: 'Executive Message' },
+                ].map((type) => (
                   <button
-                    key={type}
-                    onClick={() => setContextType(type.toLowerCase().replace(' ', '_'))}
+                    key={type.value}
+                    onClick={() => setContextType(type.value)}
                     className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                      contextType === type.toLowerCase().replace(' ', '_')
+                      contextType === type.value
                         ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-lg'
                         : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'
                     }`}
                   >
-                    {type}
+                    {type.label}
                   </button>
                 ))}
               </div>
@@ -123,9 +218,20 @@ function AILabContent() {
               onChange={(e) => setTargetSegment(e.target.value)}
               options={[
                 { value: 'finance', label: 'Finance' },
-                { value: 'engineering', label: 'Engineering' },
+                { value: 'it', label: 'IT' },
                 { value: 'hr', label: 'HR' },
                 { value: 'executive', label: 'Executive' },
+                { value: 'all_staff', label: 'All Staff' },
+              ]}
+            />
+
+            <Select
+              label="Language"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              options={[
+                { value: 'en', label: 'English' },
+                { value: 'ar', label: 'Arabic' },
               ]}
             />
 
@@ -159,7 +265,7 @@ function AILabContent() {
               onChange={(e) => setTone(e.target.value)}
               options={[
                 { value: 'urgent', label: 'Urgent' },
-                { value: 'formal', label: 'Formal' },
+                { value: 'professional', label: 'Professional' },
                 { value: 'friendly', label: 'Friendly' },
                 { value: 'casual', label: 'Casual' },
               ]}
@@ -170,10 +276,12 @@ function AILabContent() {
         <Card>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-slate-900">Scenario Preview</h3>
-            <Badge variant="info">Match Accuracy 94%</Badge>
+            {generatedScenario && (
+              <Badge variant="info">{generatedScenario.difficulty || 'Medium'} Difficulty</Badge>
+            )}
           </div>
 
-          {!showPreview ? (
+          {!showPreview || !generatedScenario ? (
             <div className="text-center py-12">
               <Sparkles className="w-16 h-16 text-slate-300 mx-auto mb-4" />
               <p className="text-slate-500">
@@ -183,38 +291,95 @@ function AILabContent() {
           ) : (
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-slate-600">Subject Line</label>
+                <label className="text-sm font-medium text-slate-600">Scenario Name</label>
+                <div className="mt-1 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                  <p className="text-sm font-semibold text-slate-900">{generatedScenario.name}</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-600">Description</label>
+                <div className="mt-1 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                  <p className="text-sm text-slate-700">{generatedScenario.description}</p>
+                </div>
+              </div>
+
+              <div className="flex space-x-4">
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-slate-600">Category</label>
+                  <div className="mt-1">
+                    <Badge variant="info">{generatedScenario.category}</Badge>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-slate-600">Language</label>
+                  <div className="mt-1">
+                    <Badge variant="info">{generatedScenario.language.toUpperCase()}</Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-600">From</label>
                 <div className="mt-1 p-3 bg-slate-50 rounded-lg border border-slate-200">
                   <p className="text-sm text-slate-900">
-                    Action Required: Your security token is expiring
+                    {generatedScenario.sender_name} &lt;{generatedScenario.sender_email}&gt;
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-600">Subject Line</label>
+                <div className="mt-1 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                  <p className="text-sm font-semibold text-slate-900">
+                    {generatedScenario.email_subject}
                   </p>
                 </div>
               </div>
 
               <div>
                 <label className="text-sm font-medium text-slate-600">Email Body</label>
-                <div className="mt-1 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="mt-1 p-4 bg-slate-50 rounded-lg border border-slate-200 max-h-64 overflow-y-auto">
                   <p className="text-sm text-slate-900 whitespace-pre-wrap">
-                    Hello [Employee Name],
-
-To maintain access to corporate systems, you must update your security token before it expires tomorrow at 5:00 PM.
-
-Click here to verify your credentials: [Phishing Link]
-
-This is a mandatory security update required by the IT department.
-
-Best regards,
-IT Security Team
+                    {generatedScenario.email_body_text}
                   </p>
                 </div>
               </div>
 
               <div className="flex space-x-2">
-                <Button variant="secondary" size="sm" className="flex-1">
+                <div className="flex space-x-2 flex-1">
+                  {generatedScenario.has_link && (
+                    <Badge variant="warning" size="sm">Has Link</Badge>
+                  )}
+                  {generatedScenario.has_attachment && (
+                    <Badge variant="warning" size="sm">Has Attachment</Badge>
+                  )}
+                  {generatedScenario.has_credential_form && (
+                    <Badge variant="error" size="sm">Credential Form</Badge>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex space-x-2">
+                <Button
+                  onClick={() => handleGenerate(false)}
+                  disabled={generating}
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1"
+                >
                   Regenerate
                 </Button>
-                <Button variant="primary" size="sm" className="flex-1">
-                  Save to Library
+                <Button
+                  onClick={handleSaveToLibrary}
+                  disabled={saving || generatedScenario.id !== 'preview'}
+                  loading={saving}
+                  variant="primary"
+                  size="sm"
+                  className="flex-1"
+                  icon={<Save className="w-4 h-4" />}
+                >
+                  {generatedScenario.id === 'preview' ? 'Save to Library' : 'Already Saved'}
                 </Button>
               </div>
             </div>

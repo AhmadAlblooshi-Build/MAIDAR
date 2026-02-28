@@ -45,6 +45,12 @@ class Simulation(Base, UUIDMixin, TimestampMixin):
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Tracking configuration
+    send_immediately = Column(Boolean, default=True)
+    track_opens = Column(Boolean, default=True)
+    track_clicks = Column(Boolean, default=True)
+    track_credentials = Column(Boolean, default=True)
+
     # Created by
     created_by = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
 

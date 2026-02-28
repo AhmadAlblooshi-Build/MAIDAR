@@ -18,6 +18,7 @@ from sqlalchemy import func, and_, or_, desc
 
 from app.config.database import get_db
 from app.core.dependencies import get_current_user, get_current_admin_user, get_current_super_admin
+from app.core.exports import export_employees, export_risk_scores, export_simulation_results
 from app.models.user import User
 from app.models.employee import Employee
 from app.models.risk_score import RiskScore, RiskBand
@@ -278,11 +279,18 @@ def get_seniority_comparison(
 
     Shows which seniority levels are most vulnerable.
     """
-    from app.models.employee import Seniority
+    # Get distinct seniority levels for this tenant
+    seniority_levels = db.query(Employee.seniority).filter(
+        Employee.tenant_id == current_user.tenant_id,
+        Employee.deleted_at == None
+    ).distinct().all()
 
     seniority_comparisons = []
 
-    for seniority in Seniority:
+    for (seniority,) in seniority_levels:
+        if not seniority:
+            continue
+
         # Get employees at this seniority
         employees = db.query(Employee).filter(
             Employee.tenant_id == current_user.tenant_id,
@@ -321,7 +329,7 @@ def get_seniority_comparison(
         most_vulnerable = max(category_counts.items(), key=lambda x: x[1])[0] if category_counts else "Unknown"
 
         seniority_comparisons.append(SeniorityRiskComparison(
-            seniority=seniority.value,
+            seniority=seniority,  # seniority is already a string from DB
             total_employees=len(employees),
             average_risk_score=round(avg_risk, 2),
             high_risk_count=high_risk,
@@ -634,47 +642,133 @@ def get_executive_summary(
     )
 
 
-@router.post("/export", response_model=DataExportResponse)
-def export_data(
+@router.post("/export")
+async def export_data(
     export_request: DataExportRequest,
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
     """
-    Export data to CSV or JSON.
+    Export data to CSV, Excel, or PDF format.
 
-    Requires admin privileges. Supports exporting employees, simulations, scenarios, risk scores, and audit logs.
+    Requires admin privileges. Supports exporting employees, simulations, scenarios, and risk scores.
+    Returns file as downloadable response.
     """
-    import uuid
+    export_type = export_request.export_type
+    format = export_request.format.lower()
 
-    export_id = str(uuid.uuid4())
-
-    # Determine what to export
-    export_types = {
-        "employees": Employee,
-        "simulations": Simulation,
-        "scenarios": Scenario,
-        "risk_scores": RiskScore,
-        "all": None
-    }
-
-    if export_request.export_type not in export_types:
+    # Validate format
+    if format not in ["csv", "excel", "pdf"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid export type. Must be one of: {', '.join(export_types.keys())}"
+            detail=f"Invalid format. Must be one of: csv, excel, pdf"
         )
 
-    # For this implementation, we'll return a success response
-    # In production, this would trigger an async job
-    logger.info(f"Data export requested: {export_request.export_type} by user {current_user.email}")
+    try:
+        # Fetch data based on export type
+        if export_type == "employees":
+            query = db.query(Employee).filter(Employee.tenant_id == current_user.tenant_id)
+            employees = query.all()
 
-    return DataExportResponse(
-        export_id=export_id,
-        export_type=export_request.export_type,
-        format=export_request.format,
-        status="completed",
-        download_url=f"/api/v1/analytics/download/{export_id}",
-        record_count=0,  # Would be calculated
-        file_size_bytes=0,  # Would be calculated
-        expires_at=datetime.utcnow() + timedelta(days=7)
-    )
+            data = [
+                {
+                    "ID": str(emp.id),
+                    "Email": emp.email,
+                    "Full Name": emp.full_name,
+                    "Department": emp.department or "N/A",
+                    "Job Title": emp.job_title or "N/A",
+                    "Seniority": emp.seniority_level or "N/A",
+                    "Risk Score": emp.risk_score or 0,
+                    "Risk Band": emp.risk_band or "UNSCORED",
+                    "Status": "Active" if emp.is_active else "Inactive",
+                    "Created": emp.created_at.strftime("%Y-%m-%d") if emp.created_at else "N/A"
+                }
+                for emp in employees
+            ]
+
+            file_bytes = export_employees(data, format)
+            filename = f"employees_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.{format if format != 'excel' else 'xlsx'}"
+
+        elif export_type == "risk_scores":
+            query = db.query(RiskScore).filter(RiskScore.tenant_id == current_user.tenant_id)
+            risk_scores = query.all()
+
+            data = [
+                {
+                    "Employee ID": str(rs.employee_id),
+                    "Risk Score": rs.risk_score,
+                    "Risk Band": rs.risk_band,
+                    "Age": rs.age_range or "Unknown",
+                    "Department": rs.department or "Unknown",
+                    "Seniority": rs.seniority_level or "Unknown",
+                    "Previous Clicks": rs.previous_clicks,
+                    "Previous Opens": rs.previous_opens,
+                    "Training Completed": rs.training_completed,
+                    "Last Calculated": rs.calculated_at.strftime("%Y-%m-%d %H:%M:%S") if rs.calculated_at else "N/A"
+                }
+                for rs in risk_scores
+            ]
+
+            file_bytes = export_risk_scores(data, format)
+            filename = f"risk_scores_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.{format if format != 'excel' else 'xlsx'}"
+
+        elif export_type == "simulations":
+            query = db.query(SimulationResult).join(Simulation).filter(
+                Simulation.tenant_id == current_user.tenant_id
+            )
+            results = query.all()
+
+            data = [
+                {
+                    "Simulation ID": str(res.simulation_id),
+                    "Employee ID": str(res.employee_id),
+                    "Status": res.status,
+                    "Opened": res.opened_at.strftime("%Y-%m-%d %H:%M:%S") if res.opened_at else "No",
+                    "Clicked": res.clicked_at.strftime("%Y-%m-%d %H:%M:%S") if res.clicked_at else "No",
+                    "Submitted": res.submitted_at.strftime("%Y-%m-%d %H:%M:%S") if res.submitted_at else "No",
+                    "Reported": res.reported_at.strftime("%Y-%m-%d %H:%M:%S") if res.reported_at else "No",
+                    "Delivered": res.delivered_at.strftime("%Y-%m-%d %H:%M:%S") if res.delivered_at else "N/A",
+                    "Score Change": res.score_change or 0
+                }
+                for res in results
+            ]
+
+            file_bytes = export_simulation_results(data, format)
+            filename = f"simulation_results_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.{format if format != 'excel' else 'xlsx'}"
+
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid export type: {export_type}"
+            )
+
+        # Determine content type
+        content_types = {
+            "csv": "text/csv",
+            "excel": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "pdf": "application/pdf"
+        }
+
+        logger.info(f"Data export completed: {export_type} ({format}) by user {current_user.email}, {len(data)} records")
+
+        return Response(
+            content=file_bytes,
+            media_type=content_types[format],
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Content-Length": str(len(file_bytes))
+            }
+        )
+
+    except RuntimeError as e:
+        # Handle missing dependencies
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Export failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Export failed: {str(e)}"
+        )

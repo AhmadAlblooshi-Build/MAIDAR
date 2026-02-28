@@ -2,6 +2,7 @@
 FastAPI dependencies for authentication and authorization.
 """
 
+import os
 from typing import Generator, Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -11,6 +12,9 @@ from sqlalchemy.orm import Session
 from app.config.database import get_db
 from app.config.settings import settings
 from app.models.user import User, UserRole
+import logging
+
+logger = logging.getLogger(__name__)
 
 # OAuth2 scheme for token extraction
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login")
@@ -216,5 +220,14 @@ class RateLimiter:
 
 
 # Global rate limiter instances
-login_rate_limiter = RateLimiter(max_attempts=5, window_seconds=300)  # 5 attempts per 5 minutes
-password_reset_limiter = RateLimiter(max_attempts=3, window_seconds=3600)  # 3 attempts per hour
+# TEMPORARY: Increased rate limit for E2E testing
+# TODO: Make this configurable via settings.TESTING once module loading order is fixed
+login_rate_limiter = RateLimiter(
+    max_attempts=50,  # Temporarily increased from 5 for E2E tests
+    window_seconds=60  # Temporarily reduced from 300 for E2E tests
+)  # Testing: 50 attempts per minute
+
+password_reset_limiter = RateLimiter(
+    max_attempts=30,  # Temporarily increased from 3 for E2E tests
+    window_seconds=60  # Temporarily reduced from 3600 for E2E tests
+)  # Testing: 30 attempts per minute

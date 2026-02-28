@@ -67,8 +67,12 @@ function DashboardContent() {
     }
   };
 
-  if (loading) {
-    return <Spinner fullScreen />;
+  if (loading || !dashboardData) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Spinner />
+      </div>
+    );
   }
 
   const { riskDistribution, departmentData, executiveSummary, simulations, employeeStats } = dashboardData;

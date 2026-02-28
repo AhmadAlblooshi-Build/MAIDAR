@@ -383,7 +383,7 @@ def delete_employee(
     check_tenant_access(str(employee.tenant_id), current_user)
 
     # Soft delete
-    employee.is_deleted = True
+    employee.soft_delete()
     db.commit()
 
     logger.info(f"Employee deleted: {employee.employee_id} by user {current_user.email}")

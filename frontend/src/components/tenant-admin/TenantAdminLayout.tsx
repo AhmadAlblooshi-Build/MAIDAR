@@ -19,6 +19,7 @@ import {
   TrendingUp,
   Bell,
   ChevronDown,
+  Settings,
 } from 'lucide-react';
 
 interface TenantAdminLayoutProps {
@@ -36,6 +37,7 @@ export default function TenantAdminLayout({ children }: TenantAdminLayoutProps) 
     { name: 'Risk Assessment', href: '/risk-assessment', icon: FileText },
     { name: 'AI Scenario Lab', href: '/ai-lab', icon: Brain },
     { name: 'Risk Analytics', href: '/analytics', icon: TrendingUp },
+    { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
   const isActive = (href: string) => pathname === href;
@@ -43,7 +45,7 @@ export default function TenantAdminLayout({ children }: TenantAdminLayoutProps) 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-slate-200 z-40">
+      <aside data-testid="sidebar-navigation" className="fixed left-0 top-0 h-full w-64 bg-white border-r border-slate-200 z-40">
         {/* Logo */}
         <div className="p-6 border-b border-slate-200">
           <Link href="/dashboard" className="flex items-center space-x-2">
@@ -55,7 +57,7 @@ export default function TenantAdminLayout({ children }: TenantAdminLayoutProps) 
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-1">
+        <nav data-testid="main-navigation" className="p-4 space-y-1">
           {navigation.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);

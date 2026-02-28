@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Spinner from '@/components/ui/Spinner';
@@ -17,22 +17,20 @@ interface TenantAdminGuardProps {
 
 export default function TenantAdminGuard({ children }: TenantAdminGuardProps) {
   const router = useRouter();
-  const { isAuthenticated, isTenantAdmin, isAnalyst } = useAuthStore();
+  const { isAuthenticated, isTenantAdmin, isAnalyst, _hasHydrated } = useAuthStore();
 
   useEffect(() => {
+    // Wait for Zustand to hydrate before checking auth
+    if (!_hasHydrated) return;
+
     if (!isAuthenticated) {
-      // Not logged in, redirect to login
       router.push('/login');
     } else if (!isTenantAdmin() && !isAnalyst()) {
-      // Logged in but not tenant admin/analyst, redirect to super admin portal
       router.push('/super-admin/dashboard');
     }
-  }, [isAuthenticated, isTenantAdmin, isAnalyst, router]);
+  }, [_hasHydrated, isAuthenticated, isTenantAdmin, isAnalyst, router]);
 
-  // Show loading while checking authentication
-  if (!isAuthenticated || (!isTenantAdmin() && !isAnalyst())) {
-    return <Spinner fullScreen />;
-  }
-
+  // Always render children - let the pages handle their own loading states
+  // The useEffect will redirect if needed
   return <>{children}</>;
 }

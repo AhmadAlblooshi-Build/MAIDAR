@@ -112,6 +112,9 @@ export const authAPI = {
 
   getMe: () => apiCall('GET', '/auth/me'),
 
+  updateProfile: (data: { full_name?: string; email?: string }) =>
+    apiCall('PUT', '/auth/me', data),
+
   changePassword: (current_password: string, new_password: string) =>
     apiCall('POST', '/auth/change-password', { current_password, new_password }),
 };
@@ -141,6 +144,24 @@ export const scenarioAPI = {
   delete: (id: string) => apiCall('DELETE', `/scenarios/${id}`),
   search: (filters: any) => apiCall('POST', '/scenarios/search', filters),
   statistics: () => apiCall('GET', '/scenarios/statistics'),
+  generateAI: (params: {
+    context_type: string;
+    target_segment: string;
+    personalization_level: string;
+    tone: string;
+    language?: string;
+    auto_save?: boolean;
+  }) => {
+    const queryParams = new URLSearchParams({
+      context_type: params.context_type,
+      target_segment: params.target_segment,
+      personalization_level: params.personalization_level,
+      tone: params.tone,
+      language: params.language || 'en',
+      auto_save: String(params.auto_save !== false),
+    });
+    return apiCall<Scenario>('POST', `/scenarios/generate-ai?${queryParams.toString()}`);
+  },
 };
 
 // Simulation API
@@ -183,6 +204,22 @@ export const tenantAPI = {
   search: (filters: any) => apiCall('POST', '/tenants/search', filters),
   suspend: (id: string) => apiCall('POST', `/tenants/${id}/suspend`),
   activate: (id: string) => apiCall('POST', `/tenants/${id}/activate`),
+
+  // Branding
+  getBranding: () => apiCall('GET', '/settings/tenant/branding'),
+  updateBranding: (data: {
+    logo_url?: string;
+    primary_color?: string;
+    secondary_color?: string;
+    company_name?: string;
+  }) => apiCall('PUT', '/settings/tenant/branding', data),
+  uploadLogo: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiCall('POST', '/settings/tenant/logo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };
 
 // Admin Users API (Super Admin)
@@ -201,6 +238,43 @@ export const adminUserAPI = {
 export const auditLogAPI = {
   search: (filters: any) => apiCall('POST', '/audit-logs/search', filters),
   get: (id: string) => apiCall('GET', `/audit-logs/${id}`),
+};
+
+// RBAC Management API
+export const rbacAPI = {
+  // Permissions
+  listPermissions: () => apiCall('GET', '/rbac/permissions'),
+
+  // Roles
+  listRoles: () => apiCall('GET', '/rbac/roles'),
+  getRole: (id: string) => apiCall('GET', `/rbac/roles/${id}`),
+  createRole: (data: any) => apiCall('POST', '/rbac/roles', data),
+  updateRole: (id: string, data: any) => apiCall('PUT', `/rbac/roles/${id}`, data),
+  deleteRole: (id: string) => apiCall('DELETE', `/rbac/roles/${id}`),
+
+  // Role assignments
+  assignRole: (roleId: string, userIds: string[]) =>
+    apiCall('POST', `/rbac/roles/${roleId}/assign`, { user_ids: userIds }),
+  unassignRole: (roleId: string, userId: string) =>
+    apiCall('DELETE', `/rbac/roles/${roleId}/users/${userId}`),
+
+  // User permissions
+  getUserPermissions: (userId: string) => apiCall('GET', `/rbac/users/${userId}/permissions`),
+};
+
+// Settings API
+export const settingsAPI = {
+  // Notification Preferences
+  getNotificationPreferences: () => apiCall('GET', '/settings/notification-preferences'),
+  updateNotificationPreferences: (preferences: {
+    email_simulation_launched?: boolean;
+    email_high_risk_detected?: boolean;
+    email_simulation_completed?: boolean;
+    email_weekly_report?: boolean;
+    email_employee_interactions?: boolean;
+    inapp_desktop_notifications?: boolean;
+    inapp_sound_alerts?: boolean;
+  }) => apiCall('PUT', '/settings/notification-preferences', { preferences }),
 };
 
 export default api;

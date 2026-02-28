@@ -15,6 +15,7 @@ from app.config.database import get_db
 from app.models.tenant import Tenant
 from app.models.user import User, UserRole
 from app.models.employee import Employee
+from app.models.risk_score import RiskScore
 from app.core.dependencies import get_current_super_admin as require_super_admin
 
 router = APIRouter()
@@ -44,11 +45,17 @@ class TenantUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
-class TenantResponse(TenantBase):
+class TenantResponse(BaseModel):
     id: str
+    name: str
+    domain: str
     subdomain: str
+    license_tier: str
+    seats_total: int
     seats_used: int
     provisioned_date: datetime
+    country_code: str
+    data_residency_region: str
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -73,6 +80,38 @@ class TenantSearchResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
+
+
+# Helper function
+def build_tenant_response(tenant: Tenant, db: Session) -> TenantResponse:
+    """Helper to build TenantResponse with computed fields."""
+    admin_count = db.query(User).filter(
+        User.tenant_id == tenant.id,
+        User.role == UserRole.TENANT_ADMIN
+    ).count()
+    employee_count = db.query(Employee).filter(Employee.tenant_id == tenant.id).count()
+    avg_risk = db.query(func.avg(RiskScore.risk_score)).filter(
+        RiskScore.tenant_id == tenant.id
+    ).scalar()
+
+    return TenantResponse(
+        id=str(tenant.id),
+        name=tenant.name,
+        domain=tenant.domain,
+        subdomain=tenant.subdomain,
+        license_tier=tenant.license_tier,
+        seats_total=tenant.seats_total,
+        seats_used=tenant.seats_used,
+        provisioned_date=tenant.provisioned_date,
+        is_active=tenant.is_active,
+        created_at=tenant.created_at,
+        updated_at=tenant.updated_at,
+        admin_count=admin_count,
+        employee_count=employee_count,
+        avg_risk_score=float(avg_risk) if avg_risk else 0.0,
+        country_code=tenant.country_code,
+        data_residency_region=tenant.data_residency_region
+    )
 
 
 @router.post("/", response_model=TenantResponse, status_code=status.HTTP_201_CREATED)
@@ -123,14 +162,7 @@ async def create_tenant(
         db.commit()
 
     # Add computed fields
-    response = TenantResponse.model_validate(tenant)
-    response.admin_count = db.query(User).filter(
-        User.tenant_id == tenant.id,
-        User.role == UserRole.TENANT_ADMIN
-    ).count()
-    response.employee_count = db.query(Employee).filter(Employee.tenant_id == tenant.id).count()
-
-    return response
+    return build_tenant_response(tenant, db)
 
 
 @router.get("/{tenant_id}", response_model=TenantResponse)
@@ -153,8 +185,8 @@ async def get_tenant(
     response.employee_count = db.query(Employee).filter(Employee.tenant_id == tenant.id).count()
 
     # Calculate average risk score
-    avg_risk = db.query(func.avg(Employee.risk_score)).filter(
-        Employee.tenant_id == tenant.id
+    avg_risk = db.query(func.avg(RiskScore.risk_score)).filter(
+        RiskScore.tenant_id == tenant.id
     ).scalar()
     response.avg_risk_score = float(avg_risk) if avg_risk else 0.0
 
@@ -182,14 +214,7 @@ async def update_tenant(
     db.refresh(tenant)
 
     # Add computed fields
-    response = TenantResponse.model_validate(tenant)
-    response.admin_count = db.query(User).filter(
-        User.tenant_id == tenant.id,
-        User.role == UserRole.TENANT_ADMIN
-    ).count()
-    response.employee_count = db.query(Employee).filter(Employee.tenant_id == tenant.id).count()
-
-    return response
+    return build_tenant_response(tenant, db)
 
 
 @router.delete("/{tenant_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -244,20 +269,7 @@ async def search_tenants(
     # Add computed fields for each tenant
     tenant_responses = []
     for tenant in tenants:
-        response = TenantResponse.model_validate(tenant)
-        response.admin_count = db.query(User).filter(
-            User.tenant_id == tenant.id,
-            User.role == UserRole.TENANT_ADMIN
-        ).count()
-        response.employee_count = db.query(Employee).filter(Employee.tenant_id == tenant.id).count()
-
-        # Calculate average risk score
-        avg_risk = db.query(func.avg(Employee.risk_score)).filter(
-            Employee.tenant_id == tenant.id
-        ).scalar()
-        response.avg_risk_score = float(avg_risk) if avg_risk else 0.0
-
-        tenant_responses.append(response)
+        tenant_responses.append(build_tenant_response(tenant, db))
 
     return TenantSearchResponse(
         tenants=tenant_responses,
@@ -283,14 +295,7 @@ async def suspend_tenant(
     db.commit()
     db.refresh(tenant)
 
-    response = TenantResponse.model_validate(tenant)
-    response.admin_count = db.query(User).filter(
-        User.tenant_id == tenant.id,
-        User.role == UserRole.TENANT_ADMIN
-    ).count()
-    response.employee_count = db.query(Employee).filter(Employee.tenant_id == tenant.id).count()
-
-    return response
+    return build_tenant_response(tenant, db)
 
 
 @router.post("/{tenant_id}/activate", response_model=TenantResponse)
@@ -308,11 +313,4 @@ async def activate_tenant(
     db.commit()
     db.refresh(tenant)
 
-    response = TenantResponse.model_validate(tenant)
-    response.admin_count = db.query(User).filter(
-        User.tenant_id == tenant.id,
-        User.role == UserRole.TENANT_ADMIN
-    ).count()
-    response.employee_count = db.query(Employee).filter(Employee.tenant_id == tenant.id).count()
-
-    return response
+    return build_tenant_response(tenant, db)

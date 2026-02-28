@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "MAIDAR"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
+    TESTING: bool = False  # Enable testing mode for E2E tests (relaxed rate limiting)
     API_V1_PREFIX: str = "/api/v1"
     FRONTEND_URL: str = "http://localhost:3000"
 
@@ -58,6 +59,16 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: Optional[str] = None
     FROM_EMAIL: str = "noreply@maidar.com"
     FROM_NAME: str = "MAIDAR"
+
+    # Claude AI API
+    ANTHROPIC_API_KEY: Optional[str] = None
+
+    # Rate Limiting
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_PER_MINUTE: int = 60
+
+    # Session
+    SESSION_SECRET_KEY: Optional[str] = None
 
     class Config:
         env_file = ".env"

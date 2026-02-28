@@ -7,6 +7,8 @@ from .scenario import Scenario
 from .risk_score import RiskScore
 from .simulation import Simulation, SimulationResult
 from .audit_log import AuditLog
+from .permission import Permission, Role
+from .notification import Notification
 
 __all__ = [
     "Tenant",
@@ -17,4 +19,7 @@ __all__ = [
     "Simulation",
     "SimulationResult",
     "AuditLog",
+    "Permission",
+    "Role",
+    "Notification",
 ]

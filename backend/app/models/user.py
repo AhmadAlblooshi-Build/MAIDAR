@@ -48,6 +48,8 @@ class User(Base, UUIDMixin, TimestampMixin):
     created_scenarios = relationship("Scenario", back_populates="created_by_user", foreign_keys="Scenario.created_by")
     created_simulations = relationship("Simulation", back_populates="created_by_user", foreign_keys="Simulation.created_by")
     audit_logs = relationship("AuditLog", back_populates="user")
+    roles = relationship("Role", secondary="user_roles", back_populates="users")
+    notifications = relationship("Notification", back_populates="user")
 
     def __repr__(self) -> str:
         return f"<User {self.email} ({self.role})>"
@@ -57,3 +59,29 @@ class User(Base, UUIDMixin, TimestampMixin):
         if self.role == UserRole.PLATFORM_SUPER_ADMIN:
             return True
         return str(self.tenant_id) == str(tenant_id)
+
+    def has_permission(self, permission_name: str) -> bool:
+        """Check if user has a specific permission through their roles."""
+        # Super admins have all permissions
+        if self.role == UserRole.PLATFORM_SUPER_ADMIN:
+            return True
+
+        # Check custom role permissions
+        for role in self.roles:
+            if role.is_active and role.has_permission(permission_name):
+                return True
+
+        return False
+
+    def get_all_permissions(self) -> set:
+        """Get all permissions for this user."""
+        if self.role == UserRole.PLATFORM_SUPER_ADMIN:
+            return {"*"}  # All permissions
+
+        permissions = set()
+        for role in self.roles:
+            if role.is_active:
+                for perm in role.permissions:
+                    permissions.add(perm.name)
+
+        return permissions

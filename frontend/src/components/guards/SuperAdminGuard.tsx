@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Spinner from '@/components/ui/Spinner';
@@ -17,22 +17,20 @@ interface SuperAdminGuardProps {
 
 export default function SuperAdminGuard({ children }: SuperAdminGuardProps) {
   const router = useRouter();
-  const { isAuthenticated, isSuperAdmin } = useAuthStore();
+  const { isAuthenticated, isSuperAdmin, _hasHydrated } = useAuthStore();
 
   useEffect(() => {
+    // Wait for Zustand to hydrate before checking auth
+    if (!_hasHydrated) return;
+
     if (!isAuthenticated) {
-      // Not logged in, redirect to login
       router.push('/login');
     } else if (!isSuperAdmin()) {
-      // Logged in but not super admin, redirect to their appropriate portal
       router.push('/dashboard');
     }
-  }, [isAuthenticated, isSuperAdmin, router]);
+  }, [_hasHydrated, isAuthenticated, isSuperAdmin, router]);
 
-  // Show loading while checking authentication
-  if (!isAuthenticated || !isSuperAdmin()) {
-    return <Spinner fullScreen />;
-  }
-
+  // Always render children - let the pages handle their own loading states
+  // The useEffect will redirect if needed
   return <>{children}</>;
 }

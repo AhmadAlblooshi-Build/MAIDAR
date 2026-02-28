@@ -8,12 +8,16 @@ import React from 'react';
 
 interface BadgeProps {
   children: React.ReactNode;
-  variant?: 'success' | 'warning' | 'danger' | 'info' | 'neutral';
+  variant?: 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'error' | 'default';
   size?: 'sm' | 'md';
   dot?: boolean;
+  className?: string;
 }
 
-export default function Badge({ children, variant = 'neutral', size = 'md', dot = false }: BadgeProps) {
+export default function Badge({ children, variant = 'neutral', size = 'md', dot = false, className = '' }: BadgeProps) {
+  // Map error -> danger and default -> neutral for backwards compatibility
+  const normalizedVariant = variant === 'error' ? 'danger' : variant === 'default' ? 'neutral' : variant;
+
   const variantStyles = {
     success: 'bg-green-100 text-green-700 border-green-200',
     warning: 'bg-yellow-100 text-yellow-700 border-yellow-200',
@@ -36,8 +40,8 @@ export default function Badge({ children, variant = 'neutral', size = 'md', dot 
   };
 
   return (
-    <span className={`inline-flex items-center font-semibold rounded-full border ${variantStyles[variant]} ${sizeStyles[size]}`}>
-      {dot && <span className={`w-2 h-2 rounded-full ${dotColors[variant]} mr-1.5`} />}
+    <span className={`inline-flex items-center font-semibold rounded-full border ${variantStyles[normalizedVariant]} ${sizeStyles[size]} ${className}`}>
+      {dot && <span className={`w-2 h-2 rounded-full ${dotColors[normalizedVariant]} mr-1.5`} />}
       {children}
     </span>
   );

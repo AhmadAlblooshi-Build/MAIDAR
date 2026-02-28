@@ -50,6 +50,8 @@ class Tenant(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
     simulations = relationship("Simulation", back_populates="tenant", cascade="all, delete-orphan")
     simulation_results = relationship("SimulationResult", back_populates="tenant", cascade="all, delete-orphan")
     audit_logs = relationship("AuditLog", back_populates="tenant", cascade="all, delete-orphan")
+    custom_roles = relationship("Role", back_populates="tenant", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="tenant", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Tenant {self.name} ({self.subdomain})>"

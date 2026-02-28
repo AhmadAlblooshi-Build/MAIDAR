@@ -55,7 +55,18 @@ export interface Scenario {
   category: string;
   difficulty: string;
   language: string;
+  email_subject: string;
+  email_body_html: string;
+  email_body_text: string;
+  sender_name: string;
+  sender_email: string;
+  has_link: boolean;
+  has_attachment: boolean;
+  has_credential_form: boolean;
+  is_template?: boolean;
+  is_active?: boolean;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface ScenarioSearchResponse {

@@ -7,7 +7,7 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, field_validator
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
@@ -47,6 +47,14 @@ class AdminUserResponse(BaseModel):
     last_login_at: Optional[datetime]
     created_at: datetime
     mfa_enabled: bool = False
+
+    @field_validator('id', 'tenant_id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        """Convert UUID objects to strings."""
+        if v is None:
+            return None
+        return str(v) if isinstance(v, UUID) else v
 
     class Config:
         from_attributes = True
@@ -108,9 +116,19 @@ async def create_admin_user(
     db.refresh(user)
 
     # Build response
-    response = AdminUserResponse.model_validate(user)
-    response.tenant_name = tenant.name
-    response.mfa_enabled = user_data.require_mfa
+    response = AdminUserResponse(
+        id=str(user.id),
+        email=user.email,
+        full_name=user.full_name,
+        tenant_id=str(user.tenant_id) if user.tenant_id else None,
+        tenant_name=tenant.name,
+        role=user.role,
+        is_active=user.is_active,
+        email_verified=user.email_verified,
+        last_login_at=user.last_login_at,
+        created_at=user.created_at,
+        mfa_enabled=user_data.require_mfa
+    )
 
     return response
 
@@ -133,8 +151,19 @@ async def get_admin_user(
         if tenant:
             tenant_name = tenant.name
 
-    response = AdminUserResponse.model_validate(user)
-    response.tenant_name = tenant_name
+    response = AdminUserResponse(
+        id=str(user.id),
+        email=user.email,
+        full_name=user.full_name,
+        tenant_id=str(user.tenant_id) if user.tenant_id else None,
+        tenant_name=tenant_name,
+        role=user.role,
+        is_active=user.is_active,
+        email_verified=user.email_verified,
+        last_login_at=user.last_login_at,
+        created_at=user.created_at,
+        mfa_enabled=False
+    )
 
     return response
 
@@ -166,8 +195,19 @@ async def update_admin_user(
         if tenant:
             tenant_name = tenant.name
 
-    response = AdminUserResponse.model_validate(user)
-    response.tenant_name = tenant_name
+    response = AdminUserResponse(
+        id=str(user.id),
+        email=user.email,
+        full_name=user.full_name,
+        tenant_id=str(user.tenant_id) if user.tenant_id else None,
+        tenant_name=tenant_name,
+        role=user.role,
+        is_active=user.is_active,
+        email_verified=user.email_verified,
+        last_login_at=user.last_login_at,
+        created_at=user.created_at,
+        mfa_enabled=False
+    )
 
     return response
 
@@ -216,15 +256,28 @@ async def search_admin_users(
     # Build responses with tenant names
     user_responses = []
     for user in users:
-        response = AdminUserResponse.model_validate(user)
+        # Build response dict manually to handle UUID conversion
+        response_dict = {
+            "id": str(user.id),
+            "email": user.email,
+            "full_name": user.full_name,
+            "tenant_id": str(user.tenant_id) if user.tenant_id else None,
+            "tenant_name": None,
+            "role": user.role,
+            "is_active": user.is_active,
+            "email_verified": user.email_verified,
+            "last_login_at": user.last_login_at,
+            "created_at": user.created_at,
+            "mfa_enabled": False
+        }
 
         # Get tenant name
         if user.tenant_id:
             tenant = db.query(Tenant).filter(Tenant.id == user.tenant_id).first()
             if tenant:
-                response.tenant_name = tenant.name
+                response_dict["tenant_name"] = tenant.name
 
-        user_responses.append(response)
+        user_responses.append(AdminUserResponse(**response_dict))
 
     return AdminUserSearchResponse(
         users=user_responses,
@@ -257,8 +310,19 @@ async def suspend_admin_user(
         if tenant:
             tenant_name = tenant.name
 
-    response = AdminUserResponse.model_validate(user)
-    response.tenant_name = tenant_name
+    response = AdminUserResponse(
+        id=str(user.id),
+        email=user.email,
+        full_name=user.full_name,
+        tenant_id=str(user.tenant_id) if user.tenant_id else None,
+        tenant_name=tenant_name,
+        role=user.role,
+        is_active=user.is_active,
+        email_verified=user.email_verified,
+        last_login_at=user.last_login_at,
+        created_at=user.created_at,
+        mfa_enabled=False
+    )
 
     return response
 
@@ -285,8 +349,19 @@ async def activate_admin_user(
         if tenant:
             tenant_name = tenant.name
 
-    response = AdminUserResponse.model_validate(user)
-    response.tenant_name = tenant_name
+    response = AdminUserResponse(
+        id=str(user.id),
+        email=user.email,
+        full_name=user.full_name,
+        tenant_id=str(user.tenant_id) if user.tenant_id else None,
+        tenant_name=tenant_name,
+        role=user.role,
+        is_active=user.is_active,
+        email_verified=user.email_verified,
+        last_login_at=user.last_login_at,
+        created_at=user.created_at,
+        mfa_enabled=False
+    )
 
     return response
 
@@ -315,7 +390,19 @@ async def reassign_tenant(
     db.commit()
     db.refresh(user)
 
-    response = AdminUserResponse.model_validate(user)
-    response.tenant_name = tenant.name
+    # Construct response with tenant_name included
+    response = AdminUserResponse(
+        id=str(user.id),
+        email=user.email,
+        full_name=user.full_name,
+        tenant_id=str(user.tenant_id) if user.tenant_id else None,
+        tenant_name=tenant.name,
+        role=user.role,
+        is_active=user.is_active,
+        email_verified=user.email_verified,
+        last_login_at=user.last_login_at,
+        created_at=user.created_at,
+        mfa_enabled=False
+    )
 
     return response

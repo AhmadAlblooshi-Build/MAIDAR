@@ -36,6 +36,7 @@ from app.schemas.auth import (
     ForgotPassword,
     ResetPassword,
     ChangePassword,
+    UpdateProfile,
     UserResponse
 )
 from app.services.email import email_service
@@ -99,6 +100,7 @@ def register(
         # Create tenant
         tenant = Tenant(
             name=user_data.organization_name,
+            domain=f"{subdomain}.maidar.app",  # Default domain, can be customized later
             subdomain=subdomain,
             country_code="UAE",
             data_residency_region="UAE",
@@ -433,6 +435,46 @@ def get_current_user_profile(
     """
     Get current authenticated user's profile.
     """
+    return UserResponse(
+        id=str(current_user.id),
+        email=current_user.email,
+        full_name=current_user.full_name,
+        role=current_user.role,
+        tenant_id=str(current_user.tenant_id) if current_user.tenant_id else None,
+        is_active=current_user.is_active
+    )
+
+
+@router.put("/me", response_model=UserResponse)
+def update_user_profile(
+    profile_data: UpdateProfile,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update current authenticated user's profile (name and email).
+    """
+    # Check if email is being changed and if it's already taken
+    if profile_data.email and profile_data.email != current_user.email:
+        existing_user = db.query(User).filter(User.email == profile_data.email).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email address is already in use"
+            )
+        current_user.email = profile_data.email
+        current_user.email_verified = False  # Require re-verification
+        logger.info(f"User email changed from {current_user.email} to {profile_data.email}")
+
+    # Update full name if provided
+    if profile_data.full_name:
+        current_user.full_name = profile_data.full_name
+
+    db.commit()
+    db.refresh(current_user)
+
+    logger.info(f"Profile updated for user: {current_user.email}")
+
     return UserResponse(
         id=str(current_user.id),
         email=current_user.email,

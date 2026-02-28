@@ -56,7 +56,11 @@ export default function LoginPage() {
         }
       } else {
         const errorData = await response.json();
-        setError(errorData.detail || 'Authentication failed');
+        // Handle Pydantic validation errors and string errors
+        const errorMessage = typeof errorData.detail === 'string'
+          ? errorData.detail
+          : errorData.detail?.[0]?.msg || errorData.message || 'Authentication failed';
+        setError(errorMessage);
       }
     } catch (err) {
       setError('Network error. Please try again.');
