@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     USE_TLS: bool = True
     TLS_VERSION: str = "TLSv1.3"
 
+    # Trusted Hosts (for TrustedHostMiddleware)
+    ALLOWED_HOSTS: list = ["*.maidar.com", "localhost", "127.0.0.1", "*.railway.app", "*.up.railway.app"]
+
     # Data Residency & Compliance
     DATA_RESIDENCY_REGION: str = "UAE"
     COMPLIANCE_MODE: str = "UAE_PDPL"  # UAE Personal Data Protection Law

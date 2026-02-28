@@ -68,7 +68,7 @@ app.add_middleware(
 if not settings.DEBUG:
     app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=["*.maidar.com", "localhost", "127.0.0.1"]
+        allowed_hosts=settings.ALLOWED_HOSTS
     )
 
 
