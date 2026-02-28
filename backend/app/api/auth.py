@@ -193,7 +193,15 @@ def login(
     # Find user
     user = db.query(User).filter(User.email == credentials.email).first()
 
-    if not user or not verify_password(credentials.password, user.password_hash):
+    # Always verify password (even if user doesn't exist) to prevent timing attacks
+    if user:
+        password_valid = verify_password(credentials.password, user.password_hash)
+    else:
+        # Perform fake password verification to maintain consistent timing
+        verify_password(credentials.password, "$2b$12$dummy.hash.to.prevent.timing.attack.detection")
+        password_valid = False
+
+    if not user or not password_valid:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -215,7 +223,7 @@ def login(
     #     )
 
     # Update last login time
-    user.last_login_at = datetime.utcnow()
+    user.last_login = datetime.utcnow()
     db.commit()
 
     # Create access token

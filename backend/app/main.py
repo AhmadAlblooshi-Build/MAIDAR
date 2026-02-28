@@ -5,19 +5,53 @@ Main FastAPI application
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config.settings import settings
-from app.api import auth, risk, employees, analytics, scenarios, simulations, tenants, admin_users, audit_logs, rbac, email_tracking, notifications
+from app.core.security_middleware import SecurityHeadersMiddleware, RateLimitMiddleware
+from app.core.monitoring import init_monitoring
+from app.api import auth, risk, employees, analytics, scenarios, simulations, tenants, admin_users, audit_logs, rbac, email_tracking, notifications, mfa, sessions, health
 from app.api import settings as settings_api
 
+# Initialize monitoring (Sentry)
+init_monitoring()
+
 # Create FastAPI app
+# Disable API docs in production for security
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description="Human Risk Intelligence Platform - Scenario-aware, explainable, deterministic risk scoring",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
+    openapi_url="/openapi.json" if settings.DEBUG else None,
+)
+
+# Security Headers Middleware (OWASP best practices)
+# CSP is automatically configured based on DEBUG setting (strict in production)
+app.add_middleware(
+    SecurityHeadersMiddleware,
+    frame_options="DENY",
+    hsts_max_age=31536000,  # 1 year
+    hsts_include_subdomains=True,
+    hsts_preload=True
+)
+
+# Rate Limiting Middleware (global)
+app.add_middleware(
+    RateLimitMiddleware,
+    max_requests=100,  # 100 requests
+    window_seconds=60,  # per minute
+    exempt_paths=[
+        "/health",
+        "/docs",
+        "/openapi.json",
+        "/redoc",
+        "/readiness",  # Kubernetes readiness probe
+        "/liveness",   # Kubernetes liveness probe
+        "/metrics"     # Prometheus metrics scraping
+    ]
 )
 
 # CORS middleware
@@ -27,7 +61,15 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Session-ID"]
 )
+
+# Trusted Host Middleware (prevent host header attacks)
+if not settings.DEBUG:
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=["*.maidar.com", "localhost", "127.0.0.1"]
+    )
 
 
 # Root endpoint
@@ -57,6 +99,24 @@ app.include_router(
     auth.router,
     prefix=f"{settings.API_V1_PREFIX}/auth",
     tags=["Authentication"]
+)
+
+app.include_router(
+    mfa.router,
+    prefix=f"{settings.API_V1_PREFIX}/mfa",
+    tags=["Multi-Factor Authentication"]
+)
+
+app.include_router(
+    sessions.router,
+    prefix=f"{settings.API_V1_PREFIX}/sessions",
+    tags=["Session Management"]
+)
+
+# Health & Metrics (no prefix for Kubernetes probes)
+app.include_router(
+    health.router,
+    tags=["Health & Metrics"]
 )
 
 app.include_router(

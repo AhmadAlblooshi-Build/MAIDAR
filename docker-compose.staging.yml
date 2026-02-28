@@ -1,0 +1,239 @@
+version: '3.8'
+
+#
+# MAIDAR Staging Environment (Local Docker)
+#
+# This simulates a staging environment locally without AWS
+# Useful for testing before AWS deployment
+#
+
+services:
+  # PostgreSQL Database
+  postgres-staging:
+    image: postgres:15-alpine
+    container_name: maidar-postgres-staging
+    environment:
+      POSTGRES_DB: maidar_staging
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: staging_password_change_me
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d maidar_staging"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - maidar-staging
+
+  # Redis Cache
+  redis-staging:
+    image: redis:7-alpine
+    container_name: maidar-redis-staging
+    command: redis-server --appendonly yes --requirepass staging_redis_password
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_staging_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - maidar-staging
+
+  # Backend API
+  backend-staging:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: maidar-backend-staging
+    environment:
+      # Environment
+      ENVIRONMENT: staging
+      DEBUG: "false"
+
+      # Database
+      DATABASE_URL: postgresql+psycopg://postgres:staging_password_change_me@postgres-staging:5432/maidar_staging
+
+      # Redis
+      REDIS_URL: redis://:staging_redis_password@redis-staging:6379/0
+
+      # Security
+      JWT_SECRET: staging_jwt_secret_change_me_to_random_string
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRATION_MINUTES: 30
+
+      # Email (using Mailhog for testing)
+      SMTP_HOST: mailhog-staging
+      SMTP_PORT: 1025
+      SMTP_USER: ""
+      SMTP_PASSWORD: ""
+      SMTP_USE_TLS: "false"
+      FROM_EMAIL: noreply@staging.maidar.com
+      FROM_NAME: MAIDAR Staging
+
+      # Application
+      APP_URL: http://localhost:8002
+      FRONTEND_URL: http://localhost:3001
+      API_V1_PREFIX: /api/v1
+
+      # Monitoring
+      SENTRY_DSN: ""
+      SENTRY_ENVIRONMENT: staging
+
+      # Rate Limiting
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_PER_MINUTE: 100
+
+      # Celery
+      CELERY_BROKER_URL: redis://:staging_redis_password@redis-staging:6379/1
+      CELERY_RESULT_BACKEND: redis://:staging_redis_password@redis-staging:6379/2
+    ports:
+      - "8002:8000"
+    depends_on:
+      postgres-staging:
+        condition: service_healthy
+      redis-staging:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - maidar-staging
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        sleep 10 &&
+        echo 'Starting backend server...' &&
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-server-header
+      "
+
+  # Celery Worker
+  celery-worker-staging:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: maidar-celery-worker-staging
+    environment:
+      ENVIRONMENT: staging
+      DATABASE_URL: postgresql+psycopg://postgres:staging_password_change_me@postgres-staging:5432/maidar_staging
+      REDIS_URL: redis://:staging_redis_password@redis-staging:6379/0
+      CELERY_BROKER_URL: redis://:staging_redis_password@redis-staging:6379/1
+      CELERY_RESULT_BACKEND: redis://:staging_redis_password@redis-staging:6379/2
+      SMTP_HOST: mailhog-staging
+      SMTP_PORT: 1025
+      APP_URL: http://localhost:8002
+    depends_on:
+      - postgres-staging
+      - redis-staging
+      - backend-staging
+    volumes:
+      - ./backend:/app
+    networks:
+      - maidar-staging
+    command: celery -A app.core.celery_app worker -l info
+
+  # Celery Beat (Scheduler)
+  celery-beat-staging:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: maidar-celery-beat-staging
+    environment:
+      ENVIRONMENT: staging
+      DATABASE_URL: postgresql+psycopg://postgres:staging_password_change_me@postgres-staging:5432/maidar_staging
+      REDIS_URL: redis://:staging_redis_password@redis-staging:6379/0
+      CELERY_BROKER_URL: redis://:staging_redis_password@redis-staging:6379/1
+      CELERY_RESULT_BACKEND: redis://:staging_redis_password@redis-staging:6379/2
+    depends_on:
+      - postgres-staging
+      - redis-staging
+      - celery-worker-staging
+    volumes:
+      - ./backend:/app
+    networks:
+      - maidar-staging
+    command: celery -A app.core.celery_app beat -l info
+
+  # Frontend
+  frontend-staging:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: maidar-frontend-staging
+    environment:
+      NODE_ENV: staging
+      NEXT_PUBLIC_API_URL: http://localhost:8002/api/v1
+      NEXT_PUBLIC_APP_URL: http://localhost:3001
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend-staging
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - maidar-staging
+
+  # Mailhog (Email Testing)
+  mailhog-staging:
+    image: mailhog/mailhog:latest
+    container_name: maidar-mailhog-staging
+    ports:
+      - "8026:8025" # Web UI
+      - "1026:1025" # SMTP
+    networks:
+      - maidar-staging
+
+  # Prometheus (Metrics)
+  prometheus-staging:
+    image: prom/prometheus:latest
+    container_name: maidar-prometheus-staging
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus-staging.yml:/etc/prometheus/prometheus.yml
+      - prometheus_staging_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - maidar-staging
+
+  # Grafana (Visualization)
+  grafana-staging:
+    image: grafana/grafana:latest
+    container_name: maidar-grafana-staging
+    ports:
+      - "3002:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: staging_admin
+      GF_INSTALL_PLUGINS: ""
+    volumes:
+      - grafana_staging_data:/var/lib/grafana
+      - ./monitoring/grafana-staging-dashboards:/etc/grafana/provisioning/dashboards
+    networks:
+      - maidar-staging
+    depends_on:
+      - prometheus-staging
+
+volumes:
+  postgres_staging_data:
+  redis_staging_data:
+  prometheus_staging_data:
+  grafana_staging_data:
+
+networks:
+  maidar-staging:
+    driver: bridge
+    name: maidar-staging-network
