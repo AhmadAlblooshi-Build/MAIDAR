@@ -38,7 +38,7 @@ export default function RegisterPage() {
 
       // Add timeout to prevent hanging
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
       console.log('Registering to:', `${apiUrl}/api/v1/auth/register`);
 
@@ -68,7 +68,8 @@ export default function RegisterPage() {
     } catch (err: any) {
       console.error('Registration error:', err);
       if (err.name === 'AbortError') {
-        setError('Request timeout. The server is taking too long. Please check if NEXT_PUBLIC_API_URL is configured correctly.');
+        // Backend is slow but might have created the account
+        setError('Registration is taking longer than expected. If your account was created, try logging in. Otherwise, please try again.');
       } else if (err.message?.includes('fetch')) {
         setError(`Network error: Cannot reach backend. Using URL: ${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'}`);
       } else {

@@ -21,7 +21,7 @@ export default function ForgotPasswordPage() {
 
       // Add timeout to prevent hanging
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
       const response = await fetch(`${apiUrl}/api/v1/auth/forgot-password`, {
         method: 'POST',
