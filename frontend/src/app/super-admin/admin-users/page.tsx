@@ -70,18 +70,21 @@ function AdminUsersContent() {
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [showActionMenu, setShowActionMenu] = useState<string | null>(null);
 
-  // Fetch tenants for dropdowns
-  const fetchTenants = useCallback(async () => {
-    try {
-      const response: any = await tenantAPI.search({ page: 1, page_size: 100 });
-      setTenants(response.tenants || []);
-    } catch (err) {
-      console.error('Failed to fetch tenants:', err);
-    }
+  // Fetch tenants for dropdowns - runs once on mount
+  useEffect(() => {
+    const fetchTenants = async () => {
+      try {
+        const response: any = await tenantAPI.search({ page: 1, page_size: 100 });
+        setTenants(response.tenants || []);
+      } catch (err) {
+        console.error('Failed to fetch tenants:', err);
+      }
+    };
+    fetchTenants();
   }, []);
 
-  // Fetch admin users
-  const fetchUsers = useCallback(async (showLoader = true) => {
+  // Manual refresh function for button clicks
+  const fetchUsers = async (showLoader = true) => {
     try {
       if (showLoader) {
         setLoading(true);
@@ -108,16 +111,12 @@ function AdminUsersContent() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [currentPage, searchTerm, filterTenant, filterStatus, pageSize]);
+  };
 
-  // Initial load
-  useEffect(() => {
-    fetchTenants();
-  }, [fetchTenants]);
-
+  // Fetch users when filters change - NO circular dependency (direct deps)
   useEffect(() => {
     fetchUsers();
-  }, [fetchUsers]);
+  }, [currentPage, searchTerm, filterTenant, filterStatus]);
 
   // Calculate statistics
   const activeCount = users.filter(u => u.is_active).length;

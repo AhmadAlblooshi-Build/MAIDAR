@@ -60,61 +60,55 @@ function AuditLogContent() {
   const [showFilters, setShowFilters] = useState(false);
   const pageSize = 10;
 
-  // Fetch audit logs
-  const fetchLogs = useCallback(async (showLoader = true) => {
-    try {
-      if (showLoader) {
-        setLoading(true);
-      } else {
-        setRefreshing(true);
-      }
-      setError(null);
-
-      // Calculate date range
-      const now = new Date();
-      let startDate = new Date();
-      switch (dateRange) {
-        case '1h':
-          startDate.setHours(now.getHours() - 1);
-          break;
-        case '24h':
-          startDate.setDate(now.getDate() - 1);
-          break;
-        case '7d':
-          startDate.setDate(now.getDate() - 7);
-          break;
-        case '30d':
-          startDate.setDate(now.getDate() - 30);
-          break;
-      }
-
-      const response: any = await auditLogAPI.search({
-        page: currentPage,
-        page_size: pageSize,
-        search: searchTerm || undefined,
-        action_type: filterAction !== 'all' ? filterAction : undefined,
-        severity: filterSeverity !== 'all' ? filterSeverity : undefined,
-        status: filterStatus !== 'all' ? filterStatus : undefined,
-        start_date: startDate.toISOString(),
-        end_date: now.toISOString(),
-      });
-
-      setLogs(response.logs);
-      setTotalCount(response.total);
-      setTotalPages(response.total_pages);
-    } catch (err: any) {
-      console.error('Failed to fetch audit logs:', err);
-      setError(err.response?.data?.detail || 'Failed to load audit logs. Please try again.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [currentPage, searchTerm, filterAction, filterSeverity, filterStatus, dateRange, pageSize]);
-
-  // Initial load and refresh on filters
+  // Fetch audit logs - directly in useEffect to avoid circular deps
   useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Calculate date range
+        const now = new Date();
+        let startDate = new Date();
+        switch (dateRange) {
+          case '1h':
+            startDate.setHours(now.getHours() - 1);
+            break;
+          case '24h':
+            startDate.setDate(now.getDate() - 1);
+            break;
+          case '7d':
+            startDate.setDate(now.getDate() - 7);
+            break;
+          case '30d':
+            startDate.setDate(now.getDate() - 30);
+            break;
+        }
+
+        const response: any = await auditLogAPI.search({
+          page: currentPage,
+          page_size: pageSize,
+          search: searchTerm || undefined,
+          action_type: filterAction !== 'all' ? filterAction : undefined,
+          severity: filterSeverity !== 'all' ? filterSeverity : undefined,
+          status: filterStatus !== 'all' ? filterStatus : undefined,
+          start_date: startDate.toISOString(),
+          end_date: now.toISOString(),
+        });
+
+        setLogs(response.logs);
+        setTotalCount(response.total);
+        setTotalPages(response.total_pages);
+      } catch (err: any) {
+        console.error('Failed to fetch audit logs:', err);
+        setError(err.response?.data?.detail || 'Failed to load audit logs. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchLogs();
-  }, [fetchLogs]);
+  }, [currentPage, searchTerm, filterAction, filterSeverity, filterStatus, dateRange]);
 
   // Calculate statistics
   const criticalCount = logs.filter(l => l.severity === 'critical').length;

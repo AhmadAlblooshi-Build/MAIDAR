@@ -76,39 +76,33 @@ function TenantsContent() {
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [showActionMenu, setShowActionMenu] = useState<string | null>(null);
 
-  // Fetch tenants from API
-  const fetchTenants = useCallback(async (showLoader = true) => {
-    try {
-      if (showLoader) {
-        setLoading(true);
-      } else {
-        setRefreshing(true);
-      }
-      setError(null);
-
-      const response: any = await tenantAPI.search({
-        page: currentPage,
-        page_size: pageSize,
-        search: searchTerm || undefined,
-        status: filterStatus !== 'all' ? filterStatus : undefined,
-      });
-
-      setTenants(response.tenants);
-      setTotalCount(response.total);
-      setTotalPages(response.total_pages);
-    } catch (err: any) {
-      console.error('Failed to fetch tenants:', err);
-      setError(err.response?.data?.detail || 'Failed to load tenants. Please try again.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [currentPage, searchTerm, filterStatus, pageSize]);
-
-  // Initial load and refresh on filters
+  // Fetch tenants from API - directly in useEffect to avoid circular deps
   useEffect(() => {
+    const fetchTenants = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response: any = await tenantAPI.search({
+          page: currentPage,
+          page_size: pageSize,
+          search: searchTerm || undefined,
+          status: filterStatus !== 'all' ? filterStatus : undefined,
+        });
+
+        setTenants(response.tenants);
+        setTotalCount(response.total);
+        setTotalPages(response.total_pages);
+      } catch (err: any) {
+        console.error('Failed to fetch tenants:', err);
+        setError(err.response?.data?.detail || 'Failed to load tenants. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchTenants();
-  }, [fetchTenants]);
+  }, [currentPage, searchTerm, filterStatus]);
 
   // Calculate statistics
   const stats: TenantStats = {
