@@ -7,7 +7,7 @@ from sqlalchemy.orm import relationship
 from .base import Base, UUIDMixin, TimestampMixin, SoftDeleteMixin
 
 
-class Employee(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
+class Employee(Base, UUIDMixin, TimestampMixin):
     """
     Employee model - core data for risk assessment.
 
