@@ -1,51 +1,42 @@
 /**
- * Main Dashboard Page - Company Risk Health
+ * Root Page - Redirects to appropriate dashboard
  *
- * Executive overview with key metrics and charts
+ * Simple router that redirects based on auth state
  */
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
-import { analyticsAPI, employeeAPI } from '@/lib/api';
-import Layout from '@/components/Layout';
-import {
-  TrendingUp,
-  TrendingDown,
-  Users,
-  Shield,
-  AlertTriangle,
-  Activity,
-  Target,
-  Award,
-} from 'lucide-react';
 
-export default function Dashboard() {
+export default function RootPage() {
   const router = useRouter();
-  const { isAuthenticated, _hasHydrated } = useAuthStore();
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<any>(null);
-  const [riskDistribution, setRiskDistribution] = useState<any>(null);
-  const [executiveSummary, setExecutiveSummary] = useState<any>(null);
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const { isAuthenticated, isSuperAdmin, _hasHydrated } = useAuthStore();
 
   useEffect(() => {
     // Wait for auth state to hydrate from localStorage
     if (!_hasHydrated) return;
 
     if (!isAuthenticated) {
-      router.push('/login');
-      return;
+      router.replace('/login');
+    } else if (isSuperAdmin()) {
+      router.replace('/super-admin/dashboard');
+    } else {
+      router.replace('/dashboard');
     }
+  }, [_hasHydrated, isAuthenticated, isSuperAdmin, router]);
 
-    // Only load data once
-    if (!dataLoaded) {
-      loadDashboardData();
-      setDataLoaded(true);
-    }
-  }, [_hasHydrated, isAuthenticated, dataLoaded, router]);
+  // Show simple loading while redirecting
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="text-center">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-slate-200 border-t-teal-500 mb-4"></div>
+        <p className="text-slate-600">Loading...</p>
+      </div>
+    </div>
+  );
+}
 
   const loadDashboardData = async () => {
     try {
