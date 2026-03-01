@@ -1,6 +1,6 @@
 /**
  * Tenant Admin Dashboard (Company Risk Health)
- * TEMPORARY: Using mock data to avoid API loop bug
+ * Real-time risk analytics and organizational overview
  */
 
 'use client';
@@ -24,45 +24,53 @@ export default function DashboardPage() {
 }
 
 function DashboardContent() {
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [dashboardData, setDashboardData] = useState<any>(null);
 
-  // Load mock data after short delay
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 500);
-    return () => clearTimeout(timer);
+    loadDashboardData();
   }, []);
 
-  // MOCK DATA
-  const mockData = {
-    riskDistribution: {
-      critical_count: 12,
-      high_count: 45,
-      medium_count: 123,
-      low_count: 220,
-      critical_percentage: 3,
-      high_percentage: 11.25,
-      medium_percentage: 30.75,
-      low_percentage: 55,
-    },
-    executiveSummary: {
-      total_employees: 400,
-      average_risk_score: 4.2,
-      total_simulations: 24,
-      average_click_rate: 18.5,
-    },
-    departmentData: [
-      { department: 'Sales', avg_risk_score: 0.72 },
-      { department: 'Engineering', avg_risk_score: 0.34 },
-      { department: 'HR', avg_risk_score: 0.58 },
-      { department: 'Finance', avg_risk_score: 0.45 },
-      { department: 'Marketing', avg_risk_score: 0.62 },
-    ],
-    simulations: [
-      { id: '1', name: 'Q1 Phishing Test', status: 'completed', created_at: '2026-02-15T10:00:00Z' },
-      { id: '2', name: 'Executive Training', status: 'active', created_at: '2026-02-28T14:30:00Z' },
-      { id: '3', name: 'New Hire Assessment', status: 'completed', created_at: '2026-01-20T09:15:00Z' },
-    ],
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+
+      // Fetch real data from API
+      const [riskDistRes, execSummaryRes, simulationsRes] = await Promise.all([
+        fetch(`${apiUrl}/api/v1/analytics/risk-distribution`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${apiUrl}/api/v1/analytics/executive-summary`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${apiUrl}/api/v1/simulations/search`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ page: 1, page_size: 5 })
+        })
+      ]);
+
+      const riskDistribution = await riskDistRes.json();
+      const executiveSummary = await execSummaryRes.json();
+      const simulationsData = await simulationsRes.json();
+
+      setDashboardData({
+        riskDistribution,
+        executiveSummary,
+        simulations: simulationsData.items || []
+      });
+    } catch (err) {
+      console.error('Failed to load dashboard:', err);
+      setError('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) {
@@ -76,7 +84,25 @@ function DashboardContent() {
     );
   }
 
-  const { riskDistribution, executiveSummary, departmentData, simulations } = mockData;
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={loadDashboardData}
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dashboardData) return null;
+
+  const { riskDistribution, executiveSummary, simulations } = dashboardData;
   const overallScore = (
     (riskDistribution.critical_count * 10 +
       riskDistribution.high_count * 7.5 +
@@ -92,11 +118,6 @@ function DashboardContent() {
     <div className="space-y-6">
       {/* Welcome Header */}
       <div>
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-          <p className="text-yellow-800 text-sm font-medium">
-            ⚠️ Using mock data - API integration temporarily disabled for testing
-          </p>
-        </div>
         <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
           Good Morning 👋 Welcome Back, {user?.full_name}
         </h1>
@@ -115,7 +136,9 @@ function DashboardContent() {
               <div className="text-2xl font-semibold text-slate-400 mb-2">Company Average</div>
             </div>
             <div className="mt-4">
-              <Badge variant="success" dot>Optimal - Low Risk (Mock Data)</Badge>
+              <Badge variant="success" dot>
+                {overallScore < 3 ? 'Low Risk' : overallScore < 5 ? 'Medium Risk' : overallScore < 7 ? 'High Risk' : 'Critical Risk'}
+              </Badge>
             </div>
           </div>
         </div>
