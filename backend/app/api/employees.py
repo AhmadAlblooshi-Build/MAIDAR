@@ -532,21 +532,16 @@ def bulk_import_employees(
 
             # Calculate risk score using risk engine
             from app.core.risk_engine import RiskScoringEngine, EmployeeProfile, Scenario
-            from decimal import Decimal
 
             risk_engine = RiskScoringEngine()
             employee_profile = EmployeeProfile(
-                employee_id=employee_data.employee_id,
                 age_range=employee_data.age_range,
                 gender=employee_data.gender.upper() if employee_data.gender else "MALE",
                 languages=employee_data.languages or ["en"],
-                technical_literacy=Decimal(str(employee_data.technical_literacy)),
+                technical_literacy=int(employee_data.technical_literacy),
                 seniority=employee_data.seniority.upper(),
                 department=employee_data.department,
-                job_title=employee_data.job_title or "",
-                simulations_completed=0,
-                simulations_failed=0,
-                days_since_last_training=999
+                job_title=employee_data.job_title or ""
             )
             # Default generic phishing scenario for initial risk assessment
             scenario = Scenario(category="CREDENTIALS", complexity=5)
@@ -707,21 +702,16 @@ async def upload_csv(
 
             # Calculate risk score using risk engine
             from app.core.risk_engine import RiskScoringEngine, EmployeeProfile, Scenario
-            from decimal import Decimal
 
             risk_engine = RiskScoringEngine()
             employee_profile = EmployeeProfile(
-                employee_id=employee_data.employee_id,
                 age_range=employee_data.age_range,
                 gender=employee_data.gender.upper() if employee_data.gender else "MALE",
                 languages=employee_data.languages or ["en"],
-                technical_literacy=Decimal(str(employee_data.technical_literacy)),
+                technical_literacy=int(employee_data.technical_literacy),
                 seniority=employee_data.seniority.upper(),
                 department=employee_data.department,
-                job_title=employee_data.job_title or "",
-                simulations_completed=0,
-                simulations_failed=0,
-                days_since_last_training=999
+                job_title=employee_data.job_title or ""
             )
             # Default generic phishing scenario for initial risk assessment
             scenario = Scenario(category="CREDENTIALS", complexity=5)
