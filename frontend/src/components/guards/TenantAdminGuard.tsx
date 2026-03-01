@@ -1,6 +1,5 @@
 /**
  * Tenant Admin Route Guard
- *
  * Protects routes that should be accessed by Tenant Admins and Analysts
  */
 
@@ -16,29 +15,30 @@ interface TenantAdminGuardProps {
 
 export default function TenantAdminGuard({ children }: TenantAdminGuardProps) {
   const router = useRouter();
-  const { user, isAuthenticated, _hasHydrated } = useAuthStore();
   const hasChecked = useRef(false);
 
   useEffect(() => {
-    // Only check once to prevent infinite loops
+    // Only check ONCE ever - no dependencies to retrigger
     if (hasChecked.current) return;
-    if (!_hasHydrated) return;
-
     hasChecked.current = true;
 
-    // Check authentication and role
-    if (!isAuthenticated) {
-      router.replace('/login');
-      return;
-    }
+    // Small delay to ensure store is hydrated
+    const timer = setTimeout(() => {
+      const store = useAuthStore.getState();
 
-    // Check if user has tenant admin or analyst role
-    const role = user?.role;
-    if (role !== 'TENANT_ADMIN' && role !== 'ANALYST') {
-      router.replace('/super-admin/dashboard');
-    }
-  }, [_hasHydrated, isAuthenticated, user, router]);
+      if (!store.isAuthenticated) {
+        router.replace('/login');
+        return;
+      }
 
-  // Always render children - redirect happens in background
+      const role = store.user?.role;
+      if (role !== 'TENANT_ADMIN' && role !== 'ANALYST') {
+        router.replace('/super-admin/dashboard');
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []); // EMPTY DEPS - runs ONCE only
+
   return <>{children}</>;
 }
