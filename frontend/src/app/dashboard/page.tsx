@@ -1,19 +1,15 @@
 /**
  * Tenant Admin Dashboard (Company Risk Health)
- *
- * Main dashboard showing organization risk overview
+ * TEMPORARY: Using mock data to avoid API loop bug
  */
 
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import TenantAdminGuard from '@/components/guards/TenantAdminGuard';
 import TenantAdminLayout from '@/components/tenant-admin/TenantAdminLayout';
 import { useAuthStore } from '@/store/authStore';
-import { analyticsAPI, simulationAPI, employeeAPI } from '@/lib/api';
-import Card, { StatCard } from '@/components/ui/Card';
-import Spinner from '@/components/ui/Spinner';
+import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { TrendingUp, TrendingDown, Activity, Shield, Users, Target } from 'lucide-react';
 
@@ -29,133 +25,78 @@ export default function DashboardPage() {
 
 function DashboardContent() {
   const { user } = useAuthStore();
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [dashboardData, setDashboardData] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-  const hasLoadedOnce = useRef(false);
 
+  // Load mock data after short delay
   useEffect(() => {
-    // CRITICAL: Only load once, even if component re-mounts
-    if (hasLoadedOnce.current) return;
-    hasLoadedOnce.current = true;
+    const timer = setTimeout(() => setLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
-    let mounted = true;
+  // MOCK DATA
+  const mockData = {
+    riskDistribution: {
+      critical_count: 12,
+      high_count: 45,
+      medium_count: 123,
+      low_count: 220,
+      critical_percentage: 3,
+      high_percentage: 11.25,
+      medium_percentage: 30.75,
+      low_percentage: 55,
+    },
+    executiveSummary: {
+      total_employees: 400,
+      average_risk_score: 4.2,
+      total_simulations: 24,
+      average_click_rate: 18.5,
+    },
+    departmentData: [
+      { department: 'Sales', avg_risk_score: 0.72 },
+      { department: 'Engineering', avg_risk_score: 0.34 },
+      { department: 'HR', avg_risk_score: 0.58 },
+      { department: 'Finance', avg_risk_score: 0.45 },
+      { department: 'Marketing', avg_risk_score: 0.62 },
+    ],
+    simulations: [
+      { id: '1', name: 'Q1 Phishing Test', status: 'completed', created_at: '2026-02-15T10:00:00Z' },
+      { id: '2', name: 'Executive Training', status: 'active', created_at: '2026-02-28T14:30:00Z' },
+      { id: '3', name: 'New Hire Assessment', status: 'completed', created_at: '2026-01-20T09:15:00Z' },
+    ],
+  };
 
-    const loadData = async () => {
-      if (!mounted) return;
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Fetch all dashboard data in parallel with timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
-        const [riskDist, deptData, execSummary, simData, empStats] = await Promise.all([
-          analyticsAPI.getRiskDistribution(),
-          analyticsAPI.getDepartmentComparison(),
-          analyticsAPI.getExecutiveSummary(
-            new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            new Date().toISOString().split('T')[0]
-          ),
-          simulationAPI.search({ page: 1, page_size: 10 }),
-          employeeAPI.statistics(),
-        ]);
-
-        clearTimeout(timeoutId);
-
-        if (mounted) {
-          setDashboardData({
-            riskDistribution: riskDist,
-            departmentData: deptData,
-            executiveSummary: execSummary,
-            simulations: simData.simulations || [],
-            employeeStats: empStats,
-          });
-        }
-      } catch (err: any) {
-        console.error('Failed to load dashboard:', err);
-        if (mounted) {
-          setError(err?.detail || err?.message || 'Failed to load dashboard data');
-          // Don't retry automatically - let user manually refresh
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadData();
-
-    return () => {
-      mounted = false; // Prevent state updates after unmount
-    };
-  }, []); // Empty deps - run once on mount
-
-  if (error && !dashboardData) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <div className="text-red-600 font-semibold">⚠️ {error}</div>
-        <button
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
-        >
-          Reload Page
-        </button>
-      </div>
-    );
-  }
-
-  if (loading || !dashboardData) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Spinner />
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-slate-200 border-t-teal-500 mb-4"></div>
+          <p className="text-slate-600">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
 
-  const { riskDistribution, departmentData, executiveSummary, simulations, employeeStats } = dashboardData;
-
-  // Calculate overall risk score
-  const calculateOverallRiskScore = (): string => {
-    if (!riskDistribution) return '0.0';
-    const total = riskDistribution.critical_count + riskDistribution.high_count +
-                  riskDistribution.medium_count + riskDistribution.low_count;
-    if (total === 0) return '0.0';
-
-    const weightedScore = (
-      (riskDistribution.critical_count * 10) +
-      (riskDistribution.high_count * 7.5) +
-      (riskDistribution.medium_count * 5) +
-      (riskDistribution.low_count * 2.5)
-    ) / total;
-
-    return weightedScore.toFixed(1);
-  };
-
-  const overallScore = calculateOverallRiskScore();
-  const avgClickRate = executiveSummary?.average_click_rate || 0;
-
-  // Calculate workforce distribution percentages
-  const total = (riskDistribution?.critical_count || 0) +
-                (riskDistribution?.high_count || 0) +
-                (riskDistribution?.medium_count || 0) +
-                (riskDistribution?.low_count || 0);
-
-  const distribution = {
-    low: total > 0 ? ((riskDistribution?.low_count || 0) / total * 100).toFixed(0) : 0,
-    moderate: total > 0 ? ((riskDistribution?.medium_count || 0) / total * 100).toFixed(0) : 0,
-    high: total > 0 ? ((riskDistribution?.high_count || 0) / total * 100).toFixed(0) : 0,
-    critical: total > 0 ? ((riskDistribution?.critical_count || 0) / total * 100).toFixed(0) : 0,
-  };
+  const { riskDistribution, executiveSummary, departmentData, simulations } = mockData;
+  const overallScore = (
+    (riskDistribution.critical_count * 10 +
+      riskDistribution.high_count * 7.5 +
+      riskDistribution.medium_count * 5 +
+      riskDistribution.low_count * 2.5) /
+    (riskDistribution.critical_count +
+      riskDistribution.high_count +
+      riskDistribution.medium_count +
+      riskDistribution.low_count)
+  ).toFixed(1);
 
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
       <div>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+          <p className="text-yellow-800 text-sm font-medium">
+            ⚠️ Using mock data - API integration temporarily disabled for testing
+          </p>
+        </div>
         <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
           Good Morning 👋 Welcome Back, {user?.full_name}
         </h1>
@@ -173,175 +114,107 @@ function DashboardContent() {
               </div>
               <div className="text-2xl font-semibold text-slate-400 mb-2">Company Average</div>
             </div>
-            <div className="flex items-center space-x-6 text-sm">
-              <div>
-                <span className="text-slate-500">Likelihood Score:</span>
-                <span className="font-bold text-slate-900 ml-2">{(parseFloat(overallScore) * 0.9).toFixed(1)}</span>
-              </div>
-              <div>
-                <span className="text-slate-500">Impact Score:</span>
-                <span className="font-bold text-slate-900 ml-2">{(parseFloat(overallScore) * 1.2).toFixed(1)}</span>
-              </div>
-            </div>
             <div className="mt-4">
-              {parseFloat(overallScore) < 5 ? (
-                <Badge variant="success" dot>Optimal - Low Risk</Badge>
-              ) : parseFloat(overallScore) < 7 ? (
-                <Badge variant="warning" dot>Elevated - Monitor Closely</Badge>
-              ) : (
-                <Badge variant="danger" dot>Critical - Immediate Action Required</Badge>
-              )}
-            </div>
-          </div>
-
-          {/* Circular Gauge */}
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-teal-400 to-cyan-500 rounded-full blur-3xl opacity-30" />
-            <div className="relative w-48 h-48">
-              <svg className="transform -rotate-90" viewBox="0 0 100 100">
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  fill="none"
-                  className="text-slate-200"
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  stroke="url(#gradient)"
-                  strokeWidth="8"
-                  fill="none"
-                  strokeDasharray={`${(parseFloat(overallScore) / 10) * 251.2} 251.2`}
-                  strokeLinecap="round"
-                  className="transition-all duration-1000"
-                />
-                <defs>
-                  <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#14b8a6" />
-                    <stop offset="100%" stopColor="#06b6d4" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Shield className="w-16 h-16 text-teal-500" />
-              </div>
+              <Badge variant="success" dot>Optimal - Low Risk (Mock Data)</Badge>
             </div>
           </div>
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Workforce Distribution */}
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
-          <h2 className="text-lg font-bold text-slate-900 mb-4">Workforce Distribution</h2>
-          <div className="text-center mb-6">
-            <div className="text-4xl font-bold text-slate-900">{total.toLocaleString()}</div>
-            <div className="text-sm text-slate-500">Total Hits</div>
-          </div>
-
-          {/* Donut Chart (simplified) */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-                <span className="text-sm font-medium text-slate-700">Low</span>
-              </div>
-              <span className="text-sm font-bold text-slate-900">{distribution.low}%</span>
+          <div className="flex items-center space-x-4">
+            <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
+              <Users className="w-6 h-6 text-white" />
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                <span className="text-sm font-medium text-slate-700">Moderate</span>
-              </div>
-              <span className="text-sm font-bold text-slate-900">{distribution.moderate}%</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-orange-500" />
-                <span className="text-sm font-medium text-slate-700">High</span>
-              </div>
-              <span className="text-sm font-bold text-slate-900">{distribution.high}%</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-red-500" />
-                <span className="text-sm font-medium text-slate-700">Critical</span>
-              </div>
-              <span className="text-sm font-bold text-slate-900">{distribution.critical}%</span>
+            <div>
+              <div className="text-2xl font-bold text-slate-900">{executiveSummary.total_employees}</div>
+              <div className="text-sm text-slate-500">Total Employees</div>
             </div>
           </div>
         </Card>
 
-        {/* Risk Health Breakdown */}
         <Card>
-          <h2 className="text-lg font-bold text-slate-900 mb-4">Risk Health Breakdown by Department</h2>
-          <div className="space-y-4">
-            {departmentData?.slice(0, 5).map((dept: any, idx: number) => {
-              const colors = [
-                'from-red-500 to-rose-500',
-                'from-orange-500 to-amber-500',
-                'from-green-500 to-emerald-500',
-                'from-yellow-500 to-orange-500',
-                'from-blue-500 to-cyan-500',
-              ];
+          <div className="flex items-center space-x-4">
+            <div className="p-3 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-500">
+              <Shield className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-slate-900">{executiveSummary.average_risk_score}</div>
+              <div className="text-sm text-slate-500">Avg Risk Score</div>
+            </div>
+          </div>
+        </Card>
 
-              return (
-                <div key={idx}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-semibold text-slate-700">{dept.department}</span>
-                    <span className="text-sm font-bold text-slate-900">{(dept.avg_risk_score * 10).toFixed(0)}%</span>
-                  </div>
-                  <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full bg-gradient-to-r ${colors[idx % colors.length]} rounded-full transition-all duration-1000`}
-                      style={{ width: `${(dept.avg_risk_score * 10)}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+        <Card>
+          <div className="flex items-center space-x-4">
+            <div className="p-3 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
+              <Activity className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-slate-900">{executiveSummary.total_simulations}</div>
+              <div className="text-sm text-slate-500">Simulations Run</div>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="flex items-center space-x-4">
+            <div className="p-3 rounded-lg bg-gradient-to-br from-rose-500 to-orange-500">
+              <Target className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-slate-900">{executiveSummary.average_click_rate.toFixed(1)}%</div>
+              <div className="text-sm text-slate-500">Avg Click Rate</div>
+            </div>
           </div>
         </Card>
       </div>
 
-      {/* Recent Simulations & Assessments */}
+      {/* Risk Distribution */}
       <Card>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-bold text-slate-900">Recent Simulations & Assessments</h2>
-          <button
-            onClick={() => router.push('/simulations')}
-            className="text-sm font-semibold text-teal-600 hover:text-teal-700"
-          >
-            View All →
-          </button>
+        <h2 className="text-xl font-bold text-slate-900 mb-4">Risk Distribution</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-red-50 rounded-xl border-2 border-red-200 p-4">
+            <span className="text-sm font-semibold text-red-600">Critical Risk</span>
+            <div className="text-3xl font-bold text-slate-900 mt-2">{riskDistribution.critical_count}</div>
+            <div className="text-sm text-red-600 font-medium">{riskDistribution.critical_percentage}% of total</div>
+          </div>
+          <div className="bg-orange-50 rounded-xl border-2 border-orange-200 p-4">
+            <span className="text-sm font-semibold text-orange-600">High Risk</span>
+            <div className="text-3xl font-bold text-slate-900 mt-2">{riskDistribution.high_count}</div>
+            <div className="text-sm text-orange-600 font-medium">{riskDistribution.high_percentage}% of total</div>
+          </div>
+          <div className="bg-yellow-50 rounded-xl border-2 border-yellow-200 p-4">
+            <span className="text-sm font-semibold text-yellow-600">Medium Risk</span>
+            <div className="text-3xl font-bold text-slate-900 mt-2">{riskDistribution.medium_count}</div>
+            <div className="text-sm text-yellow-600 font-medium">{riskDistribution.medium_percentage}% of total</div>
+          </div>
+          <div className="bg-green-50 rounded-xl border-2 border-green-200 p-4">
+            <span className="text-sm font-semibold text-green-600">Low Risk</span>
+            <div className="text-3xl font-bold text-slate-900 mt-2">{riskDistribution.low_count}</div>
+            <div className="text-sm text-green-600 font-medium">{riskDistribution.low_percentage}% of total</div>
+          </div>
         </div>
+      </Card>
+
+      {/* Recent Simulations */}
+      <Card>
+        <h2 className="text-lg font-bold text-slate-900 mb-4">Recent Simulations</h2>
         <div className="space-y-3">
-          {simulations?.slice(0, 3).map((sim: any, idx: number) => (
-            <div
-              key={idx}
-              className="flex items-center justify-between p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer"
-              onClick={() => router.push(`/simulations/${sim.id}`)}
-            >
+          {simulations.map((sim) => (
+            <div key={sim.id} className="flex items-center justify-between p-4 rounded-xl bg-slate-50">
               <div className="flex items-center space-x-4">
                 <div className="p-3 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500">
                   <Target className="w-5 h-5 text-white" />
                 </div>
                 <div>
                   <div className="font-semibold text-slate-900">{sim.name}</div>
-                  <div className="text-sm text-slate-500">
-                    {new Date(sim.created_at).toLocaleDateString()}
-                  </div>
+                  <div className="text-sm text-slate-500">{new Date(sim.created_at).toLocaleDateString()}</div>
                 </div>
               </div>
-              <div className="text-right">
-                <Badge variant={sim.status === 'completed' ? 'success' : 'info'}>
-                  {sim.status}
-                </Badge>
-              </div>
+              <Badge variant={sim.status === 'completed' ? 'success' : 'info'}>{sim.status}</Badge>
             </div>
           ))}
         </div>
