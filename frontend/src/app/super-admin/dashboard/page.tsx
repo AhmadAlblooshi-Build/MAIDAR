@@ -201,7 +201,6 @@ function DashboardContent() {
             })}
           </div>
         </Card>
-      </div>
 
       {/* Tenant Directory Table */}
       <Card>
