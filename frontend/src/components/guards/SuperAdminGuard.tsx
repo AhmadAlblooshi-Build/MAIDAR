@@ -24,7 +24,9 @@ export default function SuperAdminGuard({ children }: { children: React.ReactNod
       return;
     }
 
-    if (user?.role !== 'PLATFORM_SUPER_ADMIN') {
+    // Accept both PLATFORM_SUPER_ADMIN and SUPER_ADMIN for backwards compatibility
+    const isSuperAdmin = user?.role === 'PLATFORM_SUPER_ADMIN' || user?.role === 'SUPER_ADMIN';
+    if (!isSuperAdmin) {
       router.replace('/dashboard');
       return;
     }

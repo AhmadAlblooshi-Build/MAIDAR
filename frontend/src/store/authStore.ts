@@ -7,7 +7,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type UserRole = 'PLATFORM_SUPER_ADMIN' | 'TENANT_ADMIN' | 'ANALYST';
+export type UserRole = 'PLATFORM_SUPER_ADMIN' | 'SUPER_ADMIN' | 'TENANT_ADMIN' | 'ANALYST';
 
 interface User {
   id: string;
@@ -57,7 +57,8 @@ export const useAuthStore = create<AuthState>()(
         })),
 
       isSuperAdmin: () => {
-        return get().user?.role === 'PLATFORM_SUPER_ADMIN';
+        const role = get().user?.role;
+        return role === 'PLATFORM_SUPER_ADMIN' || role === 'SUPER_ADMIN';
       },
 
       isTenantAdmin: () => {
