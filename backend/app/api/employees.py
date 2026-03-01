@@ -544,7 +544,9 @@ def bulk_import_employees(
                 job_title=employee_data.job_title or ""
             )
             # Default generic phishing scenario for initial risk assessment
-            scenario = Scenario(category="CREDENTIALS", complexity=5)
+            # Use employee's primary language or default to English
+            primary_language = employee_data.languages[0] if employee_data.languages else "en"
+            scenario = Scenario(category="CREDENTIALS", language=primary_language)
             risk_result = risk_engine.calculate_risk_score(employee_profile, scenario)
 
             # Create employee with risk score
@@ -714,7 +716,9 @@ async def upload_csv(
                 job_title=employee_data.job_title or ""
             )
             # Default generic phishing scenario for initial risk assessment
-            scenario = Scenario(category="CREDENTIALS", complexity=5)
+            # Use employee's primary language or default to English
+            primary_language = employee_data.languages[0] if employee_data.languages else "en"
+            scenario = Scenario(category="CREDENTIALS", language=primary_language)
             risk_result = risk_engine.calculate_risk_score(employee_profile, scenario)
 
             # Create employee with risk score
