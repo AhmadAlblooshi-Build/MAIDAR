@@ -9,6 +9,7 @@ from .simulation import Simulation, SimulationResult
 from .audit_log import AuditLog
 from .permission import Permission, Role
 from .notification import Notification
+from .session import Session
 
 __all__ = [
     "Tenant",
@@ -22,4 +23,5 @@ __all__ = [
     "Permission",
     "Role",
     "Notification",
+    "Session",
 ]
