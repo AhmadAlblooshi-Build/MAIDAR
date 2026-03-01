@@ -37,6 +37,7 @@ function ScenariosContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
   useEffect(() => {
     loadScenarios();
@@ -44,7 +45,7 @@ function ScenariosContent() {
 
   const loadScenarios = async () => {
     try {
-      const response = await fetch('http://localhost:8001/api/v1/scenarios/search', {
+      const response = await fetch(`${apiUrl}/api/v1/scenarios/search`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -68,7 +69,7 @@ function ScenariosContent() {
 
   const createScenario = async (formData: any) => {
     try {
-      const response = await fetch('http://localhost:8001/api/v1/scenarios', {
+      const response = await fetch(`${apiUrl}/api/v1/scenarios`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -93,7 +94,7 @@ function ScenariosContent() {
     if (!confirm('Are you sure you want to delete this scenario?')) return;
 
     try {
-      const response = await fetch(`http://localhost:8001/api/v1/scenarios/${id}`, {
+      const response = await fetch(`${apiUrl}/api/v1/scenarios/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
