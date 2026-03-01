@@ -75,7 +75,6 @@ function DashboardContent() {
             simulations: simData.simulations || [],
             employeeStats: empStats,
           });
-          setRetryCount(0); // Reset on success
         }
       } catch (err: any) {
         console.error('Failed to load dashboard:', err);
