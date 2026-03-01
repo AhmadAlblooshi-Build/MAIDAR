@@ -40,9 +40,9 @@ function RiskAssessmentContent() {
         <Button
           variant="primary"
           icon={<Plus className="w-4 h-4" />}
-          onClick={() => router.push('/risk-assessment/new')}
+          onClick={() => router.push('/surveys/new')}
         >
-          New Assessment
+          New Survey
         </Button>
       </div>
 
@@ -51,16 +51,16 @@ function RiskAssessmentContent() {
           <div className="mx-auto w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex items-center justify-center mb-4">
             <FileText className="w-8 h-8 text-white" />
           </div>
-          <h3 className="text-xl font-bold text-slate-900 mb-2">No Assessments Yet</h3>
+          <h3 className="text-xl font-bold text-slate-900 mb-2">No Surveys Yet</h3>
           <p className="text-slate-600 max-w-md mx-auto mb-6">
-            Create your first risk assessment to measure employee security awareness and identify training needs.
+            Create your first survey to measure employee security awareness and automatically update risk scores.
           </p>
           <Button
             variant="primary"
             icon={<Plus className="w-4 h-4" />}
-            onClick={() => router.push('/risk-assessment/new')}
+            onClick={() => router.push('/surveys/new')}
           >
-            Create Your First Assessment
+            Create Your First Survey
           </Button>
         </div>
       </Card>

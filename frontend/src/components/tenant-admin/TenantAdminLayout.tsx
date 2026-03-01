@@ -53,11 +53,11 @@ export default function TenantAdminLayout({ children }: TenantAdminLayoutProps) 
 
   const navigation = [
     { name: 'Company Risk Health', href: '/dashboard', icon: LayoutGrid },
-    { name: 'Risk Simulations', href: '/simulations', icon: Target },
+    { name: 'Campaigns', href: '/campaigns', icon: Target },
     { name: 'Employees', href: '/employees', icon: Users },
-    { name: 'Risk Assessment', href: '/risk-assessment', icon: FileText },
+    { name: 'Surveys', href: '/surveys', icon: FileText },
+    { name: 'Reports', href: '/reports', icon: TrendingUp },
     { name: 'AI Scenario Lab', href: '/ai-lab', icon: Brain },
-    { name: 'Risk Analytics', href: '/analytics', icon: TrendingUp },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 

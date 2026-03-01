@@ -6,12 +6,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import TenantAdminGuard from '@/components/guards/TenantAdminGuard';
 import TenantAdminLayout from '@/components/tenant-admin/TenantAdminLayout';
 import { useAuthStore } from '@/store/authStore';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
-import { TrendingUp, TrendingDown, Activity, Shield, Users, Target } from 'lucide-react';
+import Button from '@/components/ui/Button';
+import { TrendingUp, TrendingDown, Activity, Shield, Users, Target, AlertTriangle, ArrowRight } from 'lucide-react';
 
 export default function DashboardPage() {
   return (
@@ -24,6 +26,7 @@ export default function DashboardPage() {
 }
 
 function DashboardContent() {
+  const router = useRouter();
   const { user, token } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -39,7 +42,7 @@ function DashboardContent() {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
       // Fetch real data from API
-      const [riskDistRes, execSummaryRes, simulationsRes] = await Promise.all([
+      const [riskDistRes, execSummaryRes, simulationsRes, highRiskEmployeesRes] = await Promise.all([
         fetch(`${apiUrl}/api/v1/analytics/risk-distribution`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
@@ -53,17 +56,32 @@ function DashboardContent() {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ page: 1, page_size: 5 })
+        }),
+        fetch(`${apiUrl}/api/v1/employees/search`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            page: 1,
+            page_size: 5,
+            sort_by: 'risk_score',
+            sort_order: 'desc'
+          })
         })
       ]);
 
       const riskDistribution = await riskDistRes.json();
       const executiveSummary = await execSummaryRes.json();
       const simulationsData = await simulationsRes.json();
+      const highRiskEmployees = await highRiskEmployeesRes.json();
 
       setDashboardData({
         riskDistribution,
         executiveSummary,
-        simulations: simulationsData.items || []
+        simulations: simulationsData.items || [],
+        highRiskEmployees: highRiskEmployees.items || []
       });
     } catch (err) {
       console.error('Failed to load dashboard:', err);
@@ -102,7 +120,7 @@ function DashboardContent() {
 
   if (!dashboardData) return null;
 
-  const { riskDistribution, executiveSummary, simulations } = dashboardData;
+  const { riskDistribution, executiveSummary, simulations, highRiskEmployees } = dashboardData;
   const overallScore = (
     (riskDistribution.critical_count * 10 +
       riskDistribution.high_count * 7.5 +
@@ -219,6 +237,55 @@ function DashboardContent() {
             <div className="text-3xl font-bold text-slate-900 mt-2">{riskDistribution.low_count}</div>
             <div className="text-sm text-green-600 font-medium">{riskDistribution.low_percentage}% of total</div>
           </div>
+        </div>
+      </Card>
+
+      {/* High-Risk Employees Widget */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-red-100">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+            </div>
+            <h2 className="text-lg font-bold text-slate-900">High-Risk Employees</h2>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<ArrowRight className="w-4 h-4" />}
+            onClick={() => router.push('/employees?filter=high-risk')}
+          >
+            View All
+          </Button>
+        </div>
+        <div className="space-y-3">
+          {highRiskEmployees && highRiskEmployees.length > 0 ? (
+            highRiskEmployees.map((employee: any) => (
+              <div
+                key={employee.id}
+                onClick={() => router.push(`/employees/${employee.id}`)}
+                className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 hover:shadow-md transition-all cursor-pointer"
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-white font-bold">
+                    {employee.full_name?.charAt(0) || 'U'}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-900">{employee.full_name}</div>
+                    <div className="text-sm text-slate-500">{employee.email}</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-red-600">{employee.risk_score ? employee.risk_score.toFixed(1) : 'N/A'}</div>
+                  <Badge variant="danger">{employee.risk_band || 'High Risk'}</Badge>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8 text-slate-500">
+              No high-risk employees found. Great job!
+            </div>
+          )}
         </div>
       </Card>
 
