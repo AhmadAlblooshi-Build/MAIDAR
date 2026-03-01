@@ -244,7 +244,11 @@ export default function LoginPage() {
                       <input type="checkbox" className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 focus:ring-offset-0" />
                       <span className="ml-2 text-slate-600">Remember me</span>
                     </label>
-                    <button type="button" className="text-teal-600 hover:text-teal-700 font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => router.push('/forgot-password')}
+                      className="text-teal-600 hover:text-teal-700 font-semibold transition-colors"
+                    >
                       Forgot password?
                     </button>
                   </div>
