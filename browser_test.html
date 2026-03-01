@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MAIDAR Browser Connection Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #14b8a6;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #14b8a6;
+        }
+        button {
+            background: #14b8a6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0d9488;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .success {
+            background: #d1fae5;
+            border: 1px solid #6ee7b7;
+            color: #065f46;
+        }
+        .error {
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+        }
+        .info {
+            background: #dbeafe;
+            border: 1px solid #93c5fd;
+            color: #1e40af;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 MAIDAR Browser Connection Diagnostic</h1>
+
+        <div class="test-section">
+            <h3>📡 Test 1: Backend Health Check</h3>
+            <button onclick="testBackendHealth()">Test Backend Connection</button>
+            <div id="health-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔐 Test 2: Login (Direct Fetch)</h3>
+            <input type="email" id="email" placeholder="Email" value="admin@maidar.io">
+            <input type="password" id="password" placeholder="Password" value="Welldone1@">
+            <button onclick="testLogin()">Test Login</button>
+            <div id="login-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🌐 Test 3: CORS Check</h3>
+            <button onclick="testCORS()">Test CORS Headers</button>
+            <div id="cors-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 System Information</h3>
+            <button onclick="showSystemInfo()">Show Browser Info</button>
+            <div id="system-result"></div>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:8002';
+        const API_URL = 'http://localhost:8002/api/v1';
+
+        function showResult(elementId, content, type) {
+            const element = document.getElementById(elementId);
+            element.className = 'result ' + type;
+            element.innerHTML = content;
+        }
+
+        async function testBackendHealth() {
+            showResult('health-result', 'Testing...', 'info');
+
+            try {
+                console.log('Attempting to connect to:', BACKEND_URL + '/health');
+
+                const response = await fetch(BACKEND_URL + '/health', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('Response received:', response);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('health-result',
+                        `✅ SUCCESS!\n\nStatus Code: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}`,
+                        'success'
+                    );
+                } else {
+                    showResult('health-result',
+                        `❌ FAILED\n\nStatus Code: ${response.status}\nStatus Text: ${response.statusText}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                showResult('health-result',
+                    `❌ NETWORK ERROR\n\nError Type: ${error.name}\nError Message: ${error.message}\n\nThis means the browser cannot reach http://localhost:8002\n\nPossible causes:\n- Backend is not running\n- Port 8002 is blocked by firewall\n- Antivirus blocking the connection`,
+                    'error'
+                );
+            }
+        }
+
+        async function testLogin() {
+            showResult('login-result', 'Testing login...', 'info');
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                console.log('Login attempt to:', API_URL + '/auth/login');
+                console.log('Email:', email);
+
+                const response = await fetch(API_URL + '/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                console.log('Login response:', response);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('login-result',
+                        `✅ LOGIN SUCCESS!\n\nStatus Code: ${response.status}\nUser: ${data.user.email}\nRole: ${data.user.role}\nToken: ${data.access_token.substring(0, 50)}...`,
+                        'success'
+                    );
+                } else {
+                    const errorData = await response.json();
+                    showResult('login-result',
+                        `❌ LOGIN FAILED\n\nStatus Code: ${response.status}\nError: ${JSON.stringify(errorData, null, 2)}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showResult('login-result',
+                    `❌ NETWORK ERROR\n\nError Type: ${error.name}\nError Message: ${error.message}\n\nThe browser cannot connect to the backend!`,
+                    'error'
+                );
+            }
+        }
+
+        async function testCORS() {
+            showResult('cors-result', 'Testing CORS...', 'info');
+
+            try {
+                const response = await fetch(BACKEND_URL + '/health', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
+                    'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
+                    'Access-Control-Allow-Credentials': response.headers.get('Access-Control-Allow-Credentials')
+                };
+
+                showResult('cors-result',
+                    `CORS Headers:\n${JSON.stringify(corsHeaders, null, 2)}`,
+                    'info'
+                );
+            } catch (error) {
+                showResult('cors-result',
+                    `❌ ERROR: ${error.message}`,
+                    'error'
+                );
+            }
+        }
+
+        function showSystemInfo() {
+            const info = {
+                'Browser': navigator.userAgent,
+                'Platform': navigator.platform,
+                'Language': navigator.language,
+                'Online': navigator.onLine,
+                'Cookie Enabled': navigator.cookieEnabled,
+                'Current Page': window.location.href
+            };
+
+            showResult('system-result',
+                JSON.stringify(info, null, 2),
+                'info'
+            );
+        }
+
+        // Auto-run health check on page load
+        window.onload = function() {
+            console.log('Page loaded, running automatic health check...');
+            testBackendHealth();
+        };
+
+        // Log all console errors
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+Method,Name,Error,Occurrences
+GET,Frontend: Login,HTTPError('404 Client Error: Not Found for url: Frontend: Login'),20
+GET,/api/v1/employees/statistics,HTTPError('401 Client Error: Unauthorized for url: /api/v1/employees/statistics'),7
+POST,/api/v1/simulations/search,HTTPError('429 Client Error: Too Many Requests for url: /api/v1/simulations/search'),35
+GET,/api/v1/employees/statistics,HTTPError('429 Client Error: Too Many Requests for url: /api/v1/employees/statistics'),53
+POST,/api/v1/simulations/search,HTTPError('401 Client Error: Unauthorized for url: /api/v1/simulations/search'),1
+POST,/api/v1/risk/calculate,HTTPError('429 Client Error: Too Many Requests for url: /api/v1/risk/calculate'),26
+GET,/api/v1/scenarios/statistics,HTTPError('401 Client Error: Unauthorized for url: /api/v1/scenarios/statistics'),3
+POST,/api/v1/risk/calculate,HTTPError('401 Client Error: Unauthorized for url: /api/v1/risk/calculate'),1
+POST,/api/v1/auth/login,HTTPError('422 Client Error: Unprocessable Entity for url: /api/v1/auth/login'),3
+GET,/metrics,CatchResponseError('Metrics not available'),206
+GET,Frontend: Homepage,HTTPError('429 Client Error: Too Many Requests for url: Frontend: Homepage'),493
+GET,Frontend: Login,HTTPError('429 Client Error: Too Many Requests for url: Frontend: Login'),244
+GET,/readiness,HTTPError('429 Client Error: Too Many Requests for url: /readiness'),130
+POST,/api/v1/audit-logs/search,HTTPError('429 Client Error: Too Many Requests for url: /api/v1/audit-logs/search'),21
+GET,/api/v1/scenarios/statistics,HTTPError('429 Client Error: Too Many Requests for url: /api/v1/scenarios/statistics'),59
+POST,/api/v1/auth/login,HTTPError('429 Client Error: Too Many Requests for url: /api/v1/auth/login'),89
+GET,/health/detailed,CatchResponseError('Got status code 429'),192
+POST,/api/v1/audit-logs/search,HTTPError('401 Client Error: Unauthorized for url: /api/v1/audit-logs/search'),1
+GET,/liveness,HTTPError('429 Client Error: Too Many Requests for url: /liveness'),71

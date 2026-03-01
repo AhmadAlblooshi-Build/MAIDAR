@@ -1,0 +1,316 @@
+
+Running 37 tests using 1 worker
+
+  ok  1 [chromium] › tests\e2e\complete-frontend.spec.ts:92:9 › MAIDAR Frontend - Complete Test Suite › 1. Authentication Flow › 1.1 Login page loads correctly (1.1s)
+  ok  2 [chromium] › tests\e2e\complete-frontend.spec.ts:99:9 › MAIDAR Frontend - Complete Test Suite › 1. Authentication Flow › 1.2 Registration page loads (1.0s)
+Attempting registration...
+Registration successful
+  ok  3 [chromium] › tests\e2e\complete-frontend.spec.ts:106:9 › MAIDAR Frontend - Complete Test Suite › 1. Authentication Flow › 1.3 User can register successfully (1.8s)
+Attempting login for: e2e-tenant@maidar.com
+Login successful - redirected to: http://localhost:3000/dashboard
+  ok  4 [chromium] › tests\e2e\complete-frontend.spec.ts:111:9 › MAIDAR Frontend - Complete Test Suite › 1. Authentication Flow › 1.4 User can login successfully (1.8s)
+  ok  5 [chromium] › tests\e2e\complete-frontend.spec.ts:116:9 › MAIDAR Frontend - Complete Test Suite › 1. Authentication Flow › 1.5 Invalid login shows error (1.5s)
+  ok  6 [chromium] › tests\e2e\complete-frontend.spec.ts:130:9 › MAIDAR Frontend - Complete Test Suite › 1. Authentication Flow › 1.6 Protected routes redirect to login (919ms)
+  ok  7 [chromium] › tests\e2e\complete-frontend.spec.ts:138:9 › MAIDAR Frontend - Complete Test Suite › 1. Authentication Flow › 1.7 Login/Register toggle works (3.2s)
+Attempting login for: e2e-tenant@maidar.com
+Login successful - redirected to: http://localhost:3000/dashboard
+  ok  8 [chromium] › tests\e2e\complete-frontend.spec.ts:165:9 › MAIDAR Frontend - Complete Test Suite › 2. Dashboard & Navigation › 2.1 Dashboard loads after login (1.7s)
+Attempting login for: e2e-tenant@maidar.com
+Login successful - redirected to: http://localhost:3000/dashboard
+  ok  9 [chromium] › tests\e2e\complete-frontend.spec.ts:179:9 › MAIDAR Frontend - Complete Test Suite › 2. Dashboard & Navigation › 2.2 Sidebar navigation exists (1.7s)
+Attempting login for: e2e-tenant@maidar.com
+Login successful - redirected to: http://localhost:3000/dashboard
+  ok 10 [chromium] › tests\e2e\complete-frontend.spec.ts:190:9 › MAIDAR Frontend - Complete Test Suite › 2. Dashboard & Navigation › 2.3 Navigation links are clickable (3.7s)
+Attempting login for: e2e-tenant@maidar.com
+  x  11 [chromium] › tests\e2e\complete-frontend.spec.ts:210:9 › MAIDAR Frontend - Complete Test Suite › 2. Dashboard & Navigation › 2.4 Profile menu accessible (21.2s)
+Attempting login for: e2e-tenant@maidar.com
+  x  12 [chromium] › tests\e2e\complete-frontend.spec.ts:231:9 › MAIDAR Frontend - Complete Test Suite › 3. Employee Management › 3.1 Employee page loads (21.3s)
+  -  13 [chromium] › tests\e2e\complete-frontend.spec.ts:248:9 › MAIDAR Frontend - Complete Test Suite › 3. Employee Management › 3.2 Create employee button exists
+  -  14 [chromium] › tests\e2e\complete-frontend.spec.ts:259:9 › MAIDAR Frontend - Complete Test Suite › 3. Employee Management › 3.3 Employee form appears when create is clicked
+  -  15 [chromium] › tests\e2e\complete-frontend.spec.ts:280:9 › MAIDAR Frontend - Complete Test Suite › 3. Employee Management › 3.4 Employee list displays data
+  -  16 [chromium] › tests\e2e\complete-frontend.spec.ts:294:9 › MAIDAR Frontend - Complete Test Suite › 3. Employee Management › 3.5 Search functionality exists
+Attempting login for: e2e-tenant@maidar.com
+  x  17 [chromium] › tests\e2e\complete-frontend.spec.ts:310:9 › MAIDAR Frontend - Complete Test Suite › 4. Scenario Management › 4.1 Scenario page loads (21.3s)
+  -  18 [chromium] › tests\e2e\complete-frontend.spec.ts:326:9 › MAIDAR Frontend - Complete Test Suite › 4. Scenario Management › 4.2 Create scenario button exists
+  -  19 [chromium] › tests\e2e\complete-frontend.spec.ts:334:9 › MAIDAR Frontend - Complete Test Suite › 4. Scenario Management › 4.3 Scenario form validation works
+  -  20 [chromium] › tests\e2e\complete-frontend.spec.ts:364:9 › MAIDAR Frontend - Complete Test Suite › 4. Scenario Management › 4.4 Scenario list displays
+  -  21 [chromium] › tests\e2e\complete-frontend.spec.ts:373:9 › MAIDAR Frontend - Complete Test Suite › 4. Scenario Management › 4.5 Scenario categories visible
+Attempting login for: e2e-tenant@maidar.com
+  x  22 [chromium] › tests\e2e\complete-frontend.spec.ts:393:9 › MAIDAR Frontend - Complete Test Suite › 5. Simulation Management › 5.1 Simulation page loads (21.2s)
+  -  23 [chromium] › tests\e2e\complete-frontend.spec.ts:409:9 › MAIDAR Frontend - Complete Test Suite › 5. Simulation Management › 5.2 Create simulation button exists
+  -  24 [chromium] › tests\e2e\complete-frontend.spec.ts:417:9 › MAIDAR Frontend - Complete Test Suite › 5. Simulation Management › 5.3 Simulation list displays
+Attempting login for: e2e-tenant@maidar.com
+  x  25 [chromium] › tests\e2e\complete-frontend.spec.ts:432:9 › MAIDAR Frontend - Complete Test Suite › 6. Analytics & Risk Assessment › 6.1 Analytics page loads (21.2s)
+  -  26 [chromium] › tests\e2e\complete-frontend.spec.ts:448:9 › MAIDAR Frontend - Complete Test Suite › 6. Analytics & Risk Assessment › 6.2 Risk assessment page loads
+  -  27 [chromium] › tests\e2e\complete-frontend.spec.ts:458:9 › MAIDAR Frontend - Complete Test Suite › 6. Analytics & Risk Assessment › 6.3 Charts and graphs render
+Attempting login for: e2e-tenant@maidar.com
+  x  28 [chromium] › tests\e2e\complete-frontend.spec.ts:478:9 › MAIDAR Frontend - Complete Test Suite › 7. Settings Page › 7.1 Settings page loads (21.2s)
+  -  29 [chromium] › tests\e2e\complete-frontend.spec.ts:494:9 › MAIDAR Frontend - Complete Test Suite › 7. Settings Page › 7.2 Settings form elements exist
+  -  30 [chromium] › tests\e2e\complete-frontend.spec.ts:506:9 › MAIDAR Frontend - Complete Test Suite › 7. Settings Page › 7.3 Settings can be saved
+  ok 31 [chromium] › tests\e2e\complete-frontend.spec.ts:518:9 › MAIDAR Frontend - Complete Test Suite › 8. Error Handling › 8.1 404 page exists (1.1s)
+  ok 32 [chromium] › tests\e2e\complete-frontend.spec.ts:530:9 › MAIDAR Frontend - Complete Test Suite › 8. Error Handling › 8.2 Network error handling (376ms)
+  ok 33 [chromium] › tests\e2e\complete-frontend.spec.ts:543:9 › MAIDAR Frontend - Complete Test Suite › 9. Responsive Design › 9.1 Mobile viewport renders correctly (894ms)
+Attempting login for: e2e-tenant@maidar.com
+  x  34 [chromium] › tests\e2e\complete-frontend.spec.ts:550:9 › MAIDAR Frontend - Complete Test Suite › 9. Responsive Design › 9.2 Tablet viewport works (21.1s)
+  ok 35 [chromium] › tests\e2e\complete-frontend.spec.ts:560:9 › MAIDAR Frontend - Complete Test Suite › 10. Performance › 10.1 Pages load within reasonable time (1.1s)
+Attempting login for: e2e-tenant@maidar.com
+  x  36 [chromium] › tests\e2e\complete-frontend.spec.ts:569:9 › MAIDAR Frontend - Complete Test Suite › 10. Performance › 10.2 Loading indicators appear (21.2s)
+Attempting login for: e2e-tenant@maidar.com
+  x  37 [chromium] › tests\e2e\complete-frontend.spec.ts:585:9 › MAIDAR Frontend - Complete Test Suite › 11. Logout Flow › 11.1 User can logout (21.2s)
+
+
+  1) [chromium] › tests\e2e\complete-frontend.spec.ts:210:9 › MAIDAR Frontend - Complete Test Suite › 2. Dashboard & Navigation › 2.4 Profile menu accessible 
+
+    TimeoutError: page.waitForURL: Timeout 20000ms exceeded.
+    =========================== logs ===========================
+    waiting for navigation to "**/*dashboard*" until "load"
+    ============================================================
+
+      53 |   // Super admin → /super-admin/dashboard
+      54 |   // Tenant admin → /dashboard
+    > 55 |   await page.waitForURL('**/*dashboard*', { timeout: 20000 });
+         |              ^
+      56 |
+      57 |   // Wait for dashboard content to load
+      58 |   await page.waitForLoadState('networkidle', { timeout: 15000 });
+        at login (C:\Users\User\OneDrive\Desktop\MAIDAR\frontend\tests\e2e\complete-frontend.spec.ts:55:14)
+        at C:\Users\User\OneDrive\Desktop\MAIDAR\frontend\tests\e2e\complete-frontend.spec.ts:162:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\complete-frontend-MAIDAR-F-18549-2-4-Profile-menu-accessible-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\complete-frontend-MAIDAR-F-18549-2-4-Profile-menu-accessible-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\complete-frontend-MAIDAR-F-18549-2-4-Profile-menu-accessible-chromium\error-context.md
+
+  2) [chromium] › tests\e2e\complete-frontend.spec.ts:231:9 › MAIDAR Frontend - Complete Test Suite › 3. Employee Management › 3.1 Employee page loads 
+
+    TimeoutError: page.waitForURL: Timeout 20000ms exceeded.
+    =========================== logs ===========================
+    waiting for navigation to "**/*dashboard*" until "load"
+    ============================================================
+
+      53 |   // Super admin → /super-admin/dashboard
+      54 |   // Tenant admin → /dashboard
+    > 55 |   await page.waitForURL('**/*dashboard*', { timeout: 20000 });
+         |              ^
+      56 |
+      57 |   // Wait for dashboard content to load
+      58 |   await page.waitForLoadState('networkidle', { timeout: 15000 });
+        at login (C:\Users\User\OneDrive\Desktop\MAIDAR\frontend\tests\e2e\complete-frontend.spec.ts:55:14)
+        at C:\Users\User\OneDrive\Desktop\MAIDAR\frontend\tests\e2e\complete-frontend.spec.ts:228:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\complete-frontend-MAIDAR-F-6957f-ent-3-1-Employee-page-loads-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\complete-frontend-MAIDAR-F-6957f-ent-3-1-Employee-page-loads-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\complete-frontend-MAIDAR-F-6957f-ent-3-1-Employee-page-loads-chromium\error-context.md
+
+  3) [chromium] › tests\e2e\complete-frontend.spec.ts:310:9 › MAIDAR Frontend - Complete Test Suite › 4. Scenario Management › 4.1 Scenario page loads 
+
+    TimeoutError: page.waitForURL: Timeout 20000ms exceeded.
+    =========================== logs ===========================
+    waiting for navigation to "**/*dashboard*" until "load"
+    ============================================================
+
+      53 |   // Super admin → /super-admin/dashboard
+      54 |   // Tenant admin → /dashboard
+    > 55 |   await page.waitForURL('**/*dashboard*', { timeout: 20000 });
+         |              ^
+      56 |
+      57 |   // Wait for dashboard content to load
+      58 |   await page.waitForLoadState('networkidle', { timeout: 15000 });
+        at login (C:\Users\User\OneDrive\Desktop\MAIDAR\frontend\tests\e2e\complete-frontend.spec.ts:55:14)
+        at C:\Users\User\OneDrive\Desktop\MAIDAR\frontend\tests\e2e\complete-frontend.spec.ts:307:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\complete-frontend-MAIDAR-F-ce7f3-ent-4-1-Scenario-page-loads-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\complete-frontend-MAIDAR-F-ce7f3-ent-4-1-Scenario-page-loads-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\complete-frontend-MAIDAR-F-ce7f3-ent-4-1-Scenario-page-loads-chromium\error-context.md
+
+  4) [chromium] › tests\e2e\complete-frontend.spec.ts:393:9 › MAIDAR Frontend - Complete Test Suite › 5. Simulation Management › 5.1 Simulation page loads 
+
+    TimeoutError: page.waitForURL: Timeout 20000ms exceeded.
+    =========================== logs ===========================
+    waiting for navigation to "**/*dashboard*" until "load"
+    ============================================================
+
+      53 |   // Super admin → /super-admin/dashboard
+      54 |   // Tenant admin → /dashboard
+    > 55 |   await page.waitForURL('**/*dashboard*', { timeout: 20000 });
+         |              ^
+      56 |
+      57 |   // Wait for dashboard content to load
+      58 |   await page.waitForLoadState('networkidle', { timeout: 15000 });
+        at login (C:\Users\User\OneDrive\Desktop\MAIDAR\frontend\tests\e2e\complete-frontend.spec.ts:55:14)
+        at C:\Users\User\OneDrive\Desktop\MAIDAR\frontend\tests\e2e\complete-frontend.spec.ts:390:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\complete-frontend-MAIDAR-F-498b7-t-5-1-Simulation-page-loads-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\complete-frontend-MAIDAR-F-498b7-t-5-1-Simulation-page-loads-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\complete-frontend-MAIDAR-F-498b7-t-5-1-Simulation-page-loads-chromium\error-context.md
+
+  5) [chromium] › tests\e2e\complete-frontend.spec.ts:432:9 › MAIDAR Frontend - Complete Test Suite › 6. Analytics & Risk Assessment › 6.1 Analytics page loads 
+
+    TimeoutError: page.waitForURL: Timeout 20000ms exceeded.
+    =========================== logs ===========================
+    waiting for navigation to "**/*dashboard*" until "load"
+    ============================================================
+
+      53 |   // Super admin → /super-admin/dashboard
+      54 |   // Tenant admin → /dashboard
+    > 55 |   await page.waitForURL('**/*dashboard*', { timeout: 20000 });
+         |              ^
+      56 |
+      57 |   // Wait for dashboard content to load
+      58 |   await page.waitForLoadState('networkidle', { timeout: 15000 });
+        at login (C:\Users\User\OneDrive\Desktop\MAIDAR\frontend\tests\e2e\complete-frontend.spec.ts:55:14)
+        at C:\Users\User\OneDrive\Desktop\MAIDAR\frontend\tests\e2e\complete-frontend.spec.ts:429:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\complete-frontend-MAIDAR-F-5d9c6-nt-6-1-Analytics-page-loads-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\complete-frontend-MAIDAR-F-5d9c6-nt-6-1-Analytics-page-loads-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\complete-frontend-MAIDAR-F-5d9c6-nt-6-1-Analytics-page-loads-chromium\error-context.md
+
+  6) [chromium] › tests\e2e\complete-frontend.spec.ts:478:9 › MAIDAR Frontend - Complete Test Suite › 7. Settings Page › 7.1 Settings page loads 
+
+    TimeoutError: page.waitForURL: Timeout 20000ms exceeded.
+    =========================== logs ===========================
+    waiting for navigation to "**/*dashboard*" until "load"
+    ============================================================
+
+      53 |   // Super admin → /super-admin/dashboard
+      54 |   // Tenant admin → /dashboard
+    > 55 |   await page.waitForURL('**/*dashboard*', { timeout: 20000 });
+         |              ^
+      56 |
+      57 |   // Wait for dashboard content to load
+      58 |   await page.waitForLoadState('networkidle', { timeout: 15000 });
+        at login (C:\Users\User\OneDrive\Desktop\MAIDAR\frontend\tests\e2e\complete-frontend.spec.ts:55:14)
+        at C:\Users\User\OneDrive\Desktop\MAIDAR\frontend\tests\e2e\complete-frontend.spec.ts:475:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\complete-frontend-MAIDAR-F-2994e-age-7-1-Settings-page-loads-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\complete-frontend-MAIDAR-F-2994e-age-7-1-Settings-page-loads-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\complete-frontend-MAIDAR-F-2994e-age-7-1-Settings-page-loads-chromium\error-context.md
+
+  7) [chromium] › tests\e2e\complete-frontend.spec.ts:550:9 › MAIDAR Frontend - Complete Test Suite › 9. Responsive Design › 9.2 Tablet viewport works 
+
+    TimeoutError: page.waitForURL: Timeout 20000ms exceeded.
+    =========================== logs ===========================
+    waiting for navigation to "**/*dashboard*" until "load"
+    ============================================================
+
+      53 |   // Super admin → /super-admin/dashboard
+      54 |   // Tenant admin → /dashboard
+    > 55 |   await page.waitForURL('**/*dashboard*', { timeout: 20000 });
+         |              ^
+      56 |
+      57 |   // Wait for dashboard content to load
+      58 |   await page.waitForLoadState('networkidle', { timeout: 15000 });
+        at login (C:\Users\User\OneDrive\Desktop\MAIDAR\frontend\tests\e2e\complete-frontend.spec.ts:55:14)
+        at C:\Users\User\OneDrive\Desktop\MAIDAR\frontend\tests\e2e\complete-frontend.spec.ts:552:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\complete-frontend-MAIDAR-F-054a0-n-9-2-Tablet-viewport-works-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\complete-frontend-MAIDAR-F-054a0-n-9-2-Tablet-viewport-works-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\complete-frontend-MAIDAR-F-054a0-n-9-2-Tablet-viewport-works-chromium\error-context.md
+
+  8) [chromium] › tests\e2e\complete-frontend.spec.ts:569:9 › MAIDAR Frontend - Complete Test Suite › 10. Performance › 10.2 Loading indicators appear 
+
+    TimeoutError: page.waitForURL: Timeout 20000ms exceeded.
+    =========================== logs ===========================
+    waiting for navigation to "**/*dashboard*" until "load"
+    ============================================================
+
+      53 |   // Super admin → /super-admin/dashboard
+      54 |   // Tenant admin → /dashboard
+    > 55 |   await page.waitForURL('**/*dashboard*', { timeout: 20000 });
+         |              ^
+      56 |
+      57 |   // Wait for dashboard content to load
+      58 |   await page.waitForLoadState('networkidle', { timeout: 15000 });
+        at login (C:\Users\User\OneDrive\Desktop\MAIDAR\frontend\tests\e2e\complete-frontend.spec.ts:55:14)
+        at C:\Users\User\OneDrive\Desktop\MAIDAR\frontend\tests\e2e\complete-frontend.spec.ts:571:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\complete-frontend-MAIDAR-F-1c9fe-2-Loading-indicators-appear-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\complete-frontend-MAIDAR-F-1c9fe-2-Loading-indicators-appear-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\complete-frontend-MAIDAR-F-1c9fe-2-Loading-indicators-appear-chromium\error-context.md
+
+  9) [chromium] › tests\e2e\complete-frontend.spec.ts:585:9 › MAIDAR Frontend - Complete Test Suite › 11. Logout Flow › 11.1 User can logout 
+
+    TimeoutError: page.waitForURL: Timeout 20000ms exceeded.
+    =========================== logs ===========================
+    waiting for navigation to "**/*dashboard*" until "load"
+    ============================================================
+
+      53 |   // Super admin → /super-admin/dashboard
+      54 |   // Tenant admin → /dashboard
+    > 55 |   await page.waitForURL('**/*dashboard*', { timeout: 20000 });
+         |              ^
+      56 |
+      57 |   // Wait for dashboard content to load
+      58 |   await page.waitForLoadState('networkidle', { timeout: 15000 });
+        at login (C:\Users\User\OneDrive\Desktop\MAIDAR\frontend\tests\e2e\complete-frontend.spec.ts:55:14)
+        at C:\Users\User\OneDrive\Desktop\MAIDAR\frontend\tests\e2e\complete-frontend.spec.ts:586:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\complete-frontend-MAIDAR-F-46b7b-t-Flow-11-1-User-can-logout-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\complete-frontend-MAIDAR-F-46b7b-t-Flow-11-1-User-can-logout-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\complete-frontend-MAIDAR-F-46b7b-t-Flow-11-1-User-can-logout-chromium\error-context.md
+
+  9 failed
+    [chromium] › tests\e2e\complete-frontend.spec.ts:210:9 › MAIDAR Frontend - Complete Test Suite › 2. Dashboard & Navigation › 2.4 Profile menu accessible 
+    [chromium] › tests\e2e\complete-frontend.spec.ts:231:9 › MAIDAR Frontend - Complete Test Suite › 3. Employee Management › 3.1 Employee page loads 
+    [chromium] › tests\e2e\complete-frontend.spec.ts:310:9 › MAIDAR Frontend - Complete Test Suite › 4. Scenario Management › 4.1 Scenario page loads 
+    [chromium] › tests\e2e\complete-frontend.spec.ts:393:9 › MAIDAR Frontend - Complete Test Suite › 5. Simulation Management › 5.1 Simulation page loads 
+    [chromium] › tests\e2e\complete-frontend.spec.ts:432:9 › MAIDAR Frontend - Complete Test Suite › 6. Analytics & Risk Assessment › 6.1 Analytics page loads 
+    [chromium] › tests\e2e\complete-frontend.spec.ts:478:9 › MAIDAR Frontend - Complete Test Suite › 7. Settings Page › 7.1 Settings page loads 
+    [chromium] › tests\e2e\complete-frontend.spec.ts:550:9 › MAIDAR Frontend - Complete Test Suite › 9. Responsive Design › 9.2 Tablet viewport works 
+    [chromium] › tests\e2e\complete-frontend.spec.ts:569:9 › MAIDAR Frontend - Complete Test Suite › 10. Performance › 10.2 Loading indicators appear 
+    [chromium] › tests\e2e\complete-frontend.spec.ts:585:9 › MAIDAR Frontend - Complete Test Suite › 11. Logout Flow › 11.1 User can logout 
+  14 did not run
+  14 passed (3.8m)

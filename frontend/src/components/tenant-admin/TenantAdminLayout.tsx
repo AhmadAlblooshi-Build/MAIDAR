@@ -21,6 +21,9 @@ import {
   ChevronDown,
   Settings,
   LogOut,
+  BarChart3,
+  FileSpreadsheet,
+  Database,
 } from 'lucide-react';
 
 interface TenantAdminLayoutProps {
@@ -52,11 +55,13 @@ export default function TenantAdminLayout({ children }: TenantAdminLayoutProps) 
   };
 
   const navigation = [
-    { name: 'Company Risk Health', href: '/dashboard', icon: LayoutGrid },
-    { name: 'Campaigns', href: '/campaigns', icon: Target },
-    { name: 'Employees', href: '/employees', icon: Users },
-    { name: 'Surveys', href: '/surveys', icon: FileText },
-    { name: 'Reports', href: '/reports', icon: TrendingUp },
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
+    { name: 'Employee Management', href: '/employees', icon: Users },
+    { name: 'Campaign Management', href: '/campaigns', icon: Target },
+    { name: 'Surveys & Assessments', href: '/surveys', icon: FileText },
+    { name: 'Analytics & Insights', href: '/analytics', icon: BarChart3 },
+    { name: 'Reports & Exports', href: '/reports', icon: FileSpreadsheet },
+    { name: 'Data Management', href: '/data-management', icon: Database },
     { name: 'AI Scenario Lab', href: '/ai-lab', icon: Brain },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];

@@ -65,7 +65,13 @@
       "Bash(npm run test:e2e:*)",
       "Bash(npm run:*)",
       "Bash(aws --version:*)",
-      "Bash(docker-compose:*)"
+      "Bash(docker-compose:*)",
+      "Bash(git push:*)",
+      "Bash(git remote add:*)",
+      "Bash(Select-String -Pattern \"MISSING|EXTRA|matches perfectly|Total mismatches\")",
+      "Bash(vercel login:*)",
+      "Bash(vercel:*)",
+      "Bash(git reset:*)"
     ]
   }
 }

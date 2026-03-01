@@ -1,0 +1,178 @@
+================================================================================
+TESTING ALL PREVIOUSLY UNTESTED ENDPOINTS
+================================================================================
+Target: http://localhost:8001/api/v1
+Time: 2026-02-28 04:22:29.761922
+
+[Setup] Getting authentication tokens...
+[Setup] Tenant admin authentication successful
+[Setup] Super admin authentication successful
+
+================================================================================
+TESTING HEALTH CHECK
+================================================================================
+
+[Test] GET /health - Health check
+[PASS] Health check
+
+================================================================================
+TESTING AUTH VERIFICATION ENDPOINTS
+================================================================================
+
+[Test 1] POST /auth/verify-email - Email verification
+[PASS] Email verification (correctly rejects invalid token)
+
+[Test 2] POST /auth/reset-password - Complete password reset
+[PASS] Password reset (correctly rejects invalid token)
+
+[Test 3] POST /auth/resend-verification - Resend verification
+[PASS] Resend verification
+
+================================================================================
+TESTING EMPLOYEE STATISTICS
+================================================================================
+
+[Test] GET /employees/statistics - Employee statistics
+[PASS] Employee statistics
+
+================================================================================
+TESTING RISK ENGINE ENDPOINTS
+================================================================================
+
+[Setup] Creating test employee for risk calculation...
+
+[Setup] Creating scenario for risk calculation...
+
+[Test 1] POST /risk/calculate - Calculate single risk
+[PASS] Calculate single risk
+
+[Test 2] POST /risk/calculate-bulk - Calculate bulk risk
+[FAIL] Calculate bulk risk - Status 422: {"detail":[{"type":"missing","loc":["body","employee_ids"],"msg":"Field required","input":{"requests":[{"employee_id":"7df72fae-639e-457c-b19f-9e2bc0a5ff92","scenario_id":"6667b1ea-4b2f-4a35-bbd1-082b649bcd21","save_to_database":false}]},"url":"https://errors.pydantic.dev/2.10/v/missing"},{"type":"missing","loc":["body","scenario_ids"],"msg":"Field required","input":{"requests":[{"employee_id":"7df72fae-639e-457c-b19f-9e2bc0a5ff92","scenario_id":"6667b1ea-4b2f-4a35-bbd1-082b649bcd21","save_to_database":false}]},"url":"https://errors.pydantic.dev/2.10/v/missing"}]}
+
+[Test 3] GET /risk/employee/{id} - Get employee risk profile
+[FAIL] Get employee risk profile - Status 404
+
+================================================================================
+TESTING SIMULATION ENDPOINTS
+================================================================================
+
+[Setup] Creating test scenario...
+
+[Setup] Creating employee for simulation...
+
+[Test 1] POST /simulations/ - Create simulation
+[FAIL] Create simulation - Status 500: Internal Server Error
+[SKIP] Remaining simulation tests - Simulation not created
+
+================================================================================
+TESTING MISSING ANALYTICS ENDPOINTS
+================================================================================
+
+[Test 1] POST /analytics/risk-trends - Risk trends over time
+[FAIL] Risk trends - Status 422: {"detail":[{"type":"missing","loc":["body","start_date"],"msg":"Field required","input":{"time_period":"30d"},"url":"https://errors.pydantic.dev/2.10/v/missing"},{"type":"missing","loc":["body","end_date"],"msg":"Field required","input":{"time_period":"30d"},"url":"https://errors.pydantic.dev/2.10/v/missing"}]}
+
+[Test 2] GET /analytics/seniority-comparison - Seniority comparison
+[PASS] Seniority comparison
+
+[Test 3] GET /analytics/top-vulnerable - Top vulnerable employees
+[PASS] Top vulnerable employees
+
+[Test 4] POST /analytics/export - Export analytics
+[FAIL] Export analytics - Status 422: {"detail":[{"type":"missing","loc":["body","export_type"],"msg":"Field required","input":{"format":"csv"},"url":"https://errors.pydantic.dev/2.10/v/missing"}]}
+
+================================================================================
+TESTING NOTIFICATION ENDPOINTS
+================================================================================
+
+[Test 1] GET /notifications/unread-count - Get unread count
+[PASS] Get unread count
+
+[Test 2] PUT /notifications/mark-all-read - Mark all as read
+[PASS] Mark all as read
+
+================================================================================
+TESTING MISSING SCENARIO ENDPOINTS
+================================================================================
+
+[Test 1] GET /scenarios/statistics - Scenario statistics
+[PASS] Scenario statistics
+
+[Test 2] POST /scenarios/generate-ai - AI scenario generation
+[PASS] AI scenario generation
+
+================================================================================
+TESTING EMAIL TRACKING ENDPOINTS
+================================================================================
+
+[Test 1] GET /email/track/open/{id} - Track email open
+[PASS] Track email open (endpoint exists)
+
+[Test 2] GET /email/track/click/{id} - Track link click
+[PASS] Track link click (endpoint exists)
+
+[Test 3] POST /email/track/credential-submit/{id} - Track credentials
+[PASS] Track credential submission (endpoint exists)
+
+================================================================================
+TESTING SUPER ADMIN ENDPOINTS
+================================================================================
+
+[Setup] Getting tenant ID...
+[Setup] No tenants found, skipping tenant-specific tests
+
+[Test 1] POST /tenants/ - Create tenant
+[PASS] Create tenant
+
+[Test 2] GET /tenants/{id} - Get tenant details
+[FAIL] Get tenant details - Status 400
+
+[Test 3] PUT /tenants/{id} - Update tenant
+[PASS] Update tenant
+
+[Test 4] POST /tenants/{id}/suspend - Suspend tenant
+[PASS] Suspend tenant
+
+[Test 5] POST /tenants/{id}/activate - Activate tenant
+[PASS] Activate tenant
+
+[Test 6] DELETE /tenants/{id} - Delete tenant
+[PASS] Delete tenant
+
+================================================================================
+TESTING ADMIN USER MANAGEMENT
+================================================================================
+
+[Setup] Getting user ID...
+[Setup] No users found
+
+[Test 1] POST /admin-users/ - Create admin user
+[PASS] Create admin user (tenant required - expected)
+[SKIP] Admin user specific tests - No user available
+
+================================================================================
+TESTING MISSING RBAC ENDPOINTS
+================================================================================
+
+[Setup] Getting role ID...
+
+[Test 1] GET /rbac/roles/{id} - Get specific role
+[PASS] Get specific role
+
+[Test 2] PUT /rbac/roles/{id} - Update role
+[PASS] Update role
+
+================================================================================
+ALL MISSING ENDPOINTS TEST SUMMARY
+================================================================================
+Total Passed: 23
+Total Failed: 6
+Total Skipped: 2
+
+Failed Tests:
+  - Calculate bulk risk: Status 422: {"detail":[{"type":"missing","loc":["body","employee_ids"],"msg":"Field required","input":{"requests":[{"employee_id":"7df72fae-639e-457c-b19f-9e2bc0a5ff92","scenario_id":"6667b1ea-4b2f-4a35-bbd1-082b649bcd21","save_to_database":false}]},"url":"https://errors.pydantic.dev/2.10/v/missing"},{"type":"missing","loc":["body","scenario_ids"],"msg":"Field required","input":{"requests":[{"employee_id":"7df72fae-639e-457c-b19f-9e2bc0a5ff92","scenario_id":"6667b1ea-4b2f-4a35-bbd1-082b649bcd21","save_to_database":false}]},"url":"https://errors.pydantic.dev/2.10/v/missing"}]}
+  - Get employee risk profile: Status 404
+  - Create simulation: Status 500: Internal Server Error
+  - Risk trends: Status 422: {"detail":[{"type":"missing","loc":["body","start_date"],"msg":"Field required","input":{"time_period":"30d"},"url":"https://errors.pydantic.dev/2.10/v/missing"},{"type":"missing","loc":["body","end_date"],"msg":"Field required","input":{"time_period":"30d"},"url":"https://errors.pydantic.dev/2.10/v/missing"}]}
+  - Export analytics: Status 422: {"detail":[{"type":"missing","loc":["body","export_type"],"msg":"Field required","input":{"format":"csv"},"url":"https://errors.pydantic.dev/2.10/v/missing"}]}
+  - Get tenant details: Status 400
+================================================================================

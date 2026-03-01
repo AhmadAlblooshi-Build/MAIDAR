@@ -1,0 +1,158 @@
+
+================================================================================
+TESTING ALL REMAINING UNTESTED ENDPOINTS
+================================================================================
+Target: http://localhost:8001/api/v1
+Time: 2026-02-28 04:34:24.261589
+
+[Setup] Getting authentication tokens...
+[Setup] Tenant admin login failed: 401
+[Setup] Super admin login failed: 401
+
+================================================================================
+TESTING AUTHENTICATION ENDPOINTS (6 untested)
+================================================================================
+
+[92m[PASS][0m POST /auth/register - User registration
+[91m[FAIL][0m POST /auth/login - User login - Status 401: {"detail": "Incorrect email or password"}
+[91m[FAIL][0m GET /auth/me - Get current user profile - Status 401: {"detail": "Not authenticated"}
+[91m[FAIL][0m PUT /auth/me - Update current user profile - Status 401: {"detail": "Not authenticated"}
+[91m[FAIL][0m POST /auth/change-password - Change user password - Status 401: {"detail": "Not authenticated"}
+[91m[FAIL][0m POST /auth/change-password - Change password back - Status 401: {"detail": "Not authenticated"}
+[92m[PASS][0m POST /auth/forgot-password - Request password reset
+
+================================================================================
+TESTING EMPLOYEE ENDPOINTS (7 untested)
+================================================================================
+
+[91m[FAIL][0m POST /employees/ - Create employee - Status 401: {"detail": "Not authenticated"}
+[93m[SKIP][0m GET /employees/{id} - Employee not created
+[93m[SKIP][0m PUT /employees/{id} - Employee not created
+[93m[SKIP][0m DELETE /employees/{id} - Employee not created
+[91m[FAIL][0m POST /employees/search - Search employees - Status 401: {"detail": "Not authenticated"}
+[91m[FAIL][0m POST /employees/bulk-import - Bulk import employees - Status 401: {"detail": "Not authenticated"}
+[91m[FAIL][0m POST /employees/upload-csv - Upload CSV file - Status 401: {"detail": "Not authenticated"}
+
+================================================================================
+TESTING SCENARIO ENDPOINTS (5 untested)
+================================================================================
+
+[91m[FAIL][0m POST /scenarios/ - Create scenario - Status 401: {"detail": "Not authenticated"}
+[93m[SKIP][0m GET /scenarios/{id} - Scenario not created
+[93m[SKIP][0m PUT /scenarios/{id} - Scenario not created
+[93m[SKIP][0m DELETE /scenarios/{id} - Scenario not created
+[91m[FAIL][0m POST /scenarios/search - Search scenarios - Status 401: {"detail": "Not authenticated"}
+
+================================================================================
+TESTING ANALYTICS ENDPOINTS (3 untested)
+================================================================================
+
+[91m[FAIL][0m GET /analytics/department-comparison - Department comparison - Status 401: {"detail": "Not authenticated"}
+[91m[FAIL][0m GET /analytics/risk-distribution - Risk distribution - Status 401: {"detail": "Not authenticated"}
+[91m[FAIL][0m GET /analytics/executive-summary - Executive summary - Status 401: {"detail": "Not authenticated"}
+
+================================================================================
+TESTING RISK ENGINE ENDPOINTS (2 untested)
+================================================================================
+
+[93m[SKIP][0m GET /risk/scenario/{id} - No scenario available
+
+================================================================================
+TESTING NOTIFICATION ENDPOINTS (3 untested)
+================================================================================
+
+[91m[FAIL][0m GET /notifications/ - List notifications - Status 401: {"detail": "Not authenticated"}
+[93m[SKIP][0m PUT /notifications/{id}/read - No notifications available
+[93m[SKIP][0m DELETE /notifications/{id} - No notifications available
+
+================================================================================
+TESTING TENANT ENDPOINTS (1 untested)
+================================================================================
+
+[91m[FAIL][0m POST /tenants/search - Search tenants - Status 401: {"detail": "Not authenticated"}
+
+================================================================================
+TESTING ADMIN USER ENDPOINTS (6 untested)
+================================================================================
+
+[93m[SKIP][0m GET /admin-users/{id} - No user ID
+[93m[SKIP][0m PUT /admin-users/{id} - No user ID
+[91m[FAIL][0m POST /admin-users/search - Search admin users - Status 401: {"detail": "Not authenticated"}
+[91m[FAIL][0m POST /admin-users/{id}/suspend - Suspend user (validation test) - Status 401: {"detail": "Not authenticated"}
+[91m[FAIL][0m POST /admin-users/{id}/activate - Activate user (validation test) - Status 401: {"detail": "Not authenticated"}
+[91m[FAIL][0m PUT /admin-users/{id}/reassign-tenant - Reassign tenant (validation test) - Status 401: {"detail": "Not authenticated"}
+
+================================================================================
+TESTING RBAC ENDPOINTS (7 untested)
+================================================================================
+
+[91m[FAIL][0m GET /rbac/permissions - List all permissions - Status 401: {"detail": "Not authenticated"}
+[91m[FAIL][0m GET /rbac/roles - List all roles - Status 401: {"detail": "Not authenticated"}
+[91m[FAIL][0m POST /rbac/roles - Create role - Status 401: {"detail": "Not authenticated"}
+[93m[SKIP][0m DELETE /rbac/roles/{id} - Role not created
+[93m[SKIP][0m POST /rbac/roles/{id}/assign - No role or user
+[93m[SKIP][0m DELETE /rbac/roles/{id}/users/{user_id} - No role or user
+[93m[SKIP][0m GET /rbac/users/{id}/permissions - No user ID
+
+================================================================================
+TESTING SETTINGS ENDPOINTS (5 untested)
+================================================================================
+
+[91m[FAIL][0m GET /settings/notification-preferences - Get notification preferences - Status 401: {"detail": "Not authenticated"}
+[91m[FAIL][0m PUT /settings/notification-preferences - Update notification preferences - Status 401: {"detail": "Not authenticated"}
+[91m[FAIL][0m GET /settings/tenant/branding - Get tenant branding - Status 401: {"detail": "Not authenticated"}
+[91m[FAIL][0m PUT /settings/tenant/branding - Update tenant branding - Status 401: {"detail": "Not authenticated"}
+[91m[FAIL][0m POST /settings/tenant/logo - Upload tenant logo - Status 401: {"detail": "Not authenticated"}
+
+================================================================================
+TESTING AUDIT LOG ENDPOINTS (2 untested)
+================================================================================
+
+[91m[FAIL][0m POST /audit-logs/search - Search audit logs - Status 401: {"detail": "Not authenticated"}
+[93m[SKIP][0m GET /audit-logs/{id} - No audit logs available
+
+================================================================================
+ALL REMAINING UNTESTED ENDPOINTS TEST SUMMARY
+================================================================================
+Total Passed: [92m2[0m
+Total Failed: [91m29[0m
+Total Skipped: [93m16[0m
+
+[91mFailed Tests:[0m
+  - POST /auth/login - User login: Status 401: {"detail": "Incorrect email or password"}
+  - GET /auth/me - Get current user profile: Status 401: {"detail": "Not authenticated"}
+  - PUT /auth/me - Update current user profile: Status 401: {"detail": "Not authenticated"}
+  - POST /auth/change-password - Change user password: Status 401: {"detail": "Not authenticated"}
+  - POST /auth/change-password - Change password back: Status 401: {"detail": "Not authenticated"}
+  - POST /employees/ - Create employee: Status 401: {"detail": "Not authenticated"}
+  - POST /employees/search - Search employees: Status 401: {"detail": "Not authenticated"}
+  - POST /employees/bulk-import - Bulk import employees: Status 401: {"detail": "Not authenticated"}
+  - POST /employees/upload-csv - Upload CSV file: Status 401: {"detail": "Not authenticated"}
+  - POST /scenarios/ - Create scenario: Status 401: {"detail": "Not authenticated"}
+  - POST /scenarios/search - Search scenarios: Status 401: {"detail": "Not authenticated"}
+  - GET /analytics/department-comparison - Department comparison: Status 401: {"detail": "Not authenticated"}
+  - GET /analytics/risk-distribution - Risk distribution: Status 401: {"detail": "Not authenticated"}
+  - GET /analytics/executive-summary - Executive summary: Status 401: {"detail": "Not authenticated"}
+  - GET /notifications/ - List notifications: Status 401: {"detail": "Not authenticated"}
+  - POST /tenants/search - Search tenants: Status 401: {"detail": "Not authenticated"}
+  - POST /admin-users/search - Search admin users: Status 401: {"detail": "Not authenticated"}
+  - POST /admin-users/{id}/suspend - Suspend user (validation test): Status 401: {"detail": "Not authenticated"}
+  - POST /admin-users/{id}/activate - Activate user (validation test): Status 401: {"detail": "Not authenticated"}
+  - PUT /admin-users/{id}/reassign-tenant - Reassign tenant (validation test): Status 401: {"detail": "Not authenticated"}
+  - GET /rbac/permissions - List all permissions: Status 401: {"detail": "Not authenticated"}
+  - GET /rbac/roles - List all roles: Status 401: {"detail": "Not authenticated"}
+  - POST /rbac/roles - Create role: Status 401: {"detail": "Not authenticated"}
+  - GET /settings/notification-preferences - Get notification preferences: Status 401: {"detail": "Not authenticated"}
+  - PUT /settings/notification-preferences - Update notification preferences: Status 401: {"detail": "Not authenticated"}
+  - GET /settings/tenant/branding - Get tenant branding: Status 401: {"detail": "Not authenticated"}
+  - PUT /settings/tenant/branding - Update tenant branding: Status 401: {"detail": "Not authenticated"}
+  - POST /settings/tenant/logo - Upload tenant logo: Status 401: {"detail": "Not authenticated"}
+  - POST /audit-logs/search - Search audit logs: Status 401: {"detail": "Not authenticated"}
+================================================================================
+
+
+[1mOVERALL API COVERAGE:[0m
+Previously tested: 31 endpoints
+Newly tested: 31 endpoints
+Total tested: 62/88 endpoints
+Coverage: [92m70.5%[0m

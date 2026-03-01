@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MAIDAR Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>MAIDAR Backend Connection Test</h1>
+
+    <div class="test-result info">
+        <strong>Frontend URL:</strong> http://localhost:3001<br>
+        <strong>Backend URL:</strong> http://localhost:8002<br>
+        <strong>API URL:</strong> http://localhost:8002/api/v1
+    </div>
+
+    <button onclick="testBackendHealth()">Test Backend Health</button>
+    <button onclick="testLogin()">Test Login</button>
+    <button onclick="testCORS()">Test CORS</button>
+
+    <div id="results"></div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:8002';
+        const API_URL = 'http://localhost:8002/api/v1';
+
+        function addResult(title, success, message, data = null) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'test-result ' + (success ? 'success' : 'error');
+
+            let html = `<h3>${title}</h3><p>${message}</p>`;
+            if (data) {
+                html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+
+            resultDiv.innerHTML = html;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        async function testBackendHealth() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult(
+                        '✅ Backend Health Check',
+                        true,
+                        `Backend is responding! Status: ${response.status}`,
+                        data
+                    );
+                } else {
+                    addResult(
+                        '❌ Backend Health Check',
+                        false,
+                        `Backend returned error: ${response.status} ${response.statusText}`
+                    );
+                }
+            } catch (error) {
+                addResult(
+                    '❌ Backend Health Check',
+                    false,
+                    `Failed to connect to backend: ${error.message}`
+                );
+            }
+        }
+
+        async function testLogin() {
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@maidar.io',
+                        password: 'Welldone1@'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    addResult(
+                        '✅ Login Test',
+                        true,
+                        `Login successful! Status: ${response.status}`,
+                        {
+                            user: data.user,
+                            token: data.access_token ? data.access_token.substring(0, 50) + '...' : 'N/A'
+                        }
+                    );
+                } else {
+                    addResult(
+                        '❌ Login Test',
+                        false,
+                        `Login failed: ${response.status} ${response.statusText}`,
+                        data
+                    );
+                }
+            } catch (error) {
+                addResult(
+                    '❌ Login Test',
+                    false,
+                    `Failed to connect: ${error.message}`
+                );
+            }
+        }
+
+        async function testCORS() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/health`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': 'http://localhost:3001',
+                        'Access-Control-Request-Method': 'POST'
+                    }
+                });
+
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
+                    'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
+                    'Access-Control-Allow-Headers': response.headers.get('Access-Control-Allow-Headers'),
+                };
+
+                addResult(
+                    '✅ CORS Test',
+                    true,
+                    'CORS headers received',
+                    corsHeaders
+                );
+            } catch (error) {
+                addResult(
+                    '❌ CORS Test',
+                    false,
+                    `CORS test failed: ${error.message}`
+                );
+            }
+        }
+
+        // Auto-run health check on page load
+        window.onload = function() {
+            testBackendHealth();
+        };
+    </script>
+</body>
+</html>
