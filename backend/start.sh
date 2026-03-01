@@ -19,6 +19,11 @@ else
     exit 1
 fi
 
+# Create super admin user if it doesn't exist
+echo "Checking for super admin user..."
+python create_admin_on_startup.py
+
+echo ""
 echo "Starting MAIDAR Backend on port $PORT..."
 
 # Run uvicorn with the dynamic port
