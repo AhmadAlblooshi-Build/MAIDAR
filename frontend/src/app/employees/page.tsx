@@ -6,7 +6,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import TenantAdminGuard from '@/components/guards/TenantAdminGuard';
 import TenantAdminLayout from '@/components/tenant-admin/TenantAdminLayout';
 import { employeeAPI } from '@/lib/api';
@@ -32,29 +32,40 @@ export default function EmployeesPage() {
 
 function EmployeesContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState<any[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
+  const [filterRisk, setFilterRisk] = useState(searchParams.get('filter') === 'high-risk' ? 'high-risk' : 'all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [statistics, setStatistics] = useState<any>(null);
 
   useEffect(() => {
     loadEmployees();
     loadStatistics();
-  }, [currentPage, searchTerm, filterRole]);
+  }, [currentPage, searchTerm, filterRole, filterRisk]);
 
   const loadEmployees = async () => {
     try {
       setLoading(true);
-      const response = await employeeAPI.search({
+      const searchParams: any = {
         page: currentPage,
         page_size: 10,
         search: searchTerm || undefined,
         role: filterRole !== 'all' ? filterRole : undefined,
-      });
+      };
+
+      // Apply high-risk filter if set
+      if (filterRisk === 'high-risk') {
+        searchParams.sort_by = 'risk_score';
+        searchParams.sort_order = 'desc';
+        searchParams.min_risk_score = 6; // High risk threshold
+      }
+
+      const response = await employeeAPI.search(searchParams);
       setEmployees(response.employees || []);
       setTotalPages(response.total_pages || 1);
     } catch (error) {
@@ -115,6 +126,27 @@ function EmployeesContent() {
           </Button>
         </div>
       </div>
+
+      {/* High-Risk Filter Indicator */}
+      {filterRisk === 'high-risk' && (
+        <div className="flex items-center justify-between p-4 rounded-lg bg-red-50 border-2 border-red-200">
+          <div className="flex items-center space-x-3">
+            <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+            <span className="text-sm font-semibold text-red-900">
+              Showing: High-Risk Employees Only (Risk Score ≥ 6.0)
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              setFilterRisk('all');
+              router.push('/employees');
+            }}
+            className="px-3 py-1 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors"
+          >
+            Clear Filter
+          </button>
+        </div>
+      )}
 
       {statistics && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

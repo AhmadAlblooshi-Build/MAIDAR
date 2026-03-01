@@ -1,6 +1,6 @@
 /**
- * Risk Simulations Page
- * Personalized simulations powered by AI to measure behavioral resilience
+ * Campaigns Page
+ * Manage phishing simulations and security awareness campaigns
  */
 
 'use client';
@@ -16,17 +16,17 @@ import Badge from '@/components/ui/Badge';
 import Spinner from '@/components/ui/Spinner';
 import { Target, Users, Activity, TrendingUp, Plus, PlayCircle, BarChart3, Clock } from 'lucide-react';
 
-export default function SimulationsPage() {
+export default function CampaignsPage() {
   return (
     <TenantAdminGuard>
       <TenantAdminLayout>
-        <SimulationsContent />
+        <CampaignsContent />
       </TenantAdminLayout>
     </TenantAdminGuard>
   );
 }
 
-function SimulationsContent() {
+function CampaignsContent() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [simulations, setSimulations] = useState<any[]>([]);
@@ -66,24 +66,24 @@ function SimulationsContent() {
       <div className="flex items-center justify-between">
         <div>
           <h1 data-testid="page-title" className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-            Risk Simulations
+            Campaigns
           </h1>
           <p className="text-slate-500 mt-1">
-            Personalized simulations powered by AI to measure behavioral resilience
+            Phishing simulations and security awareness campaigns
           </p>
         </div>
         <Button
           variant="primary"
           icon={<Plus className="w-4 h-4" />}
-          onClick={() => router.push('/simulations/new')}
+          onClick={() => router.push('/campaigns/new')}
         >
-          New Simulation
+          New Campaign
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
-          title="Active Simulations"
+          title="Active Campaigns"
           value={activeCount.toString()}
           change={1.2}
           trend="up"
