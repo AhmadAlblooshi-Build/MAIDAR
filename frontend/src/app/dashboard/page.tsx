@@ -33,15 +33,18 @@ function DashboardContent() {
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const MAX_RETRIES = 3;
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   useEffect(() => {
-    // Only load once - prevent infinite loops
+    // CRITICAL: Only load once, even if component re-mounts
+    if (hasLoadedOnce) return;
+
     let mounted = true;
 
     const loadData = async () => {
-      if (!mounted || retryCount >= MAX_RETRIES) return;
+      if (!mounted) return;
+
+      setHasLoadedOnce(true); // Mark as loaded BEFORE starting
 
       try {
         setLoading(true);
@@ -92,30 +95,18 @@ function DashboardContent() {
     return () => {
       mounted = false; // Prevent state updates after unmount
     };
-  }, []); // Empty deps - only run once
-
-  const loadDashboardData = async () => {
-    setRetryCount(prev => prev + 1);
-    window.location.reload(); // Simple full page reload on retry
-  };
+  }, [hasLoadedOnce]); // Only run once
 
   if (error && !dashboardData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
         <div className="text-red-600 font-semibold">⚠️ {error}</div>
-        {retryCount < MAX_RETRIES && (
-          <button
-            onClick={loadDashboardData}
-            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
-          >
-            Retry ({MAX_RETRIES - retryCount} attempts left)
-          </button>
-        )}
-        {retryCount >= MAX_RETRIES && (
-          <div className="text-slate-600">
-            Maximum retries reached. Please refresh the page or contact support.
-          </div>
-        )}
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+        >
+          Reload Page
+        </button>
       </div>
     );
   }
