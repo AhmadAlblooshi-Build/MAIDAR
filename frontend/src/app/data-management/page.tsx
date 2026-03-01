@@ -184,17 +184,17 @@ function DataManagementContent() {
           {/* Upload Result */}
           {uploadResult && (
             <div className={`p-4 rounded-lg ${
-              uploadResult.success_count > 0 ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+              uploadResult.successful > 0 ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
             }`}>
               <div className="flex items-start space-x-3">
-                {uploadResult.success_count > 0 ? (
+                {uploadResult.successful > 0 ? (
                   <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
                 ) : (
                   <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
                 )}
                 <div className="flex-1">
                   <h3 className={`font-semibold mb-2 ${
-                    uploadResult.success_count > 0 ? 'text-green-900' : 'text-red-900'
+                    uploadResult.successful > 0 ? 'text-green-900' : 'text-red-900'
                   }`}>
                     Import Results
                   </h3>
@@ -202,15 +202,33 @@ function DataManagementContent() {
                     <div className="flex items-center justify-between">
                       <span className="text-slate-700">Successfully imported:</span>
                       <span className="font-semibold text-green-600">
-                        {uploadResult.success_count || 0} employees
+                        {uploadResult.successful || 0} employees
                       </span>
                     </div>
-                    {uploadResult.error_count > 0 && (
+                    {uploadResult.failed > 0 && (
                       <div className="flex items-center justify-between">
                         <span className="text-slate-700">Failed:</span>
                         <span className="font-semibold text-red-600">
-                          {uploadResult.error_count} rows
+                          {uploadResult.failed} rows
                         </span>
+                      </div>
+                    )}
+                    {uploadResult.errors && uploadResult.errors.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-red-200">
+                        <div className="font-semibold text-red-900 mb-2">Errors:</div>
+                        <div className="space-y-1 max-h-48 overflow-y-auto">
+                          {uploadResult.errors.slice(0, 10).map((error: any, idx: number) => (
+                            <div key={idx} className="text-xs text-red-800 bg-red-100 p-2 rounded">
+                              Row {error.row}: {error.error}
+                              {error.employee_id && ` (ID: ${error.employee_id})`}
+                            </div>
+                          ))}
+                          {uploadResult.errors.length > 10 && (
+                            <div className="text-xs text-red-700 italic">
+                              ...and {uploadResult.errors.length - 10} more errors
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
