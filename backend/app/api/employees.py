@@ -531,15 +531,26 @@ def bulk_import_employees(
                 continue
 
             # Calculate risk score using risk engine
-            from app.core.risk_engine import RiskEngine
-            risk_engine = RiskEngine()
-            risk_data = {
-                "age_range": employee_data.age_range,
-                "seniority": employee_data.seniority,
-                "department": employee_data.department,
-                "technical_literacy": employee_data.technical_literacy
-            }
-            risk_result = risk_engine.calculate_risk(risk_data)
+            from app.core.risk_engine import RiskScoringEngine, EmployeeProfile, Scenario
+            from decimal import Decimal
+
+            risk_engine = RiskScoringEngine()
+            employee_profile = EmployeeProfile(
+                employee_id=employee_data.employee_id,
+                age_range=employee_data.age_range,
+                gender=employee_data.gender.upper() if employee_data.gender else "MALE",
+                languages=employee_data.languages or ["en"],
+                technical_literacy=Decimal(str(employee_data.technical_literacy)),
+                seniority=employee_data.seniority.upper(),
+                department=employee_data.department,
+                job_title=employee_data.job_title or "",
+                simulations_completed=0,
+                simulations_failed=0,
+                days_since_last_training=999
+            )
+            # Default generic phishing scenario for initial risk assessment
+            scenario = Scenario(category="CREDENTIALS", complexity=5)
+            risk_result = risk_engine.calculate_risk_score(employee_profile, scenario)
 
             # Create employee with risk score
             employee = Employee(
@@ -554,8 +565,8 @@ def bulk_import_employees(
                 seniority=employee_data.seniority,
                 department=employee_data.department,
                 job_title=employee_data.job_title,
-                risk_score=risk_result["risk_score"],
-                risk_band=risk_result["risk_band"]
+                risk_score=float(risk_result.risk_score),
+                risk_band=risk_result.risk_band
             )
 
             db.add(employee)
@@ -695,15 +706,26 @@ async def upload_csv(
                 continue
 
             # Calculate risk score using risk engine
-            from app.core.risk_engine import RiskEngine
-            risk_engine = RiskEngine()
-            risk_data = {
-                "age_range": employee_data.age_range,
-                "seniority": employee_data.seniority,
-                "department": employee_data.department,
-                "technical_literacy": employee_data.technical_literacy
-            }
-            risk_result = risk_engine.calculate_risk(risk_data)
+            from app.core.risk_engine import RiskScoringEngine, EmployeeProfile, Scenario
+            from decimal import Decimal
+
+            risk_engine = RiskScoringEngine()
+            employee_profile = EmployeeProfile(
+                employee_id=employee_data.employee_id,
+                age_range=employee_data.age_range,
+                gender=employee_data.gender.upper() if employee_data.gender else "MALE",
+                languages=employee_data.languages or ["en"],
+                technical_literacy=Decimal(str(employee_data.technical_literacy)),
+                seniority=employee_data.seniority.upper(),
+                department=employee_data.department,
+                job_title=employee_data.job_title or "",
+                simulations_completed=0,
+                simulations_failed=0,
+                days_since_last_training=999
+            )
+            # Default generic phishing scenario for initial risk assessment
+            scenario = Scenario(category="CREDENTIALS", complexity=5)
+            risk_result = risk_engine.calculate_risk_score(employee_profile, scenario)
 
             # Create employee with risk score
             employee = Employee(
@@ -718,8 +740,8 @@ async def upload_csv(
                 seniority=employee_data.seniority,
                 department=employee_data.department,
                 job_title=employee_data.job_title,
-                risk_score=risk_result["risk_score"],
-                risk_band=risk_result["risk_band"]
+                risk_score=float(risk_result.risk_score),
+                risk_band=risk_result.risk_band
             )
 
             db.add(employee)
