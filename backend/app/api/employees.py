@@ -562,7 +562,7 @@ def bulk_import_employees(
                 seniority=employee_data.seniority,
                 department=employee_data.department,
                 job_title=employee_data.job_title,
-                risk_score=float(risk_result.risk_score),
+                risk_score=float(risk_result.risk_score) / 10.0,  # Convert 0-100 scale to 0-10 scale
                 risk_band=risk_result.risk_band.value if hasattr(risk_result.risk_band, 'value') else str(risk_result.risk_band)
             )
 
@@ -734,7 +734,7 @@ async def upload_csv(
                 seniority=employee_data.seniority,
                 department=employee_data.department,
                 job_title=employee_data.job_title,
-                risk_score=float(risk_result.risk_score),
+                risk_score=float(risk_result.risk_score) / 10.0,  # Convert 0-100 scale to 0-10 scale
                 risk_band=risk_result.risk_band.value if hasattr(risk_result.risk_band, 'value') else str(risk_result.risk_band)
             )
 
