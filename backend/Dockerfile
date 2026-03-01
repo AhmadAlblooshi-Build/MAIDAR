@@ -22,6 +22,7 @@ COPY ./app ./app
 COPY ./alembic ./alembic
 COPY ./alembic.ini ./alembic.ini
 COPY ./start.sh ./start.sh
+COPY ./create_admin_on_startup.py ./create_admin_on_startup.py
 
 # Make start script executable
 RUN chmod +x start.sh
