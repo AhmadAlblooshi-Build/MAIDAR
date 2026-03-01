@@ -67,14 +67,43 @@ function AnalyticsContent() {
 
       if (deptRes.ok) {
         const deptData = await deptRes.json();
-        // Mock department breakdown for now
-        setDepartmentStats([
-          { department: 'Engineering', count: 45, avgRisk: 5.2, highRisk: 8 },
-          { department: 'Sales', count: 32, avgRisk: 6.8, highRisk: 12 },
-          { department: 'Marketing', count: 28, avgRisk: 4.9, highRisk: 5 },
-          { department: 'Finance', count: 18, avgRisk: 3.8, highRisk: 2 },
-          { department: 'HR', count: 12, avgRisk: 4.2, highRisk: 3 },
-        ]);
+
+        // Fetch all employees to calculate department-level risk statistics
+        const employeesRes = await fetch(`${apiUrl}/api/v1/employees/search`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ page: 1, page_size: 1000 })
+        });
+
+        if (employeesRes.ok) {
+          const employeesData = await employeesRes.json();
+          const employees = employeesData.employees || [];
+
+          // Calculate department statistics from real employee data
+          const deptMap = new Map<string, { count: number; totalRisk: number; highRisk: number }>();
+
+          employees.forEach((emp: any) => {
+            if (!emp.department) return;
+
+            const dept = deptMap.get(emp.department) || { count: 0, totalRisk: 0, highRisk: 0 };
+            dept.count++;
+            dept.totalRisk += emp.risk_score || 0;
+            if (emp.risk_score >= 6) dept.highRisk++;
+            deptMap.set(emp.department, dept);
+          });
+
+          const stats = Array.from(deptMap.entries()).map(([department, data]) => ({
+            department,
+            count: data.count,
+            avgRisk: data.count > 0 ? parseFloat((data.totalRisk / data.count).toFixed(2)) : 0,
+            highRisk: data.highRisk
+          })).sort((a, b) => b.avgRisk - a.avgRisk); // Sort by highest risk first
+
+          setDepartmentStats(stats);
+        }
       }
 
       // Mock risk trends data

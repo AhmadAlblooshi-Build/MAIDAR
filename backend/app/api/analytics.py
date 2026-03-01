@@ -462,15 +462,14 @@ def get_risk_distribution(
 
     Shows how many employees fall into each risk band.
     """
-    # Get latest risk score for each employee
-    latest_scores = db.query(
-        RiskScore.employee_id,
-        func.max(RiskScore.risk_score).label('max_risk')
-    ).filter(
-        RiskScore.tenant_id == current_user.tenant_id
-    ).group_by(RiskScore.employee_id).all()
+    # Get risk scores from employee table (denormalized risk_score field)
+    employees = db.query(Employee).filter(
+        Employee.tenant_id == current_user.tenant_id,
+        Employee.deleted_at == None,
+        Employee.risk_score.isnot(None)
+    ).all()
 
-    if not latest_scores:
+    if not employees:
         return RiskDistribution(
             total_employees=0,
             critical_count=0,
@@ -486,10 +485,11 @@ def get_risk_distribution(
             std_deviation=0
         )
 
-    scores = [score for _, score in latest_scores]
+    # Convert risk scores from 0-10 scale to 0-100 scale for distribution calculation
+    scores = [emp.risk_score * 10 for emp in employees]
     total = len(scores)
 
-    # Count by band
+    # Count by band (using 0-100 scale)
     critical = sum(1 for s in scores if s >= 80)
     high = sum(1 for s in scores if 60 <= s < 80)
     medium = sum(1 for s in scores if 40 <= s < 60)
@@ -556,18 +556,21 @@ def get_executive_summary(
         Simulation.created_at <= end_date
     ).count()
 
-    # Average risk score
-    risk_scores = db.query(RiskScore.risk_score).filter(
-        RiskScore.tenant_id == current_user.tenant_id
+    # Average risk score from employee table
+    employees_with_risk = db.query(Employee).filter(
+        Employee.tenant_id == current_user.tenant_id,
+        Employee.deleted_at == None,
+        Employee.risk_score.isnot(None)
     ).all()
 
-    avg_risk = sum(score for (score,) in risk_scores) / len(risk_scores) if risk_scores else 0
+    risk_scores = [emp.risk_score * 10 for emp in employees_with_risk]  # Convert 0-10 to 0-100 scale
+    avg_risk = sum(risk_scores) / len(risk_scores) if risk_scores else 0
 
-    # Risk distribution
-    critical = sum(1 for (score,) in risk_scores if score >= 80)
-    high = sum(1 for (score,) in risk_scores if 60 <= score < 80)
-    medium = sum(1 for (score,) in risk_scores if 40 <= score < 60)
-    low = sum(1 for (score,) in risk_scores if score < 40)
+    # Risk distribution (using 0-100 scale)
+    critical = sum(1 for score in risk_scores if score >= 80)
+    high = sum(1 for score in risk_scores if 60 <= score < 80)
+    medium = sum(1 for score in risk_scores if 40 <= score < 60)
+    low = sum(1 for score in risk_scores if score < 40)
 
     # Simulation metrics
     sim_results = db.query(SimulationResult).join(Simulation).filter(

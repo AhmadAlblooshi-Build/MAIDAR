@@ -75,13 +75,13 @@ function DashboardContent() {
       const riskDistribution = await riskDistRes.json();
       const executiveSummary = await execSummaryRes.json();
       const simulationsData = await simulationsRes.json();
-      const highRiskEmployees = await highRiskEmployeesRes.json();
+      const highRiskEmployeesData = await highRiskEmployeesRes.json();
 
       setDashboardData({
         riskDistribution,
         executiveSummary,
-        simulations: simulationsData.items || [],
-        highRiskEmployees: highRiskEmployees.items || []
+        simulations: simulationsData.items || simulationsData.simulations || [],
+        highRiskEmployees: highRiskEmployeesData.employees || []
       });
     } catch (err) {
       console.error('Failed to load dashboard:', err);
