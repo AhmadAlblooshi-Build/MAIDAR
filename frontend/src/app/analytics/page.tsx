@@ -45,7 +45,7 @@ function AnalyticsContent() {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
       // Fetch risk distribution
-      const riskDistRes = await fetch(`${apiUrl}/api/v1/risk/distribution`, {
+      const riskDistRes = await fetch(`${apiUrl}/api/v1/analytics/risk-distribution`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
