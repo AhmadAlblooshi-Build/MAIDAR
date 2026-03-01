@@ -76,31 +76,37 @@ function TenantsContent() {
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [showActionMenu, setShowActionMenu] = useState<string | null>(null);
 
-  // Fetch tenants from API - directly in useEffect to avoid circular deps
-  useEffect(() => {
-    const fetchTenants = async () => {
-      try {
+  // Manual refresh function for button clicks
+  const fetchTenants = async (showLoader = true) => {
+    try {
+      if (showLoader) {
         setLoading(true);
-        setError(null);
-
-        const response: any = await tenantAPI.search({
-          page: currentPage,
-          page_size: pageSize,
-          search: searchTerm || undefined,
-          status: filterStatus !== 'all' ? filterStatus : undefined,
-        });
-
-        setTenants(response.tenants);
-        setTotalCount(response.total);
-        setTotalPages(response.total_pages);
-      } catch (err: any) {
-        console.error('Failed to fetch tenants:', err);
-        setError(err.response?.data?.detail || 'Failed to load tenants. Please try again.');
-      } finally {
-        setLoading(false);
+      } else {
+        setRefreshing(true);
       }
-    };
+      setError(null);
 
+      const response: any = await tenantAPI.search({
+        page: currentPage,
+        page_size: pageSize,
+        search: searchTerm || undefined,
+        status: filterStatus !== 'all' ? filterStatus : undefined,
+      });
+
+      setTenants(response.tenants);
+      setTotalCount(response.total);
+      setTotalPages(response.total_pages);
+    } catch (err: any) {
+      console.error('Failed to fetch tenants:', err);
+      setError(err.response?.data?.detail || 'Failed to load tenants. Please try again.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Fetch tenants when filters change - NO circular dependency (direct deps)
+  useEffect(() => {
     fetchTenants();
   }, [currentPage, searchTerm, filterStatus]);
 

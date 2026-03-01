@@ -60,53 +60,59 @@ function AuditLogContent() {
   const [showFilters, setShowFilters] = useState(false);
   const pageSize = 10;
 
-  // Fetch audit logs - directly in useEffect to avoid circular deps
-  useEffect(() => {
-    const fetchLogs = async () => {
-      try {
+  // Manual refresh function for button clicks
+  const fetchLogs = async (showLoader = true) => {
+    try {
+      if (showLoader) {
         setLoading(true);
-        setError(null);
-
-        // Calculate date range
-        const now = new Date();
-        let startDate = new Date();
-        switch (dateRange) {
-          case '1h':
-            startDate.setHours(now.getHours() - 1);
-            break;
-          case '24h':
-            startDate.setDate(now.getDate() - 1);
-            break;
-          case '7d':
-            startDate.setDate(now.getDate() - 7);
-            break;
-          case '30d':
-            startDate.setDate(now.getDate() - 30);
-            break;
-        }
-
-        const response: any = await auditLogAPI.search({
-          page: currentPage,
-          page_size: pageSize,
-          search: searchTerm || undefined,
-          action_type: filterAction !== 'all' ? filterAction : undefined,
-          severity: filterSeverity !== 'all' ? filterSeverity : undefined,
-          status: filterStatus !== 'all' ? filterStatus : undefined,
-          start_date: startDate.toISOString(),
-          end_date: now.toISOString(),
-        });
-
-        setLogs(response.logs);
-        setTotalCount(response.total);
-        setTotalPages(response.total_pages);
-      } catch (err: any) {
-        console.error('Failed to fetch audit logs:', err);
-        setError(err.response?.data?.detail || 'Failed to load audit logs. Please try again.');
-      } finally {
-        setLoading(false);
+      } else {
+        setRefreshing(true);
       }
-    };
+      setError(null);
 
+      // Calculate date range
+      const now = new Date();
+      let startDate = new Date();
+      switch (dateRange) {
+        case '1h':
+          startDate.setHours(now.getHours() - 1);
+          break;
+        case '24h':
+          startDate.setDate(now.getDate() - 1);
+          break;
+        case '7d':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case '30d':
+          startDate.setDate(now.getDate() - 30);
+          break;
+      }
+
+      const response: any = await auditLogAPI.search({
+        page: currentPage,
+        page_size: pageSize,
+        search: searchTerm || undefined,
+        action_type: filterAction !== 'all' ? filterAction : undefined,
+        severity: filterSeverity !== 'all' ? filterSeverity : undefined,
+        status: filterStatus !== 'all' ? filterStatus : undefined,
+        start_date: startDate.toISOString(),
+        end_date: now.toISOString(),
+      });
+
+      setLogs(response.logs);
+      setTotalCount(response.total);
+      setTotalPages(response.total_pages);
+    } catch (err: any) {
+      console.error('Failed to fetch audit logs:', err);
+      setError(err.response?.data?.detail || 'Failed to load audit logs. Please try again.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Fetch logs when filters change - NO circular dependency (direct deps)
+  useEffect(() => {
     fetchLogs();
   }, [currentPage, searchTerm, filterAction, filterSeverity, filterStatus, dateRange]);
 
