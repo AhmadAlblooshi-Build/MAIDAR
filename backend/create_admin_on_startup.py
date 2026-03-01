@@ -38,14 +38,7 @@ def create_admin_if_not_exists():
         existing_admin = db.query(User).filter(User.email == "admin@maidar.io").first()
 
         if existing_admin:
-            # Update password hash if it's malformed
-            new_hash = pwd_context.hash("Welldone1@")
-            if existing_admin.hashed_password != new_hash:
-                existing_admin.hashed_password = new_hash
-                db.commit()
-                print(f"✓ Updated super admin password: {existing_admin.email}")
-            else:
-                print(f"✓ Super admin already exists: {existing_admin.email}")
+            print(f"✓ Super admin already exists: {existing_admin.email}")
             return
 
         # Create default tenant
@@ -54,6 +47,8 @@ def create_admin_if_not_exists():
             tenant = Tenant(
                 name="Admin Organization",
                 subdomain="admin",
+                country_code="UAE",
+                data_residency_region="uae-north-1",
                 is_active=True
             )
             db.add(tenant)
@@ -65,9 +60,10 @@ def create_admin_if_not_exists():
         admin_user = User(
             email="admin@maidar.io",
             full_name="Super Administrator",
-            hashed_password=pwd_context.hash("Welldone1@"),
-            role="SUPER_ADMIN",
+            password_hash=pwd_context.hash("Welldone1@"),
+            role="PLATFORM_SUPER_ADMIN",
             is_active=True,
+            email_verified=True,
             tenant_id=tenant.id
         )
 

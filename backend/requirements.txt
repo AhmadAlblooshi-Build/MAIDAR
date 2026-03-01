@@ -18,9 +18,12 @@ pydantic-settings==2.7.1  # Updated for Python 3.13 support
 # Authentication & Security
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
-bcrypt==4.2.1  # Pin to 4.2.1 for compatibility with passlib 1.7.4
+bcrypt==4.2.1  # Compatible with passlib 1.7.4
 python-dotenv==1.0.0
 cryptography==41.0.7
+
+# Note: bcrypt version warning is cosmetic - passlib 1.7.4 works fine with bcrypt 4.2.1
+# The warning "(trapped) error reading bcrypt version" can be safely ignored
 
 # Redis (caching)
 redis==5.2.1  # Updated for Python 3.13
