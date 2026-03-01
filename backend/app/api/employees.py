@@ -530,7 +530,18 @@ def bulk_import_employees(
                 failed += 1
                 continue
 
-            # Create employee
+            # Calculate risk score using risk engine
+            from app.core.risk_engine import RiskEngine
+            risk_engine = RiskEngine()
+            risk_data = {
+                "age_range": employee_data.age_range,
+                "seniority": employee_data.seniority,
+                "department": employee_data.department,
+                "technical_literacy": employee_data.technical_literacy
+            }
+            risk_result = risk_engine.calculate_risk(risk_data)
+
+            # Create employee with risk score
             employee = Employee(
                 tenant_id=current_user.tenant_id,
                 employee_id=employee_data.employee_id,
@@ -542,7 +553,9 @@ def bulk_import_employees(
                 technical_literacy=employee_data.technical_literacy,
                 seniority=employee_data.seniority,
                 department=employee_data.department,
-                job_title=employee_data.job_title
+                job_title=employee_data.job_title,
+                risk_score=risk_result["risk_score"],
+                risk_band=risk_result["risk_band"]
             )
 
             db.add(employee)
@@ -681,7 +694,18 @@ async def upload_csv(
                 failed += 1
                 continue
 
-            # Create employee
+            # Calculate risk score using risk engine
+            from app.core.risk_engine import RiskEngine
+            risk_engine = RiskEngine()
+            risk_data = {
+                "age_range": employee_data.age_range,
+                "seniority": employee_data.seniority,
+                "department": employee_data.department,
+                "technical_literacy": employee_data.technical_literacy
+            }
+            risk_result = risk_engine.calculate_risk(risk_data)
+
+            # Create employee with risk score
             employee = Employee(
                 tenant_id=current_user.tenant_id,
                 employee_id=employee_data.employee_id,
@@ -693,7 +717,9 @@ async def upload_csv(
                 technical_literacy=employee_data.technical_literacy,
                 seniority=employee_data.seniority,
                 department=employee_data.department,
-                job_title=employee_data.job_title
+                job_title=employee_data.job_title,
+                risk_score=risk_result["risk_score"],
+                risk_band=risk_result["risk_band"]
             )
 
             db.add(employee)
