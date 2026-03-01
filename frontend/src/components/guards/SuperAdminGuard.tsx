@@ -6,10 +6,9 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
-import Spinner from '@/components/ui/Spinner';
 
 interface SuperAdminGuardProps {
   children: React.ReactNode;
@@ -17,20 +16,28 @@ interface SuperAdminGuardProps {
 
 export default function SuperAdminGuard({ children }: SuperAdminGuardProps) {
   const router = useRouter();
-  const { isAuthenticated, isSuperAdmin, _hasHydrated } = useAuthStore();
+  const { user, isAuthenticated, _hasHydrated } = useAuthStore();
+  const hasChecked = useRef(false);
 
   useEffect(() => {
-    // Wait for Zustand to hydrate before checking auth
+    // Only check once to prevent infinite loops
+    if (hasChecked.current) return;
     if (!_hasHydrated) return;
 
-    if (!isAuthenticated) {
-      router.push('/login');
-    } else if (!isSuperAdmin()) {
-      router.push('/dashboard');
-    }
-  }, [_hasHydrated, isAuthenticated, isSuperAdmin, router]);
+    hasChecked.current = true;
 
-  // Always render children - let the pages handle their own loading states
-  // The useEffect will redirect if needed
+    // Check authentication and role
+    if (!isAuthenticated) {
+      router.replace('/login');
+      return;
+    }
+
+    // Check if user is super admin
+    if (user?.role !== 'PLATFORM_SUPER_ADMIN') {
+      router.replace('/dashboard');
+    }
+  }, [_hasHydrated, isAuthenticated, user, router]);
+
+  // Always render children - redirect happens in background
   return <>{children}</>;
 }
