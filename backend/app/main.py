@@ -28,6 +28,17 @@ app = FastAPI(
     openapi_url="/openapi.json" if settings.DEBUG else None,
 )
 
+# CORS middleware - MUST be first to handle OPTIONS preflight
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["*"],
+    expose_headers=["X-Session-ID"],
+    max_age=3600  # Cache preflight for 1 hour
+)
+
 # Security Headers Middleware (OWASP best practices)
 # CSP is automatically configured based on DEBUG setting (strict in production)
 app.add_middleware(
@@ -52,17 +63,6 @@ app.add_middleware(
         "/liveness",   # Kubernetes liveness probe
         "/metrics"     # Prometheus metrics scraping
     ]
-)
-
-# CORS middleware - Must be added BEFORE other middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
-    expose_headers=["X-Session-ID"],
-    max_age=3600  # Cache preflight for 1 hour
 )
 
 # Trusted Host Middleware (prevent host header attacks)
