@@ -51,7 +51,7 @@ function DataManagementContent() {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      const response = await fetch(`${apiUrl}/api/v1/employees/bulk-upload`, {
+      const response = await fetch(`${apiUrl}/api/v1/employees/upload-csv`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -76,9 +76,9 @@ function DataManagementContent() {
 
   const downloadTemplate = () => {
     // Create CSV template
-    const csvContent = 'full_name,email,department,job_title,seniority,age,technical_literacy\n' +
-      'John Doe,john@company.com,Engineering,Software Engineer,Mid-Level,28,8\n' +
-      'Jane Smith,jane@company.com,Sales,Account Executive,Senior,35,6\n';
+    const csvContent = 'employee_id,email,full_name,age_range,gender,languages,technical_literacy,seniority,department,job_title\n' +
+      'EMP001,john@company.com,John Doe,25_34,male,"en",8,Mid-Level,Engineering,Software Engineer\n' +
+      'EMP002,jane@company.com,Jane Smith,35_44,female,"en",6,Senior,Sales,Account Executive\n';
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -306,10 +306,12 @@ function DataManagementContent() {
             <div className="font-semibold mb-2">CSV Import Guidelines</div>
             <ul className="space-y-1 list-disc list-inside">
               <li>Download the template to ensure correct column format</li>
-              <li>Required fields: full_name, email, department, job_title, seniority</li>
-              <li>Optional fields: age, technical_literacy (1-10)</li>
-              <li>Email addresses must be unique across all employees</li>
+              <li>Required fields: employee_id, email, full_name, age_range, technical_literacy, seniority, department</li>
+              <li>Optional fields: job_title, gender, languages</li>
+              <li>Age range values: 18_24, 25_34, 35_44, 45_54, 55_plus</li>
+              <li>Technical literacy: 1-10 (numeric value)</li>
               <li>Seniority values: Entry, Mid-Level, Senior, Executive</li>
+              <li>Email addresses must be unique across all employees</li>
               <li>Maximum file size: 5MB (approximately 10,000 employees)</li>
             </ul>
           </div>
