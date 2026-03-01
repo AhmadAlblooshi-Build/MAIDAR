@@ -146,17 +146,17 @@ def register(
     db.commit()
     db.refresh(user)
 
-    # Send verification email
+    # Send verification email asynchronously (non-blocking)
     try:
-        verification_link = f"{settings.FRONTEND_URL}/verify-email?token={create_verification_token(user.email)}"
-        email_service.send_verification_email(
+        from app.tasks.email_tasks import send_welcome_email
+        send_welcome_email.delay(
             to_email=user.email,
-            verification_code=verification_code,
-            verification_link=verification_link
+            full_name=user.full_name,
+            verification_code=verification_code
         )
-        logger.info(f"Verification email sent to {user.email}")
+        logger.info(f"Verification email queued for {user.email}")
     except Exception as e:
-        logger.error(f"Failed to send verification email to {user.email}: {str(e)}")
+        logger.error(f"Failed to queue verification email for {user.email}: {str(e)}")
         # Don't fail registration if email fails
 
     logger.info(f"User registered successfully: {user.email} ({user.role})")
