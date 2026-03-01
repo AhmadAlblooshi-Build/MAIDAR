@@ -41,7 +41,7 @@ app.add_middleware(
 # Rate Limiting Middleware (global)
 app.add_middleware(
     RateLimitMiddleware,
-    max_requests=100,  # 100 requests
+    max_requests=1000,  # 1000 requests per minute (increased for production dashboard load)
     window_seconds=60,  # per minute
     exempt_paths=[
         "/health",
