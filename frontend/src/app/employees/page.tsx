@@ -230,6 +230,10 @@ function EmployeesContent() {
                   key: 'risk_score',
                   label: 'Risk Index',
                   render: (value: number) => {
+                    // Handle undefined/null risk scores gracefully
+                    if (value === null || value === undefined) {
+                      return <span className="text-sm text-slate-400 italic">Calculating...</span>;
+                    }
                     const badge = getRiskBadge(value);
                     return (
                       <div className="flex items-center space-x-3">
