@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import TenantAdminGuard from '@/components/guards/TenantAdminGuard';
 import TenantAdminLayout from '@/components/tenant-admin/TenantAdminLayout';
@@ -33,18 +33,17 @@ function DashboardContent() {
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const hasLoadedOnce = useRef(false);
 
   useEffect(() => {
     // CRITICAL: Only load once, even if component re-mounts
-    if (hasLoadedOnce) return;
+    if (hasLoadedOnce.current) return;
+    hasLoadedOnce.current = true;
 
     let mounted = true;
 
     const loadData = async () => {
       if (!mounted) return;
-
-      setHasLoadedOnce(true); // Mark as loaded BEFORE starting
 
       try {
         setLoading(true);
@@ -94,7 +93,7 @@ function DashboardContent() {
     return () => {
       mounted = false; // Prevent state updates after unmount
     };
-  }, [hasLoadedOnce]); // Only run once
+  }, []); // Empty deps - run once on mount
 
   if (error && !dashboardData) {
     return (
