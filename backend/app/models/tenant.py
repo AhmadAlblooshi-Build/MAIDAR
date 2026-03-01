@@ -7,7 +7,7 @@ from datetime import datetime
 from .base import Base, UUIDMixin, TimestampMixin, SoftDeleteMixin
 
 
-class Tenant(Base, UUIDMixin, TimestampMixin):
+class Tenant(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
     """
     Tenant model for multi-tenant architecture.
 
@@ -19,15 +19,19 @@ class Tenant(Base, UUIDMixin, TimestampMixin):
 
     # Basic info
     name = Column(String(255), nullable=False)
+    domain = Column(String(255), nullable=True)  # e.g., "acme.com" - nullable for now
     subdomain = Column(String(100), unique=True, nullable=False, index=True)
-
-    # Compliance
-    country_code = Column(String(3), nullable=False)
-    data_residency_region = Column(String(50), nullable=False)
 
     # License information
     license_tier = Column(String(50), nullable=True)
     max_employees = Column(Integer, nullable=True)
+    seats_total = Column(Integer, default=100, nullable=True)
+    seats_used = Column(Integer, default=0, nullable=True)
+    provisioned_date = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=True)
+
+    # Compliance
+    country_code = Column(String(3), nullable=False)
+    data_residency_region = Column(String(50), nullable=False)
 
     # Status
     is_active = Column(Boolean, default=True, nullable=False, index=True)
