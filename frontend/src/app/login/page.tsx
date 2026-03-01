@@ -1,21 +1,30 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const setAuth = useAuthStore((state) => state.setAuth);
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     full_name: '',
     organization_name: ''
   });
+
+  // Check if user just registered
+  useEffect(() => {
+    if (searchParams.get('registered') === 'true') {
+      setSuccess('Account created successfully! Please sign in to continue.');
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,6 +177,15 @@ export default function LoginPage() {
                 </p>
               </div>
 
+              {success && (
+                <div className="p-4 rounded-xl bg-green-50/80 backdrop-blur-sm border border-green-200 text-green-700 text-sm flex items-start space-x-2">
+                  <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                  </svg>
+                  <span>{success}</span>
+                </div>
+              )}
+
               {error && (
                 <div className="p-4 rounded-xl bg-red-50/80 backdrop-blur-sm border border-red-200 text-red-700 text-sm flex items-start space-x-2">
                   <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -285,6 +303,7 @@ export default function LoginPage() {
                     onClick={() => {
                       setIsLogin(!isLogin);
                       setError('');
+                      setSuccess('');
                     }}
                     className="text-teal-600 hover:text-teal-700 font-bold hover:underline"
                   >
