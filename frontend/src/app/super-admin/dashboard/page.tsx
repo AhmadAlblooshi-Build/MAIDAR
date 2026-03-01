@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/authStore';
 import SuperAdminGuard from '@/components/guards/SuperAdminGuard';
 import SuperAdminLayout from '@/components/super-admin/SuperAdminLayout';
 import Card, { StatCard } from '@/components/ui/Card';
@@ -28,6 +29,7 @@ export default function SuperAdminDashboardPage() {
 
 function DashboardContent() {
   const router = useRouter();
+  const { token } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<any>(null);
 
@@ -38,42 +40,58 @@ function DashboardContent() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
-      // Mock data for Super Admin dashboard
-      // In production, these would be real API calls
+      // Fetch real data from APIs
+      const [tenantsRes, auditLogsRes] = await Promise.all([
+        fetch(`${apiUrl}/api/v1/tenants/search`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ page: 1, page_size: 10 })
+        }),
+        fetch(`${apiUrl}/api/v1/audit-logs/search`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ page: 1, page_size: 5 })
+        })
+      ]);
+
+      const tenantsData = await tenantsRes.json();
+      const auditLogsData = await auditLogsRes.json();
+
+      const tenants = tenantsData.items || [];
+      const totalTenants = tenantsData.total || 0;
+      const activeTenants = tenants.filter((t: any) => t.is_active).length;
+      const suspendedTenants = tenants.filter((t: any) => !t.is_active).length;
+
       const data = {
         kpis: {
-          totalTenants: 24,
-          activeTenants: 21,
-          suspendedTenants: 3,
-          tenantAdmins: 47,
-          change: -0.5,
+          totalTenants,
+          activeTenants,
+          suspendedTenants,
+          tenantAdmins: 0, // Would need separate API call
+          change: 0,
         },
-        tenants: [
-          { id: '1', name: 'Acme Corp', risk_score: 32, seats: 450, status: 'Active' },
-          { id: '2', name: 'Global Finance Inc', risk_score: 78, seats: 12000, status: 'Active' },
-          { id: '3', name: 'TechStart SA', risk_score: 12, seats: 85, status: 'Active' },
-          { id: '4', name: 'HealthCare Plus', risk_score: 45, seats: 2400, status: 'Suspended' },
-        ],
-        globalRisk: {
-          departments: [
-            { name: 'Sales', risk: 64 },
-            { name: 'Engineering', risk: 34 },
-            { name: 'HR', risk: 72 },
-            { name: 'Finance', risk: 88 },
-            { name: 'Legal', risk: 88 },
-          ],
-        },
-        platformIntelligence: [
-          { event: 'New Tenant Provisioned', actor: 'System • Cyberdyne Systems', time: '2 mins ago', type: 'info' },
-          { event: 'Brute Force Detection', actor: 'AI Engine • Global Finance', time: '2 mins ago', type: 'critical' },
-          { event: 'License Upgrade', actor: 'Billing • Acme Corp', time: '2 mins ago', type: 'success' },
-          { event: 'System Maintenance', actor: 'Root Admin • Global', time: '2 mins ago', type: 'warning' },
-        ],
+        tenants: tenants.slice(0, 4).map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          risk_score: 0, // Would need risk calculation
+          seats: 0, // Would need employee count
+          status: t.is_active ? 'Active' : 'Suspended'
+        })),
+        platformIntelligence: (auditLogsData.items || []).map((log: any) => ({
+          event: log.action,
+          actor: `${log.actor_name || 'System'} • ${log.tenant_name || 'Global'}`,
+          time: new Date(log.timestamp).toLocaleString(),
+          type: 'info'
+        }))
       };
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
 
       setDashboardData(data);
     } catch (error) {
@@ -87,7 +105,9 @@ function DashboardContent() {
     return <Spinner fullScreen />;
   }
 
-  const { kpis, tenants, globalRisk, platformIntelligence } = dashboardData;
+  if (!dashboardData) return null;
+
+  const { kpis, tenants, platformIntelligence } = dashboardData;
 
   const getRiskColor = (score: number) => {
     if (score < 30) return 'bg-green-500';
@@ -142,30 +162,8 @@ function DashboardContent() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Global Risk Distribution */}
-        <Card>
-          <h2 className="text-lg font-bold text-slate-900 mb-6">Global Risk Distribution</h2>
-          <div className="space-y-4">
-            {globalRisk.departments.map((dept: any, idx: number) => (
-              <div key={idx}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold text-slate-700">{dept.name}</span>
-                  <span className="text-sm font-bold text-slate-900">{dept.risk}%</span>
-                </div>
-                <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full ${getRiskColor(dept.risk)} rounded-full transition-all duration-1000`}
-                    style={{ width: `${dept.risk}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Platform Intelligence */}
-        <Card>
+      {/* Platform Intelligence */}
+      <Card>
           <h2 className="text-lg font-bold text-slate-900 mb-6">Platform Intelligence</h2>
           <div className="space-y-3">
             {platformIntelligence.map((item: any, idx: number) => {
