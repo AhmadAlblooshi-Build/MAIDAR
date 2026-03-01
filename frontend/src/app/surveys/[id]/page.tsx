@@ -191,8 +191,6 @@ function SurveyResultsContent() {
         <StatCard
           title="Questions"
           value={survey.total_questions.toString()}
-          change={0}
-          trend="neutral"
           icon={<FileText className="w-6 h-6" />}
           gradient="from-orange-500 to-red-500"
         />
