@@ -32,40 +32,93 @@ function DashboardContent() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    // Only load once - prevent infinite loops
+    let mounted = true;
+
+    const loadData = async () => {
+      if (!mounted || retryCount >= MAX_RETRIES) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch all dashboard data in parallel with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+        const [riskDist, deptData, execSummary, simData, empStats] = await Promise.all([
+          analyticsAPI.getRiskDistribution(),
+          analyticsAPI.getDepartmentComparison(),
+          analyticsAPI.getExecutiveSummary(
+            new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            new Date().toISOString().split('T')[0]
+          ),
+          simulationAPI.search({ page: 1, page_size: 10 }),
+          employeeAPI.statistics(),
+        ]);
+
+        clearTimeout(timeoutId);
+
+        if (mounted) {
+          setDashboardData({
+            riskDistribution: riskDist,
+            departmentData: deptData,
+            executiveSummary: execSummary,
+            simulations: simData.simulations || [],
+            employeeStats: empStats,
+          });
+          setRetryCount(0); // Reset on success
+        }
+      } catch (err: any) {
+        console.error('Failed to load dashboard:', err);
+        if (mounted) {
+          setError(err?.detail || err?.message || 'Failed to load dashboard data');
+          // Don't retry automatically - let user manually refresh
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      mounted = false; // Prevent state updates after unmount
+    };
+  }, []); // Empty deps - only run once
 
   const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-
-      // Fetch all dashboard data in parallel
-      const [riskDist, deptData, execSummary, simData, empStats] = await Promise.all([
-        analyticsAPI.getRiskDistribution(),
-        analyticsAPI.getDepartmentComparison(),
-        analyticsAPI.getExecutiveSummary(
-          new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          new Date().toISOString().split('T')[0]
-        ),
-        simulationAPI.search({ page: 1, page_size: 10 }),
-        employeeAPI.statistics(),
-      ]);
-
-      setDashboardData({
-        riskDistribution: riskDist,
-        departmentData: deptData,
-        executiveSummary: execSummary,
-        simulations: simData.simulations || [],
-        employeeStats: empStats,
-      });
-    } catch (error) {
-      console.error('Failed to load dashboard:', error);
-    } finally {
-      setLoading(false);
-    }
+    setRetryCount(prev => prev + 1);
+    window.location.reload(); // Simple full page reload on retry
   };
+
+  if (error && !dashboardData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <div className="text-red-600 font-semibold">⚠️ {error}</div>
+        {retryCount < MAX_RETRIES && (
+          <button
+            onClick={loadDashboardData}
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+          >
+            Retry ({MAX_RETRIES - retryCount} attempts left)
+          </button>
+        )}
+        {retryCount >= MAX_RETRIES && (
+          <div className="text-slate-600">
+            Maximum retries reached. Please refresh the page or contact support.
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (loading || !dashboardData) {
     return (
