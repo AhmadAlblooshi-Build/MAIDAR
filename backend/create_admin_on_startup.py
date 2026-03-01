@@ -10,7 +10,10 @@ sys.path.insert(0, '/app')
 
 from app.models.user import User
 from app.models.tenant import Tenant
-from app.core.security import get_password_hash
+from passlib.context import CryptContext
+
+# Password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def create_admin_if_not_exists():
     """Create super admin user if it doesn't exist."""
@@ -55,7 +58,7 @@ def create_admin_if_not_exists():
         admin_user = User(
             email="admin@maidar.io",
             full_name="Super Administrator",
-            hashed_password=get_password_hash("Welldone1@"),
+            hashed_password=pwd_context.hash("Welldone1@"),
             role="SUPER_ADMIN",
             is_active=True,
             tenant_id=tenant.id
