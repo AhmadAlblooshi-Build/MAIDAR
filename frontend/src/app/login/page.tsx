@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
 
 function LoginForm() {
@@ -297,18 +298,14 @@ function LoginForm() {
               {/* Toggle */}
               <div className="text-center pt-4 border-t border-slate-200">
                 <p className="text-sm text-slate-600">
-                  {isLogin ? "Don't have an account?" : 'Already have an account?'}
+                  Don't have an account?
                   {' '}
-                  <button
-                    onClick={() => {
-                      setIsLogin(!isLogin);
-                      setError('');
-                      setSuccess('');
-                    }}
+                  <Link
+                    href="/register"
                     className="text-teal-600 hover:text-teal-700 font-bold hover:underline"
                   >
-                    {isLogin ? 'Sign up' : 'Sign in'}
-                  </button>
+                    Sign up
+                  </Link>
                 </p>
               </div>
             </div>
