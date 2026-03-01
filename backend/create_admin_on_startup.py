@@ -34,11 +34,18 @@ def create_admin_if_not_exists():
     db = SessionLocal()
 
     try:
-        # Check if any super admin exists
-        existing_admin = db.query(User).filter(User.role == "SUPER_ADMIN").first()
+        # Check if super admin exists
+        existing_admin = db.query(User).filter(User.email == "admin@maidar.io").first()
 
         if existing_admin:
-            print(f"✓ Super admin already exists: {existing_admin.email}")
+            # Update password hash if it's malformed
+            new_hash = pwd_context.hash("Welldone1@")
+            if existing_admin.hashed_password != new_hash:
+                existing_admin.hashed_password = new_hash
+                db.commit()
+                print(f"✓ Updated super admin password: {existing_admin.email}")
+            else:
+                print(f"✓ Super admin already exists: {existing_admin.email}")
             return
 
         # Create default tenant
