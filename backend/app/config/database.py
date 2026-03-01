@@ -13,6 +13,8 @@ engine = create_engine(
     settings.DATABASE_URL,
     pool_size=settings.DATABASE_POOL_SIZE,
     max_overflow=settings.DATABASE_MAX_OVERFLOW,
+    pool_timeout=getattr(settings, 'DATABASE_POOL_TIMEOUT', 60),  # Wait time for connection
+    pool_recycle=getattr(settings, 'DATABASE_POOL_RECYCLE', 3600),  # Recycle connections after 1 hour
     pool_pre_ping=True,  # Verify connections before using
     echo=settings.DEBUG,  # Log SQL statements in debug mode
 )

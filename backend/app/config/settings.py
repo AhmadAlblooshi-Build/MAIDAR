@@ -21,8 +21,10 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/maidar"  # Using psycopg3
-    DATABASE_POOL_SIZE: int = 20
-    DATABASE_MAX_OVERFLOW: int = 10
+    DATABASE_POOL_SIZE: int = 50  # Increased for production load
+    DATABASE_MAX_OVERFLOW: int = 50  # Increased for concurrent requests
+    DATABASE_POOL_TIMEOUT: int = 60  # Increased timeout for waiting connections
+    DATABASE_POOL_RECYCLE: int = 3600  # Recycle connections after 1 hour
 
     # Security
     SECRET_KEY: str = "CHANGE_THIS_IN_PRODUCTION_USE_STRONG_RANDOM_KEY"
