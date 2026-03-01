@@ -49,17 +49,7 @@ class Settings(BaseSettings):
     # CORS (Cross-Origin Resource Sharing)
     # Can be overridden with ALLOWED_ORIGINS environment variable (comma-separated)
     ALLOWED_ORIGINS: Optional[str] = None  # e.g., "https://app1.com,https://app2.com"
-
-    @property
-    def CORS_ORIGINS(self) -> list:
-        """Get CORS origins from environment or use defaults."""
-        if self.ALLOWED_ORIGINS:
-            return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
-        return [
-            "http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:8000",
-            "http://127.0.0.1:3000", "http://127.0.0.1:3001", "http://127.0.0.1:3002", "http://127.0.0.1:8000",
-            "https://maidar.vercel.app",
-        ]
+    CORS_ORIGINS: list = []  # Will be populated in __init__
 
     # Monitoring
     SENTRY_DSN: Optional[str] = None
@@ -96,6 +86,16 @@ class Settings(BaseSettings):
             self.DATABASE_URL = self.DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
         elif self.DATABASE_URL.startswith("postgres://"):
             self.DATABASE_URL = self.DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
+
+        # Set CORS origins from environment or defaults
+        if self.ALLOWED_ORIGINS:
+            self.CORS_ORIGINS = [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
+        else:
+            self.CORS_ORIGINS = [
+                "http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:8000",
+                "http://127.0.0.1:3000", "http://127.0.0.1:3001", "http://127.0.0.1:3002", "http://127.0.0.1:8000",
+                "https://maidar.vercel.app",
+            ]
 
 
 settings = Settings()
