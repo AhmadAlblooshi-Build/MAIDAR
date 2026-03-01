@@ -14,7 +14,7 @@ import Card, { StatCard } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Select from '@/components/ui/Select';
 import Spinner from '@/components/ui/Spinner';
-import { BarChart3, TrendingUp, Users, AlertTriangle, Download, Calendar } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, AlertTriangle, Download } from 'lucide-react';
 
 export default function AnalyticsPage() {
   return (
@@ -119,7 +119,6 @@ function AnalyticsContent() {
               { value: '90d', label: 'Last 90 Days' },
               { value: 'ytd', label: 'Year to Date' },
             ]}
-            icon={<Calendar className="w-4 h-4" />}
           />
           <Button
             variant="secondary"
