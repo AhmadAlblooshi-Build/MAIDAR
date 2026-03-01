@@ -24,6 +24,15 @@ echo "Checking for super admin user..."
 python create_admin_on_startup.py
 
 echo ""
+echo "Starting Celery worker in background..."
+# Start Celery worker in background (for async email tasks)
+celery -A app.core.celery_app worker --loglevel=info --concurrency=2 &
+
+# Store Celery PID
+CELERY_PID=$!
+
+echo "✓ Celery worker started (PID: $CELERY_PID)"
+echo ""
 echo "Starting MAIDAR Backend on port $PORT..."
 
 # Run uvicorn with the dynamic port
