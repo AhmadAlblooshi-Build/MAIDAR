@@ -35,6 +35,13 @@ export default function RegisterPage() {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+      console.log('Registering to:', `${apiUrl}/api/v1/auth/register`);
+
       const response = await fetch(`${apiUrl}/api/v1/auth/register`, {
         method: 'POST',
         headers: {
@@ -47,7 +54,10 @@ export default function RegisterPage() {
           organization_name: formData.organization_name,
           role: formData.role
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         router.push('/login?registered=true');
@@ -55,8 +65,15 @@ export default function RegisterPage() {
         const data = await response.json();
         setError(data.detail || 'Registration failed');
       }
-    } catch (err) {
-      setError('Network error. Please try again.');
+    } catch (err: any) {
+      console.error('Registration error:', err);
+      if (err.name === 'AbortError') {
+        setError('Request timeout. The server is taking too long. Please check if NEXT_PUBLIC_API_URL is configured correctly.');
+      } else if (err.message?.includes('fetch')) {
+        setError(`Network error: Cannot reach backend. Using URL: ${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'}`);
+      } else {
+        setError('Network error. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
