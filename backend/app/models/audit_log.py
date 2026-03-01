@@ -75,6 +75,9 @@ class AuditLog(Base, UUIDMixin):
     status = Column(String(20), nullable=False, default="success")  # success, failure
     error_message = Column(Text, nullable=True)  # Error details if status is failure
 
+    # Security & integrity (Phase 2)
+    checksum = Column(String(64), nullable=True)  # SHA-256 hash for tamper detection
+
     # Timestamp (immutable, no update)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False, index=True)
 

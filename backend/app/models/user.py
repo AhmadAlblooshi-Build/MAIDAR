@@ -2,8 +2,8 @@
 
 from enum import Enum
 
-from sqlalchemy import Column, String, Boolean, ForeignKey, Enum as SQLEnum, DateTime
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, Boolean, ForeignKey, Enum as SQLEnum, DateTime, ARRAY
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
 from .base import Base, UUIDMixin, TimestampMixin
@@ -42,6 +42,20 @@ class User(Base, UUIDMixin, TimestampMixin):
     verification_code = Column(String(6), nullable=True)
     verification_code_expires_at = Column(DateTime(timezone=True), nullable=True)
     last_login = Column(DateTime(timezone=True), nullable=True)
+
+    # Phase 2: Multi-Factor Authentication
+    mfa_enabled = Column(Boolean, default=False)
+    mfa_secret = Column(String(32), nullable=True)  # TOTP secret
+    mfa_backup_codes = Column(ARRAY(String), nullable=True)  # Backup codes
+    mfa_enabled_at = Column(DateTime(timezone=False), nullable=True)
+
+    # Phase 2: Password Reset
+    password_reset_token = Column(String(255), nullable=True)
+    password_reset_expires_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Phase 2: Customization
+    notification_preferences = Column(JSONB, nullable=True)  # Email, SMS preferences
+    custom_metadata = Column('metadata', JSONB, nullable=True)  # Additional user settings (DB column: metadata)
 
     # Relationships
     tenant = relationship("Tenant", back_populates="users")

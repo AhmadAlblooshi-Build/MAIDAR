@@ -3,8 +3,8 @@
 from enum import Enum
 from datetime import datetime
 
-from sqlalchemy import Column, String, Text, Boolean, ForeignKey, Enum as SQLEnum, DateTime, ARRAY, Interval
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import Column, String, Text, Boolean, ForeignKey, Enum as SQLEnum, DateTime, ARRAY, Interval, Integer
+from sqlalchemy.dialects.postgresql import UUID, JSONB, INET
 from sqlalchemy.orm import relationship
 
 from .base import Base, UUIDMixin, TimestampMixin
@@ -54,6 +54,14 @@ class Simulation(Base, UUIDMixin, TimestampMixin):
     # Created by
     created_by = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
 
+    # Denormalized metrics (for performance)
+    target_count = Column(Integer, default=0)
+    sent_count = Column(Integer, default=0)
+    opened_count = Column(Integer, default=0)
+    clicked_count = Column(Integer, default=0)
+    submitted_count = Column(Integer, default=0)
+    reported_count = Column(Integer, default=0)
+
     # Relationships
     tenant = relationship("Tenant", back_populates="simulations")
     scenario = relationship("Scenario", back_populates="simulations")
@@ -101,6 +109,16 @@ class SimulationResult(Base, UUIDMixin, TimestampMixin):
 
     # Timing metrics
     time_to_first_interaction = Column(Interval, nullable=True)
+
+    # Legacy tracking fields (deprecated - use interactions JSONB instead)
+    status = Column(String(20), nullable=True)  # delivered, opened, clicked, etc.
+    delivered_at = Column(DateTime(timezone=True), nullable=True)
+    opened_at = Column(DateTime(timezone=True), nullable=True)
+    clicked_at = Column(DateTime(timezone=True), nullable=True)
+    submitted_at = Column(DateTime(timezone=True), nullable=True)
+    reported_at = Column(DateTime(timezone=True), nullable=True)
+    ip_address = Column(String(45), nullable=True)  # IPv4/IPv6
+    user_agent = Column(Text, nullable=True)
 
     # Relationships
     tenant = relationship("Tenant", back_populates="simulation_results")

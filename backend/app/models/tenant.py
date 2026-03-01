@@ -1,6 +1,7 @@
 """Tenant database model for multi-tenancy."""
 
 from sqlalchemy import Column, String, Boolean, Integer, DateTime
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
@@ -35,6 +36,10 @@ class Tenant(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
 
     # Status
     is_active = Column(Boolean, default=True, nullable=False, index=True)
+
+    # Phase 2: Customization
+    branding = Column(JSONB, nullable=True)  # Logo, colors, custom branding
+    custom_metadata = Column('metadata', JSONB, nullable=True)  # Additional tenant-specific settings (DB column: metadata)
 
     def __init__(self, **kwargs):
         """Initialize tenant with defaults."""

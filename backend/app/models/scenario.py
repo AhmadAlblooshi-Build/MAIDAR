@@ -44,6 +44,7 @@ class Scenario(Base, UUIDMixin, TimestampMixin):
 
     # Status
     is_active = Column(Boolean, default=True)
+    is_template = Column(Boolean, default=False, index=True)  # System/global templates
 
     # Created by
     created_by = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)

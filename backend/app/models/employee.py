@@ -39,6 +39,10 @@ class Employee(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
     # Status
     is_active = Column(Boolean, default=True, index=True)
 
+    # Denormalized risk data (for performance)
+    risk_score = Column(Integer, nullable=True, index=True)  # Latest risk score
+    risk_band = Column(String(20), nullable=True, index=True)  # Latest risk band
+
     # Relationships
     tenant = relationship("Tenant", back_populates="employees")
     risk_scores = relationship("RiskScore", back_populates="employee", cascade="all, delete-orphan")
