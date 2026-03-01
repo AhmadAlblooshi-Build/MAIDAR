@@ -127,6 +127,8 @@ class EmployeeResponse(EmployeeBase):
     """Schema for employee response."""
     id: str
     tenant_id: str
+    risk_score: Optional[float] = Field(None, description="Risk score (0-10 scale)")
+    risk_band: Optional[str] = Field(None, description="Risk band: low, medium, high, critical")
     created_at: datetime
     updated_at: datetime
     is_deleted: bool
@@ -181,10 +183,12 @@ class EmployeeSearchRequest(BaseModel):
 
 class EmployeeStatistics(BaseModel):
     """Schema for employee statistics."""
-    total_employees: int
+    total_count: int
+    total_employees: int  # Deprecated, use total_count
     by_seniority: dict
     by_age_range: dict
     by_department: dict
     by_gender: dict
     avg_technical_literacy: float
     avg_risk_score: Optional[float] = None
+    high_risk_count: Optional[int] = None

@@ -114,6 +114,8 @@ def create_employee(
         seniority=employee.seniority,
         department=employee.department,
         job_title=employee.job_title,
+        risk_score=employee.risk_score,
+        risk_band=employee.risk_band,
         created_at=employee.created_at,
         updated_at=employee.updated_at,
         is_deleted=employee.is_deleted
@@ -193,13 +195,30 @@ def get_employee_statistics(
         Employee.deleted_at == None
     ).scalar()
 
+    # Average risk score
+    avg_risk = db.query(func.avg(Employee.risk_score)).filter(
+        Employee.tenant_id == current_user.tenant_id,
+        Employee.deleted_at == None,
+        Employee.risk_score.isnot(None)
+    ).scalar()
+
+    # High risk count (risk_score >= 6.0)
+    high_risk_count = db.query(Employee).filter(
+        Employee.tenant_id == current_user.tenant_id,
+        Employee.deleted_at == None,
+        Employee.risk_score >= 6.0
+    ).count()
+
     return EmployeeStatistics(
-        total_employees=total,
+        total_count=total,
+        total_employees=total,  # Deprecated field for backwards compatibility
         by_seniority=by_seniority,
         by_age_range=by_age_range,
         by_department=by_department,
         by_gender=by_gender,
-        avg_technical_literacy=round(float(avg_tl), 2) if avg_tl else 0.0
+        avg_technical_literacy=round(float(avg_tl), 2) if avg_tl else 0.0,
+        avg_risk_score=round(float(avg_risk), 2) if avg_risk else None,
+        high_risk_count=high_risk_count
     )
 @router.get("/{employee_id}", response_model=EmployeeResponse)
 def get_employee(
@@ -255,6 +274,8 @@ def get_employee(
         seniority=employee.seniority,
         department=employee.department,
         job_title=employee.job_title,
+        risk_score=employee.risk_score,
+        risk_band=employee.risk_band,
         created_at=employee.created_at,
         updated_at=employee.updated_at,
         is_deleted=employee.is_deleted
@@ -341,6 +362,8 @@ def update_employee(
         seniority=employee.seniority,
         department=employee.department,
         job_title=employee.job_title,
+        risk_score=employee.risk_score,
+        risk_band=employee.risk_band,
         created_at=employee.created_at,
         updated_at=employee.updated_at,
         is_deleted=employee.is_deleted
@@ -480,6 +503,8 @@ def search_employees(
             seniority=emp.seniority,
             department=emp.department,
             job_title=emp.job_title,
+            risk_score=emp.risk_score,
+            risk_band=emp.risk_band,
             created_at=emp.created_at,
             updated_at=emp.updated_at,
             is_deleted=emp.is_deleted
