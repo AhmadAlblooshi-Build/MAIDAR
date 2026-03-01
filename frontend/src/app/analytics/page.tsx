@@ -106,13 +106,17 @@ function AnalyticsContent() {
         }
       }
 
-      // Mock risk trends data
-      setRiskTrends([
-        { period: 'Week 1', avgRisk: 5.8, highRiskCount: 28 },
-        { period: 'Week 2', avgRisk: 5.6, highRiskCount: 26 },
-        { period: 'Week 3', avgRisk: 5.4, highRiskCount: 24 },
-        { period: 'Week 4', avgRisk: 5.2, highRiskCount: 22 },
-      ]);
+      // Risk trends - use current snapshot (historical trends require time-series data)
+      if (riskDistRes.ok) {
+        const riskData = await riskDistRes.json();
+        setRiskTrends([
+          {
+            period: 'Current',
+            avgRisk: riskData.mean_risk_score / 10, // Convert 0-100 to 0-10 scale
+            highRiskCount: riskData.high_count + riskData.critical_count
+          }
+        ]);
+      }
     } catch (error) {
       console.error('Failed to load analytics:', error);
     } finally {
@@ -167,70 +171,85 @@ function AnalyticsContent() {
         <>
           {/* Risk Distribution Overview */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <StatCard
-              title="Low Risk"
-              value={riskDistribution?.low || '0'}
-              change={-2.3}
-              trend="down"
-              icon={<Users className="w-6 h-6" />}
-              gradient="from-green-500 to-emerald-500"
-            />
-            <StatCard
-              title="Medium Risk"
-              value={riskDistribution?.medium || '0'}
-              change={1.2}
-              trend="up"
-              icon={<Users className="w-6 h-6" />}
-              gradient="from-yellow-500 to-orange-500"
-            />
-            <StatCard
-              title="High Risk"
-              value={riskDistribution?.high || '0'}
-              change={-5.8}
-              trend="down"
-              icon={<AlertTriangle className="w-6 h-6" />}
-              gradient="from-orange-500 to-red-500"
-            />
-            <StatCard
-              title="Critical Risk"
-              value={riskDistribution?.critical || '0'}
-              change={-12.4}
-              trend="down"
-              icon={<AlertTriangle className="w-6 h-6" />}
-              gradient="from-red-500 to-rose-500"
-            />
+            <Card className="p-4">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-slate-900">{riskDistribution?.low_count || 0}</div>
+                  <div className="text-sm text-slate-500">Low Risk</div>
+                  <div className="text-xs text-green-600 font-medium">{riskDistribution?.low_percentage || 0}% of total</div>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 rounded-lg bg-gradient-to-br from-yellow-500 to-orange-500">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-slate-900">{riskDistribution?.medium_count || 0}</div>
+                  <div className="text-sm text-slate-500">Medium Risk</div>
+                  <div className="text-xs text-yellow-600 font-medium">{riskDistribution?.medium_percentage || 0}% of total</div>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500 to-red-500">
+                  <AlertTriangle className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-slate-900">{riskDistribution?.high_count || 0}</div>
+                  <div className="text-sm text-slate-500">High Risk</div>
+                  <div className="text-xs text-orange-600 font-medium">{riskDistribution?.high_percentage || 0}% of total</div>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 rounded-lg bg-gradient-to-br from-red-500 to-rose-500">
+                  <AlertTriangle className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-slate-900">{riskDistribution?.critical_count || 0}</div>
+                  <div className="text-sm text-slate-500">Critical Risk</div>
+                  <div className="text-xs text-red-600 font-medium">{riskDistribution?.critical_percentage || 0}% of total</div>
+                </div>
+              </div>
+            </Card>
           </div>
 
-          {/* Risk Trends Over Time */}
+          {/* Risk Overview Summary */}
           <Card>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-slate-900">Risk Trends Over Time</h2>
+              <h2 className="text-xl font-bold text-slate-900">Risk Overview Summary</h2>
               <div className="flex items-center space-x-2 text-sm text-slate-500">
-                <TrendingUp className="w-4 h-4" />
-                <span>Last 30 Days</span>
+                <BarChart3 className="w-4 h-4" />
+                <span>Current Snapshot</span>
               </div>
             </div>
-            <div className="space-y-4">
-              {riskTrends.map((trend, idx) => (
-                <div key={idx} className="flex items-center justify-between p-4 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                  <div className="flex-1">
-                    <div className="font-semibold text-slate-900">{trend.period}</div>
-                    <div className="text-sm text-slate-500">Average Risk Score: {trend.avgRisk}</div>
-                  </div>
-                  <div className="flex items-center space-x-6">
-                    <div className="text-right">
-                      <div className="text-sm text-slate-500">High Risk Count</div>
-                      <div className="text-lg font-bold text-orange-600">{trend.highRiskCount}</div>
-                    </div>
-                    <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden w-32">
-                      <div
-                        className="h-full bg-gradient-to-r from-orange-500 to-red-500 rounded-full transition-all"
-                        style={{ width: `${(trend.avgRisk / 10) * 100}%` }}
-                      />
-                    </div>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-6 rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200">
+                <div className="text-sm font-semibold text-slate-600 mb-2">Total Employees</div>
+                <div className="text-4xl font-bold text-slate-900">{riskDistribution?.total_employees || 0}</div>
+                <div className="text-xs text-slate-500 mt-1">Active employees in system</div>
+              </div>
+              <div className="p-6 rounded-lg bg-gradient-to-br from-orange-50 to-red-50 border border-orange-200">
+                <div className="text-sm font-semibold text-orange-700 mb-2">Average Risk Score</div>
+                <div className="text-4xl font-bold text-orange-600">
+                  {riskDistribution?.mean_risk_score ? (riskDistribution.mean_risk_score / 10).toFixed(1) : '0.0'}
                 </div>
-              ))}
+                <div className="text-xs text-orange-600 mt-1">Out of 10.0 scale</div>
+              </div>
+              <div className="p-6 rounded-lg bg-gradient-to-br from-red-50 to-rose-50 border border-red-200">
+                <div className="text-sm font-semibold text-red-700 mb-2">High + Critical Risk</div>
+                <div className="text-4xl font-bold text-red-600">
+                  {(riskDistribution?.high_count || 0) + (riskDistribution?.critical_count || 0)}
+                </div>
+                <div className="text-xs text-red-600 mt-1">Require immediate attention</div>
+              </div>
             </div>
           </Card>
 
@@ -303,42 +322,47 @@ function AnalyticsContent() {
             </div>
           </Card>
 
-          {/* Explainability Views */}
+          {/* Top Risk Factors */}
           <Card>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-slate-900">Risk Explainability Factors</h2>
+              <h2 className="text-xl font-bold text-slate-900">Top Departments by Risk</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/employees')}
+              >
+                View All
+              </Button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200">
-                <div className="text-sm font-semibold text-blue-900 mb-2">Age Factor</div>
-                <div className="text-2xl font-bold text-blue-600 mb-1">28%</div>
-                <div className="text-xs text-blue-700">Younger employees show higher risk</div>
-              </div>
-              <div className="p-4 rounded-lg bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200">
-                <div className="text-sm font-semibold text-purple-900 mb-2">Position Level</div>
-                <div className="text-2xl font-bold text-purple-600 mb-1">22%</div>
-                <div className="text-xs text-purple-700">Entry-level roles at higher risk</div>
-              </div>
-              <div className="p-4 rounded-lg bg-gradient-to-br from-orange-50 to-red-50 border border-orange-200">
-                <div className="text-sm font-semibold text-orange-900 mb-2">Training History</div>
-                <div className="text-2xl font-bold text-orange-600 mb-1">35%</div>
-                <div className="text-xs text-orange-700">Limited training correlates with risk</div>
-              </div>
-              <div className="p-4 rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200">
-                <div className="text-sm font-semibold text-green-900 mb-2">Department Risk</div>
-                <div className="text-2xl font-bold text-green-600 mb-1">18%</div>
-                <div className="text-xs text-green-700">Sales & Marketing higher exposure</div>
-              </div>
-              <div className="p-4 rounded-lg bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-200">
-                <div className="text-sm font-semibold text-yellow-900 mb-2">Simulation Results</div>
-                <div className="text-2xl font-bold text-yellow-600 mb-1">45%</div>
-                <div className="text-xs text-yellow-700">Past performance is strongest indicator</div>
-              </div>
-              <div className="p-4 rounded-lg bg-gradient-to-br from-teal-50 to-cyan-50 border border-teal-200">
-                <div className="text-sm font-semibold text-teal-900 mb-2">Technical Literacy</div>
-                <div className="text-2xl font-bold text-teal-600 mb-1">32%</div>
-                <div className="text-xs text-teal-700">Lower tech skills increase vulnerability</div>
-              </div>
+            <div className="space-y-3">
+              {departmentStats.slice(0, 5).map((dept, idx) => (
+                <div key={idx} className="flex items-center justify-between p-4 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
+                      idx === 0 ? 'bg-gradient-to-br from-red-500 to-rose-500' :
+                      idx === 1 ? 'bg-gradient-to-br from-orange-500 to-red-500' :
+                      idx === 2 ? 'bg-gradient-to-br from-yellow-500 to-orange-500' :
+                      'bg-gradient-to-br from-slate-400 to-slate-500'
+                    }`}>
+                      #{idx + 1}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900">{dept.department}</div>
+                      <div className="text-sm text-slate-500">{dept.count} employees</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="text-right">
+                      <div className="text-xs text-slate-500">Avg Risk</div>
+                      <div className="text-lg font-bold text-orange-600">{dept.avgRisk.toFixed(1)}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-slate-500">High Risk</div>
+                      <div className="text-lg font-bold text-red-600">{dept.highRisk}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </Card>
         </>
