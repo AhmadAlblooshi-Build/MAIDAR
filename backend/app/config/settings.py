@@ -47,12 +47,19 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
 
     # CORS (Cross-Origin Resource Sharing)
-    CORS_ORIGINS: list = [
-        "http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:8000",
-        "http://127.0.0.1:3000", "http://127.0.0.1:3001", "http://127.0.0.1:3002", "http://127.0.0.1:8000",
-        "https://maidar.vercel.app",  # Production frontend
-        "https://maidar-*.vercel.app"  # Preview deployments
-    ]
+    # Can be overridden with ALLOWED_ORIGINS environment variable (comma-separated)
+    ALLOWED_ORIGINS: Optional[str] = None  # e.g., "https://app1.com,https://app2.com"
+
+    @property
+    def CORS_ORIGINS(self) -> list:
+        """Get CORS origins from environment or use defaults."""
+        if self.ALLOWED_ORIGINS:
+            return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
+        return [
+            "http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:8000",
+            "http://127.0.0.1:3000", "http://127.0.0.1:3001", "http://127.0.0.1:3002", "http://127.0.0.1:8000",
+            "https://maidar.vercel.app",
+        ]
 
     # Monitoring
     SENTRY_DSN: Optional[str] = None
