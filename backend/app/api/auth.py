@@ -390,15 +390,16 @@ def forgot_password(
     reset_token = create_password_reset_token(user.email)
     reset_link = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
 
-    # Send password reset email
+    # Send password reset email asynchronously (non-blocking)
     try:
-        email_service.send_password_reset_email(
+        from app.tasks.email_tasks import send_password_reset_email as send_reset_task
+        send_reset_task.delay(
             to_email=user.email,
-            reset_link=reset_link
+            reset_token=reset_token
         )
-        logger.info(f"Password reset email sent to {user.email}")
+        logger.info(f"Password reset email queued for {user.email}")
     except Exception as e:
-        logger.error(f"Failed to send password reset email to {user.email}: {str(e)}")
+        logger.error(f"Failed to queue password reset email for {user.email}: {str(e)}")
 
     return {"message": "If the email exists, a password reset link has been sent"}
 
