@@ -547,7 +547,7 @@ def bulk_import_employees(
             # Use employee's primary language or default to English
             primary_language = employee_data.languages[0] if employee_data.languages else "en"
             scenario = Scenario(category="CREDENTIALS", language=primary_language)
-            risk_result = risk_engine.calculate_risk_score(employee_profile, scenario)
+            risk_result = risk_engine.calculate_risk(employee_profile, scenario, employee_data.employee_id)
 
             # Create employee with risk score
             employee = Employee(
@@ -563,7 +563,7 @@ def bulk_import_employees(
                 department=employee_data.department,
                 job_title=employee_data.job_title,
                 risk_score=float(risk_result.risk_score),
-                risk_band=risk_result.risk_band
+                risk_band=risk_result.risk_band.value if hasattr(risk_result.risk_band, 'value') else str(risk_result.risk_band)
             )
 
             db.add(employee)
@@ -719,7 +719,7 @@ async def upload_csv(
             # Use employee's primary language or default to English
             primary_language = employee_data.languages[0] if employee_data.languages else "en"
             scenario = Scenario(category="CREDENTIALS", language=primary_language)
-            risk_result = risk_engine.calculate_risk_score(employee_profile, scenario)
+            risk_result = risk_engine.calculate_risk(employee_profile, scenario, employee_data.employee_id)
 
             # Create employee with risk score
             employee = Employee(
@@ -735,7 +735,7 @@ async def upload_csv(
                 department=employee_data.department,
                 job_title=employee_data.job_title,
                 risk_score=float(risk_result.risk_score),
-                risk_band=risk_result.risk_band
+                risk_band=risk_result.risk_band.value if hasattr(risk_result.risk_band, 'value') else str(risk_result.risk_band)
             )
 
             db.add(employee)
