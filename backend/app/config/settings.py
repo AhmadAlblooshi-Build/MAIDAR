@@ -95,12 +95,14 @@ class Settings(BaseSettings):
             # Always include Vercel domain for production frontend
             if "https://maidar.vercel.app" not in self.CORS_ORIGINS:
                 self.CORS_ORIGINS.append("https://maidar.vercel.app")
+            print(f"[CORS] Using ALLOWED_ORIGINS from environment: {self.CORS_ORIGINS}")
         else:
             self.CORS_ORIGINS = [
                 "http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:8000",
                 "http://127.0.0.1:3000", "http://127.0.0.1:3001", "http://127.0.0.1:3002", "http://127.0.0.1:8000",
                 "https://maidar.vercel.app",
             ]
+            print(f"[CORS] Using default CORS origins: {self.CORS_ORIGINS}")
 
 
 settings = Settings()
