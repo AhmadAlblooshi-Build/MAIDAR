@@ -24,20 +24,28 @@ import {
 
 export default function Dashboard() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, _hasHydrated } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
   const [riskDistribution, setRiskDistribution] = useState<any>(null);
   const [executiveSummary, setExecutiveSummary] = useState<any>(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
+    // Wait for auth state to hydrate from localStorage
+    if (!_hasHydrated) return;
+
     if (!isAuthenticated) {
       router.push('/login');
       return;
     }
 
-    loadDashboardData();
-  }, [isAuthenticated]);
+    // Only load data once
+    if (!dataLoaded) {
+      loadDashboardData();
+      setDataLoaded(true);
+    }
+  }, [_hasHydrated, isAuthenticated, dataLoaded, router]);
 
   const loadDashboardData = async () => {
     try {
