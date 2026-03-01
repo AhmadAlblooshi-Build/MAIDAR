@@ -6,34 +6,29 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 
 export default function RootPage() {
   const router = useRouter();
   const { isAuthenticated, isSuperAdmin } = useAuthStore();
-  const [hasRedirected, setHasRedirected] = useState(false);
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
-    // Only redirect once
-    if (hasRedirected) return;
+    // Only redirect once using ref (doesn't trigger re-render)
+    if (hasRedirected.current) return;
+    hasRedirected.current = true;
 
-    setHasRedirected(true);
-
-    // Small delay to ensure auth state is loaded
-    const timer = setTimeout(() => {
-      if (!isAuthenticated) {
-        router.replace('/login');
-      } else if (isSuperAdmin()) {
-        router.replace('/super-admin/dashboard');
-      } else {
-        router.replace('/dashboard');
-      }
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, [hasRedirected, isAuthenticated, isSuperAdmin, router]);
+    // Redirect based on auth state
+    if (!isAuthenticated) {
+      router.replace('/login');
+    } else if (isSuperAdmin()) {
+      router.replace('/super-admin/dashboard');
+    } else {
+      router.replace('/dashboard');
+    }
+  }, []); // Empty deps - run once on mount
 
   // Show simple loading while redirecting
   return (
