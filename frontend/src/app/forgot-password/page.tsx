@@ -18,13 +18,21 @@ export default function ForgotPasswordPage() {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
       const response = await fetch(`${apiUrl}/api/v1/auth/forgot-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         setSuccess(true);
@@ -32,8 +40,13 @@ export default function ForgotPasswordPage() {
         const data = await response.json();
         setError(data.detail || 'Failed to send reset email');
       }
-    } catch (err) {
-      setError('Network error. Please try again.');
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        setError('Request timeout. The server is taking too long to respond. Please try again.');
+      } else {
+        setError('Network error. Please check your connection and try again.');
+      }
+      console.error('Forgot password error:', err);
     } finally {
       setLoading(false);
     }
