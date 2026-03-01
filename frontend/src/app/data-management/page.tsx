@@ -59,11 +59,16 @@ function DataManagementContent() {
         body: formData,
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        throw new Error('Upload failed');
+        // Show detailed error message from backend
+        const errorMessage = result.detail || result.message || 'Upload failed';
+        console.error('Backend error:', result);
+        alert(`Failed to upload file: ${errorMessage}`);
+        return;
       }
 
-      const result = await response.json();
       setUploadResult(result);
       setSelectedFile(null);
     } catch (error) {
