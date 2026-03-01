@@ -347,6 +347,20 @@ def update_employee(
     )
 
 
+@router.post("/cleanup-test-data", status_code=status.HTTP_200_OK)
+def cleanup_test_employees(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Delete test employees with TEST prefix in employee_id"""
+    deleted = db.query(Employee).filter(
+        Employee.tenant_id == current_user.tenant_id,
+        Employee.employee_id.like('TEST%')
+    ).delete(synchronize_session=False)
+
+    db.commit()
+    return {"message": f"Deleted {deleted} test employees"}
+
 @router.delete("/{employee_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_employee(
     employee_id: str,
