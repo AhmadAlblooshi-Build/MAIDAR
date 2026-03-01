@@ -226,7 +226,7 @@ function DashboardContent() {
       <Card>
         <h2 className="text-lg font-bold text-slate-900 mb-4">Recent Simulations</h2>
         <div className="space-y-3">
-          {simulations.map((sim) => (
+          {simulations.map((sim: any) => (
             <div key={sim.id} className="flex items-center justify-between p-4 rounded-xl bg-slate-50">
               <div className="flex items-center space-x-4">
                 <div className="p-3 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500">
