@@ -48,7 +48,7 @@ export default function TenantAdminLayout({ children }: TenantAdminLayoutProps) 
       <aside data-testid="sidebar-navigation" className="fixed left-0 top-0 h-full w-64 bg-white border-r border-slate-200 z-40">
         {/* Logo */}
         <div className="p-6 border-b border-slate-200">
-          <Link href="/dashboard" className="flex items-center space-x-2">
+          <Link href="/dashboard" prefetch={false} className="flex items-center space-x-2">
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold text-xl">
               M
             </div>
@@ -66,6 +66,7 @@ export default function TenantAdminLayout({ children }: TenantAdminLayoutProps) 
               <Link
                 key={item.name}
                 href={item.href}
+                prefetch={false}
                 className={`
                   flex items-center space-x-3 px-4 py-3 rounded-xl transition-all
                   ${active
