@@ -54,14 +54,15 @@ app.add_middleware(
     ]
 )
 
-# CORS middleware
+# CORS middleware - Must be added BEFORE other middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
-    expose_headers=["X-Session-ID"]
+    expose_headers=["X-Session-ID"],
+    max_age=3600  # Cache preflight for 1 hour
 )
 
 # Trusted Host Middleware (prevent host header attacks)
@@ -118,6 +119,12 @@ app.include_router(
     health.router,
     tags=["Health & Metrics"]
 )
+
+# CORS Test Endpoint
+@app.get("/cors-test")
+async def cors_test():
+    """Simple endpoint to test CORS is working"""
+    return {"status": "ok", "message": "CORS is working!", "cors_origins": settings.CORS_ORIGINS}
 
 app.include_router(
     risk.router,
