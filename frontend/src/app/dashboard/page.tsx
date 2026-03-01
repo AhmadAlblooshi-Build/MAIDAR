@@ -112,7 +112,7 @@ function DashboardContent() {
       riskDistribution.high_count +
       riskDistribution.medium_count +
       riskDistribution.low_count)
-  ).toFixed(1);
+  );
 
   return (
     <div className="space-y-6">
@@ -131,7 +131,7 @@ function DashboardContent() {
             <h2 className="text-lg font-semibold text-slate-600 mb-4">Human Risk Score (0-100)</h2>
             <div className="flex items-end space-x-3 mb-4">
               <div className="text-6xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
-                {overallScore}
+                {overallScore.toFixed(1)}
               </div>
               <div className="text-2xl font-semibold text-slate-400 mb-2">Company Average</div>
             </div>
