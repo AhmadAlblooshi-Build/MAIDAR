@@ -176,7 +176,7 @@ function CampaignsContent() {
           <Button
             variant="primary"
             icon={<Plus className="w-4 h-4" />}
-            onClick={() => router.push('/simulations/new')}
+            onClick={() => router.push('/campaigns/new')}
           >
             Create Simulation
           </Button>
