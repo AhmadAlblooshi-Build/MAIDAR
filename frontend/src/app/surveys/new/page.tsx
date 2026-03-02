@@ -72,7 +72,7 @@ function AssessmentWizard() {
   const loadEmployeeCount = async () => {
     try {
       const { employeeAPI } = await import('@/lib/api');
-      const response = await employeeAPI.search({ page: 1, page_size: 1 });
+      const response = await employeeAPI.search({ page: 1, page_size: 100 });
       setTotalEmployees(response.total || 0);
     } catch (error) {
       console.error('Failed to load employee count:', error);
@@ -415,21 +415,25 @@ function Step2Audience({ assessment, setAssessment, totalEmployees }: any) {
     try {
       setLoadingDepartments(true);
       const { employeeAPI } = await import('@/lib/api');
-      const response = await employeeAPI.search({ page: 1, page_size: 10000 });
 
-      console.log('Employee API response:', response);
-      console.log('Total employees:', response.employees?.length || 0);
+      // Fetch all employees across multiple pages (max page_size is 100)
+      let allEmployees: any[] = [];
+      let currentPage = 1;
+      let totalPages = 1;
 
-      // Log first few employees to see structure
-      if (response.employees && response.employees.length > 0) {
-        console.log('First 3 employees:', response.employees.slice(0, 3));
-      }
+      do {
+        const response = await employeeAPI.search({ page: currentPage, page_size: 100 });
+        allEmployees = [...allEmployees, ...(response.employees || [])];
+        totalPages = response.total_pages || 1;
+        currentPage++;
+      } while (currentPage <= totalPages);
+
+      console.log('Loaded employees:', allEmployees.length);
 
       // Extract unique departments
-      const allDepts = response.employees?.map((emp: any) => {
-        console.log(`Employee ${emp.full_name}: department="${emp.department}"`);
-        return emp.department;
-      }).filter(Boolean) || [];
+      const allDepts = allEmployees
+        .map((emp: any) => emp.department)
+        .filter(Boolean);
 
       const uniqueDepts = Array.from(new Set(allDepts)).sort();
 
