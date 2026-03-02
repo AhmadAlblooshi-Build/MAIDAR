@@ -93,7 +93,7 @@ function CampaignWizardContent() {
       const [employeesData, scenariosData] = await Promise.all([
         employeeAPI.search({ page: 1, page_size: 500 }),
         scenarioAPI.search({ page: 1, page_size: 100 })
-      ]);
+      ]) as [any, any];
 
       setEmployees(employeesData.employees || []);
       setScenarios(scenariosData.scenarios || []);
