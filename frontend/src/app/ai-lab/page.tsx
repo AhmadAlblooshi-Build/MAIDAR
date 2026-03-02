@@ -214,9 +214,8 @@ function AILabContent() {
                   className="w-full px-4 py-2 rounded-lg border border-slate-300 text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 >
                   <option value="urgent">Urgent</option>
-                  <option value="professional">Professional</option>
+                  <option value="formal">Formal</option>
                   <option value="friendly">Friendly</option>
-                  <option value="casual">Casual</option>
                 </select>
               </div>
               <div>
