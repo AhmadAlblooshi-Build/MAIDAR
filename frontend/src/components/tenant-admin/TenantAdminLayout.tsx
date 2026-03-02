@@ -22,6 +22,9 @@ import {
   Settings,
   LogOut,
   BarChart3,
+  User,
+  Lock,
+  Building2,
 } from 'lucide-react';
 
 interface TenantAdminLayoutProps {
@@ -59,7 +62,6 @@ export default function TenantAdminLayout({ children }: TenantAdminLayoutProps) 
     { name: 'Risk Assessments', href: '/surveys', icon: FileText },
     { name: 'AI Scenario Lab', href: '/ai-lab', icon: Brain },
     { name: 'Risk Analytics', href: '/analytics', icon: BarChart3 },
-    { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
   const isActive = (href: string) => pathname === href;
@@ -144,7 +146,8 @@ export default function TenantAdminLayout({ children }: TenantAdminLayoutProps) 
 
                 {/* Dropdown Menu */}
                 {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
+                    {/* User Info */}
                     <div className="px-4 py-3 border-b border-slate-200">
                       <p className="text-sm font-medium text-slate-900">{user?.full_name || 'User'}</p>
                       <p className="text-xs text-slate-500">{user?.email || ''}</p>
@@ -152,13 +155,56 @@ export default function TenantAdminLayout({ children }: TenantAdminLayoutProps) 
                         {user?.role === 'TENANT_ADMIN' ? 'Tenant Administrator' : 'Analyst'}
                       </p>
                     </div>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span>Logout</span>
-                    </button>
+
+                    {/* Settings Section */}
+                    <div className="py-1">
+                      <div className="px-4 py-2">
+                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Settings</p>
+                      </div>
+                      <Link
+                        href="/settings?tab=profile"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        <User className="w-4 h-4" />
+                        <span>Profile Settings</span>
+                      </Link>
+                      <Link
+                        href="/settings?tab=security"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        <Lock className="w-4 h-4" />
+                        <span>Security & Password</span>
+                      </Link>
+                      <Link
+                        href="/settings?tab=notifications"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        <Bell className="w-4 h-4" />
+                        <span>Notifications</span>
+                      </Link>
+                      <Link
+                        href="/settings?tab=organization"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        <Building2 className="w-4 h-4" />
+                        <span>Organization</span>
+                      </Link>
+                    </div>
+
+                    {/* Logout */}
+                    <div className="border-t border-slate-200 mt-1 pt-1">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Logout</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

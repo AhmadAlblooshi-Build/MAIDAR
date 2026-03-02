@@ -5,7 +5,8 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import TenantAdminGuard from '@/components/guards/TenantAdminGuard';
 import TenantAdminLayout from '@/components/tenant-admin/TenantAdminLayout';
 import { useAuthStore } from '@/store/authStore';
@@ -40,10 +41,19 @@ export default function SettingsPage() {
 
 function SettingsContent() {
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'organization' | 'notifications'>('profile');
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab') as 'profile' | 'security' | 'organization' | 'notifications' | null;
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'organization' | 'notifications'>(tabParam || 'profile');
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Update active tab when URL parameter changes
+  useEffect(() => {
+    if (tabParam && ['profile', 'security', 'organization', 'notifications'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   // Profile state
   const [fullName, setFullName] = useState(user?.full_name || '');
