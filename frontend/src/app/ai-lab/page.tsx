@@ -5,13 +5,14 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TenantAdminGuard from '@/components/guards/TenantAdminGuard';
 import TenantAdminLayout from '@/components/tenant-admin/TenantAdminLayout';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Select from '@/components/ui/Select';
-import { Sparkles, CheckCircle, AlertCircle } from 'lucide-react';
+import Badge from '@/components/ui/Badge';
+import { Sparkles, CheckCircle, AlertCircle, Library, Trash2 } from 'lucide-react';
 import { scenarioAPI } from '@/lib/api';
 import { Scenario } from '@/types';
 
@@ -38,6 +39,24 @@ function AILabContent() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [activeVariant, setActiveVariant] = useState(1);
+  const [savedScenarios, setSavedScenarios] = useState<Scenario[]>([]);
+  const [loadingScenarios, setLoadingScenarios] = useState(true);
+
+  useEffect(() => {
+    loadSavedScenarios();
+  }, []);
+
+  const loadSavedScenarios = async () => {
+    try {
+      setLoadingScenarios(true);
+      const response = await scenarioAPI.search({ page: 1, page_size: 100 });
+      setSavedScenarios(response.scenarios || []);
+    } catch (err) {
+      console.error('Failed to load scenarios:', err);
+    } finally {
+      setLoadingScenarios(false);
+    }
+  };
 
   const handleGenerate = async () => {
     try {
@@ -88,6 +107,8 @@ function AILabContent() {
           has_credential_form: generatedScenario.has_credential_form,
         });
         setSuccessMessage('Scenario saved to library successfully!');
+        // Reload scenarios to show in library
+        await loadSavedScenarios();
       } else {
         setSuccessMessage('Scenario already saved to library!');
       }
@@ -96,6 +117,19 @@ function AILabContent() {
       setError(err.detail || 'Failed to save scenario. Please try again.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteScenario = async (scenarioId: string) => {
+    if (!confirm('Are you sure you want to delete this scenario?')) return;
+
+    try {
+      await scenarioAPI.delete(scenarioId);
+      setSuccessMessage('Scenario deleted successfully!');
+      await loadSavedScenarios();
+    } catch (err: any) {
+      console.error('Failed to delete scenario:', err);
+      setError(err.detail || 'Failed to delete scenario. Please try again.');
     }
   };
 
@@ -358,6 +392,69 @@ function AILabContent() {
           )}
         </Card>
       </div>
+
+      {/* Scenario Library */}
+      <Card>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <Library className="w-5 h-5 text-teal-500" />
+            <h2 className="text-xl font-bold text-slate-900">Scenario Library</h2>
+            <Badge variant="info">{savedScenarios.length} scenarios</Badge>
+          </div>
+        </div>
+
+        {loadingScenarios ? (
+          <div className="text-center py-8">
+            <p className="text-slate-500">Loading scenarios...</p>
+          </div>
+        ) : savedScenarios.length === 0 ? (
+          <div className="text-center py-12">
+            <Library className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <p className="text-slate-600 font-medium mb-2">No saved scenarios yet</p>
+            <p className="text-sm text-slate-500">
+              Generate and save scenarios to build your library
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {savedScenarios.map((scenario) => (
+              <div
+                key={scenario.id}
+                className="p-4 rounded-lg border-2 border-slate-200 hover:border-teal-300 transition-all bg-white"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <h3 className="font-semibold text-slate-900 text-sm line-clamp-2 flex-1">
+                    {scenario.name}
+                  </h3>
+                  <button
+                    onClick={() => handleDeleteScenario(scenario.id)}
+                    className="text-slate-400 hover:text-red-600 transition-colors ml-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-2 mb-3">
+                  <p className="text-xs text-slate-600 line-clamp-2">
+                    {scenario.description || 'No description'}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="info" size="sm">{scenario.category}</Badge>
+                    <Badge variant="success" size="sm">{scenario.difficulty}</Badge>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-200">
+                  <p className="text-xs font-medium text-slate-700 mb-1">Subject:</p>
+                  <p className="text-xs text-slate-600 line-clamp-1">
+                    {scenario.email_subject}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
     </div>
   );
 }
