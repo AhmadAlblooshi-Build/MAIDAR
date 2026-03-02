@@ -92,16 +92,24 @@ function AssessmentWizard() {
       }
 
       // Transform questions to API format
-      const questions: Question[] = assessment.questions.map((q, index) => ({
-        question_text: q.text,
-        question_type: q.type || 'multiple_choice',
-        order_index: index,
-        responses: q.responses.map((r: any, rIndex: number): QuestionResponse => ({
-          response_text: r.text,
-          is_correct: r.isCorrect,
-          order_index: rIndex,
-        })),
-      }));
+      const questions: Question[] = assessment.questions.map((q, index) => {
+        // Map question type from display format to API format
+        let questionType: 'multiple_choice' | 'true_false' | 'scenario_based' | 'short_text' = 'multiple_choice';
+        if (q.questionType === 'True/False') questionType = 'true_false';
+        else if (q.questionType === 'Scenario Based') questionType = 'scenario_based';
+        else if (q.questionType === 'Short Text') questionType = 'short_text';
+
+        return {
+          question_text: q.text || 'Untitled Question',
+          question_type: questionType,
+          order_index: index,
+          responses: q.responses.map((r: any, rIndex: number): QuestionResponse => ({
+            response_text: r.text || '',
+            is_correct: r.isCorrect || undefined,
+            order_index: rIndex,
+          })),
+        };
+      });
 
       // Create assessment
       const created = await assessmentAPI.create({
@@ -124,7 +132,21 @@ function AssessmentWizard() {
       router.push('/surveys');
     } catch (error: any) {
       console.error('Failed to deploy assessment:', error);
-      alert(`Failed to deploy assessment: ${error.response?.data?.detail || error.message}`);
+      console.error('Error details:', error.response?.data);
+
+      let errorMessage = 'Unknown error occurred';
+      if (error.response?.data?.detail) {
+        // Handle both string and array of errors
+        if (Array.isArray(error.response.data.detail)) {
+          errorMessage = error.response.data.detail.map((e: any) => e.msg || JSON.stringify(e)).join(', ');
+        } else {
+          errorMessage = error.response.data.detail;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      alert(`Failed to deploy assessment: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
