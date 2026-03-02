@@ -18,6 +18,7 @@ import Badge from '@/components/ui/Badge';
 import Spinner from '@/components/ui/Spinner';
 import Table, { Pagination } from '@/components/ui/Table';
 import Modal from '@/components/ui/Modal';
+import AssignAssessmentModal from '@/components/modals/AssignAssessmentModal';
 import { Search, Upload, UserPlus, MoreHorizontal, Download, FileSpreadsheet, CheckCircle, AlertCircle, Trash2, Eye, Edit, ClipboardList } from 'lucide-react';
 
 export default function EmployeesPage() {
@@ -48,6 +49,8 @@ function EmployeesContent() {
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [openActionsMenu, setOpenActionsMenu] = useState<string | null>(null);
+  const [showAssignAssessmentModal, setShowAssignAssessmentModal] = useState(false);
+  const [employeeToAssign, setEmployeeToAssign] = useState<{ id: string; full_name: string } | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -140,7 +143,11 @@ function EmployeesContent() {
 
   const handleAssignAssessment = (employeeId: string) => {
     setOpenActionsMenu(null);
-    alert('Assign Assessment functionality coming soon');
+    const employee = employees.find((emp) => emp.id === employeeId);
+    if (employee) {
+      setEmployeeToAssign({ id: employee.id, full_name: employee.full_name });
+      setShowAssignAssessmentModal(true);
+    }
   };
 
   const handleDeleteEmployee = async (employeeId: string, employeeName: string) => {
@@ -530,6 +537,21 @@ function EmployeesContent() {
           loadEmployees();
         }}
       />
+
+      {/* Assign Assessment Modal */}
+      {employeeToAssign && (
+        <AssignAssessmentModal
+          isOpen={showAssignAssessmentModal}
+          onClose={() => {
+            setShowAssignAssessmentModal(false);
+            setEmployeeToAssign(null);
+          }}
+          employee={employeeToAssign}
+          onSuccess={() => {
+            loadEmployees();
+          }}
+        />
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirmModal && (

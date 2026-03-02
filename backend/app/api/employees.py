@@ -858,3 +858,94 @@ async def upload_csv(
     )
 
 
+@router.post("/{employee_id}/assign-assessments")
+def assign_assessments_to_employee(
+    employee_id: UUID,
+    request_data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Assign multiple assessments to a specific employee.
+
+    Creates AssessmentResult records for each assessment-employee pair.
+    Request body: { assessment_ids: [...], due_date: "...", risk_priority: "..." }
+    """
+    from app.models.assessment import Assessment, AssessmentResult
+    from datetime import datetime
+
+    # Extract data from request
+    assessment_ids = request_data.get("assessment_ids", [])
+    due_date = request_data.get("due_date")
+    risk_priority = request_data.get("risk_priority", "standard")
+
+    if not assessment_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No assessments provided"
+        )
+
+    # Verify employee exists and belongs to tenant
+    employee = db.query(Employee).filter(
+        Employee.id == employee_id,
+        Employee.tenant_id == current_user.tenant_id,
+        Employee.is_active == True,
+        Employee.deleted_at.is_(None),
+    ).first()
+
+    if not employee:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Employee not found"
+        )
+
+    # Verify all assessments exist and belong to tenant
+    assessments = db.query(Assessment).filter(
+        Assessment.id.in_(assessment_ids),
+        Assessment.tenant_id == current_user.tenant_id,
+    ).all()
+
+    if len(assessments) != len(assessment_ids):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="One or more assessments not found"
+        )
+
+    # Create AssessmentResult records
+    created_count = 0
+    for assessment in assessments:
+        # Check if already assigned
+        existing = db.query(AssessmentResult).filter(
+            AssessmentResult.assessment_id == assessment.id,
+            AssessmentResult.employee_id == employee.id,
+        ).first()
+
+        if not existing:
+            result = AssessmentResult(
+                assessment_id=assessment.id,
+                employee_id=employee.id,
+                status="in_progress",
+                started_at=datetime.utcnow(),
+            )
+            db.add(result)
+            created_count += 1
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to assign assessments: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to assign assessments: {str(e)}"
+        )
+
+    logger.info(f"Assigned {created_count} assessments to employee {employee.full_name} by user {current_user.email}")
+
+    return {
+        "message": f"Successfully assigned {created_count} assessment(s)",
+        "employee_id": str(employee_id),
+        "assigned_count": created_count,
+    }
+
+
