@@ -613,11 +613,11 @@ function CampaignWizardContent() {
                           </div>
 
                           <div className="flex gap-3">
-                            <Button variant="outline" onClick={handleRegenerate} disabled={loading}>
+                            <Button variant="secondary" onClick={handleRegenerate} disabled={loading}>
                               <RefreshCw className="w-4 h-4 mr-2" />
                               Regenerate Variants
                             </Button>
-                            <Button variant="outline">
+                            <Button variant="secondary">
                               <BookmarkPlus className="w-4 h-4 mr-2" />
                               Save to Library
                             </Button>
@@ -650,7 +650,7 @@ function CampaignWizardContent() {
               {/* Navigation */}
               {currentStep < 5 && (
                 <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200">
-                  <Button variant="outline" onClick={currentStep === 1 ? () => router.push('/campaigns') : handleBack}>
+                  <Button variant="secondary" onClick={currentStep === 1 ? () => router.push('/campaigns') : handleBack}>
                     {currentStep === 1 ? 'Cancel' : 'Back'}
                   </Button>
                   <span className="text-sm text-slate-500">{currentStep} of 4</span>
