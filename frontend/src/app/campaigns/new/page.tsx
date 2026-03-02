@@ -210,7 +210,7 @@ function CampaignWizardContent() {
     }
   };
 
-  // Step 1: Target segments (dynamic based on real data)
+  // Step 1: Target segments (dynamic based on real data - departments only)
   const builtInSegments = [
     {
       id: 'all',
@@ -226,7 +226,7 @@ function CampaignWizardContent() {
       icon: <Users className="w-6 h-6 text-red-600" />,
       type: 'built-in',
     },
-    // All departments
+    // All departments only (no seniority)
     ...departments.map((dept) => ({
       id: `dept_${dept}`,
       title: `${dept} Department`,
@@ -235,16 +235,6 @@ function CampaignWizardContent() {
       } employees)`,
       icon: <Users className="w-6 h-6 text-blue-600" />,
       type: 'department',
-    })),
-    // All seniority levels
-    ...seniorities.map((seniority) => ({
-      id: `seniority_${seniority}`,
-      title: `${seniority} Level`,
-      description: `Target ${seniority.toLowerCase()} employees (${
-        employees.filter((e) => e.seniority === seniority).length
-      } employees)`,
-      icon: <Users className="w-6 h-6 text-purple-600" />,
-      type: 'seniority',
     })),
   ];
 
@@ -344,17 +334,9 @@ function CampaignWizardContent() {
       } else if (selectedSegment.startsWith('dept_')) {
         const dept = selectedSegment.replace('dept_', '');
         targetEmployeeIds = employees.filter((e) => e.department === dept).map((e) => e.id);
-      } else if (selectedSegment.startsWith('seniority_')) {
-        const seniority = selectedSegment.replace('seniority_', '');
-        targetEmployeeIds = employees.filter((e) => e.seniority === seniority).map((e) => e.id);
       } else if (selectedSegment.startsWith('custom_')) {
-        // Find the custom segment
-        const customSegment = customSegments.find((s) => s.id === selectedSegment);
-        if (customSegment) {
-          targetEmployeeIds = employees
-            .filter((e) => e.risk_score >= customSegment.minRisk && e.risk_score <= customSegment.maxRisk)
-            .map((e) => e.id);
-        }
+        // Custom segments target all employees (user defines criteria in segment description)
+        targetEmployeeIds = employees.map((e) => e.id);
       }
 
       // Create scenario from selected variant
@@ -475,88 +457,79 @@ function CampaignWizardContent() {
                   {/* Add Segment Modal */}
                   {showAddSegment && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                      <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
-                        <h3 className="text-2xl font-bold text-slate-900 mb-4">Create Custom Segment</h3>
-                        <p className="text-slate-600 mb-6">
-                          Define a custom employee segment based on specific criteria
-                        </p>
+                      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-slate-200">
+                          <h3 className="text-lg font-semibold text-slate-900">Add Segment</h3>
+                          <button
+                            onClick={() => setShowAddSegment(false)}
+                            className="text-slate-400 hover:text-slate-600 transition-colors"
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
 
+                        {/* Modal Body */}
                         <form
                           onSubmit={(e) => {
                             e.preventDefault();
                             const formData = new FormData(e.currentTarget);
-                            const name = formData.get('name') as string;
-                            const minRisk = parseInt(formData.get('minRisk') as string) || 0;
-                            const maxRisk = parseInt(formData.get('maxRisk') as string) || 100;
-
-                            const matchingEmployees = employees.filter(
-                              (emp) => emp.risk_score >= minRisk && emp.risk_score <= maxRisk
-                            );
+                            const title = formData.get('title') as string;
+                            const description = formData.get('description') as string;
 
                             const newSegment = {
                               id: `custom_${Date.now()}`,
-                              title: name,
-                              description: `Custom segment with risk score ${minRisk}-${maxRisk} (${matchingEmployees.length} employees)`,
+                              title: title,
+                              description: description,
                               icon: <Users className="w-6 h-6 text-orange-600" />,
                               type: 'custom',
-                              minRisk,
-                              maxRisk,
                             };
 
                             setCustomSegments([...customSegments, newSegment]);
                             setShowAddSegment(false);
                           }}
+                          className="p-6"
                         >
                           <div className="space-y-4">
                             <div>
                               <label className="block text-sm font-medium text-slate-700 mb-2">
-                                Segment Name
+                                Title
                               </label>
                               <input
                                 type="text"
-                                name="name"
+                                name="title"
                                 required
-                                className="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-teal-500 focus:outline-none"
-                                placeholder="e.g., High Risk Finance Team"
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+                                placeholder="Enter Title"
                               />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">
-                                  Min Risk Score
-                                </label>
-                                <input
-                                  type="number"
-                                  name="minRisk"
-                                  min="0"
-                                  max="100"
-                                  defaultValue="0"
-                                  className="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-teal-500 focus:outline-none"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">
-                                  Max Risk Score
-                                </label>
-                                <input
-                                  type="number"
-                                  name="maxRisk"
-                                  min="0"
-                                  max="100"
-                                  defaultValue="100"
-                                  className="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-teal-500 focus:outline-none"
-                                />
-                              </div>
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-2">
+                                Description
+                              </label>
+                              <textarea
+                                name="description"
+                                required
+                                rows={3}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none resize-none"
+                                placeholder="Enter Description"
+                              />
                             </div>
                           </div>
 
-                          <div className="flex gap-3 mt-6">
-                            <Button type="button" variant="secondary" onClick={() => setShowAddSegment(false)}>
+                          <div className="flex justify-end gap-3 mt-6">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={() => setShowAddSegment(false)}
+                            >
                               Cancel
                             </Button>
                             <Button type="submit" variant="primary">
-                              Create Segment
+                              Add
                             </Button>
                           </div>
                         </form>
