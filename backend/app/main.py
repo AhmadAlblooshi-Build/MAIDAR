@@ -23,7 +23,12 @@ init_monitoring()
 
 
 def run_migrations():
-    """Run Alembic migrations on startup."""
+    """Run Alembic migrations on startup with timeout protection."""
+    import signal
+
+    def timeout_handler(signum, frame):
+        raise TimeoutError("Migration timeout - took too long")
+
     try:
         from alembic.config import Config
         from alembic import command
@@ -37,12 +42,25 @@ def run_migrations():
         alembic_cfg.set_main_option("script_location", os.path.join(backend_dir, "alembic"))
 
         logger.info("🔄 Running database migrations...")
-        command.upgrade(alembic_cfg, "head")
-        logger.info("✅ Database migrations completed successfully")
+
+        # Set 30 second timeout for migrations (Unix only)
+        if hasattr(signal, 'SIGALRM'):
+            signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(30)
+
+        try:
+            command.upgrade(alembic_cfg, "head")
+            logger.info("✅ Database migrations completed successfully")
+        finally:
+            # Cancel alarm
+            if hasattr(signal, 'SIGALRM'):
+                signal.alarm(0)
+
+    except TimeoutError as e:
+        logger.error(f"⏱️  Migration timeout: {e}")
+        logger.warning("⚠️  Continuing without migrations - they may be stuck")
     except Exception as e:
         logger.error(f"❌ Failed to run migrations: {e}")
-        # Don't crash the app, but log the error
-        # In production, you might want to raise the exception instead
         logger.warning("⚠️  Continuing without migrations - database may be out of sync")
 
 # Create FastAPI app
@@ -106,8 +124,7 @@ if not settings.DEBUG:
 async def startup_event():
     """Run on application startup."""
     logger.info("🚀 Starting MAIDAR backend...")
-    # Temporarily disabled - causing Railway hang
-    # run_migrations()
+    run_migrations()
 
 
 # Root endpoint
