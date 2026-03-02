@@ -60,6 +60,7 @@ def create_assessment(
         priority=data.priority,
         description=data.description,
         target_audience=data.target_audience,
+        target_departments=data.target_departments,  # Save selected departments
         time_limit=data.time_limit,
         randomize_questions=data.randomize_questions,
         allow_pause_resume=data.allow_pause_resume,
