@@ -476,15 +476,17 @@ function DashboardContent() {
             <h2 className="text-lg font-bold text-slate-900">Highest risk employees</h2>
             <p className="text-sm text-slate-500">Immediate intervention queue based on employee behavior.</p>
           </div>
-          <Select
-            value="10"
-            onChange={() => {}}
-            options={[
-              { value: '10', label: 'Top 10 Employees' },
-              { value: '20', label: 'Top 20 Employees' },
-              { value: '50', label: 'Top 50 Employees' },
-            ]}
-          />
+          <div className="w-48">
+            <Select
+              value="10"
+              onChange={() => {}}
+              options={[
+                { value: '10', label: 'Top 10 Employees' },
+                { value: '20', label: 'Top 20 Employees' },
+                { value: '30', label: 'Top 30 Employees' },
+              ]}
+            />
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
