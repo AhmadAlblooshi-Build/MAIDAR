@@ -279,17 +279,17 @@ function CampaignWizardContent() {
       setVariants([
         {
           subject: scenario.email_subject,
-          body: scenario.email_html_body,
+          body: scenario.email_body_html,
           accuracy: 94,
         },
         {
           subject: `${scenario.email_subject} - Follow Up`,
-          body: scenario.email_html_body?.replace('today', 'within 24 hours'),
+          body: scenario.email_body_html?.replace('today', 'within 24 hours'),
           accuracy: 92,
         },
         {
           subject: `Urgent: ${scenario.email_subject}`,
-          body: scenario.email_html_body?.replace('Please', 'URGENT - Please'),
+          body: scenario.email_body_html?.replace('Please', 'URGENT - Please'),
           accuracy: 89,
         },
       ]);
@@ -325,8 +325,8 @@ function CampaignWizardContent() {
         name: `AI Generated - ${variants[selectedVariant].subject}`,
         description: 'AI-generated phishing simulation',
         email_subject: variants[selectedVariant].subject,
-        email_html_body: variants[selectedVariant].body,
-        email_text_body: variants[selectedVariant].body.replace(/<[^>]*>/g, ''),
+        email_body_html: variants[selectedVariant].body,
+        email_body_text: variants[selectedVariant].body.replace(/<[^>]*>/g, ''),
         sender_name: generatedScenario?.sender_name || 'IT Security',
         sender_email: generatedScenario?.sender_email || 'security@company.com',
         difficulty_level: 'medium',
