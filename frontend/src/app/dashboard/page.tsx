@@ -10,10 +10,13 @@ import { useRouter } from 'next/navigation';
 import TenantAdminGuard from '@/components/guards/TenantAdminGuard';
 import TenantAdminLayout from '@/components/tenant-admin/TenantAdminLayout';
 import { useAuthStore } from '@/store/authStore';
+import { employeeAPI } from '@/lib/api';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Select from '@/components/ui/Select';
+import Modal from '@/components/ui/Modal';
+import Input from '@/components/ui/Input';
 import { TrendingUp, Users, Target, AlertTriangle, Brain, MoreHorizontal, Eye, ClipboardList, Trash2, Edit } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -36,6 +39,8 @@ function DashboardContent() {
   const [topEmployeesLimit, setTopEmployeesLimit] = useState('10');
   const [openActionsMenu, setOpenActionsMenu] = useState<string | null>(null);
   const [deletingEmployee, setDeletingEmployee] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -158,9 +163,16 @@ function DashboardContent() {
     router.push(`/employees/${employeeId}`);
   };
 
-  const handleEditEmployee = (employeeId: string) => {
+  const handleEditEmployee = async (employeeId: string) => {
     setOpenActionsMenu(null);
-    router.push(`/employees/${employeeId}/edit`);
+    try {
+      const employee = await employeeAPI.get(employeeId);
+      setSelectedEmployee(employee);
+      setShowEditModal(true);
+    } catch (error) {
+      console.error('Failed to load employee:', error);
+      alert('Failed to load employee data');
+    }
   };
 
   const handleAssignAssessment = (employeeId: string) => {
@@ -659,6 +671,299 @@ function DashboardContent() {
           </table>
         </div>
       </Card>
+
+      {/* Edit Employee Modal */}
+      <EditEmployeeModal
+        isOpen={showEditModal}
+        employee={selectedEmployee}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedEmployee(null);
+        }}
+        onSuccess={() => {
+          setShowEditModal(false);
+          setSelectedEmployee(null);
+          loadDashboardData();
+        }}
+      />
     </div>
+  );
+}
+
+// Edit Employee Modal Component
+function EditEmployeeModal({
+  isOpen,
+  employee,
+  onClose,
+  onSuccess,
+}: {
+  isOpen: boolean;
+  employee: any;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    full_name: '',
+    email: '',
+    department: '',
+    job_title: '',
+    role: '',
+    gender: '',
+    date_of_birth: '',
+    language: '',
+    technical_literacy: 5,
+  });
+
+  // Pre-populate form when employee data is loaded
+  useEffect(() => {
+    if (employee) {
+      // Map seniority back to role
+      const seniorityToRole: { [key: string]: string } = {
+        'mid': 'Individual',
+        'senior': 'Manager',
+        'executive': 'Director',
+        'c_level': 'C-Level',
+        'junior': 'Individual',
+      };
+
+      // Map language code back to language name
+      const langCodeToName: { [key: string]: string } = {
+        'en': 'English',
+        'ar': 'Arabic',
+      };
+
+      // Calculate approximate date of birth from age_range
+      const calculateDOBFromAgeRange = (ageRange: string): string => {
+        const currentYear = new Date().getFullYear();
+        const midpoints: { [key: string]: number } = {
+          '18_24': 21,
+          '25_34': 29,
+          '35_44': 39,
+          '45_54': 49,
+          '55_plus': 60,
+        };
+        const age = midpoints[ageRange] || 29;
+        const birthYear = currentYear - age;
+        return `${birthYear}-01-01`;
+      };
+
+      setFormData({
+        full_name: employee.full_name || '',
+        email: employee.email || '',
+        department: employee.department || '',
+        job_title: employee.job_title || '',
+        role: seniorityToRole[employee.seniority] || 'Individual',
+        gender: employee.gender ? employee.gender.charAt(0).toUpperCase() + employee.gender.slice(1) : '',
+        date_of_birth: calculateDOBFromAgeRange(employee.age_range),
+        language: employee.languages?.[0] ? langCodeToName[employee.languages[0]] || 'English' : 'English',
+        technical_literacy: employee.technical_literacy || 5,
+      });
+    }
+  }, [employee]);
+
+  // Calculate age range from date of birth
+  const calculateAgeRange = (dob: string): string => {
+    if (!dob) return '25_34';
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    if (age >= 18 && age <= 24) return '18_24';
+    if (age >= 25 && age <= 34) return '25_34';
+    if (age >= 35 && age <= 44) return '35_44';
+    if (age >= 45 && age <= 54) return '45_54';
+    return '55_plus';
+  };
+
+  // Map role to seniority
+  const mapRoleToSeniority = (role: string): string => {
+    const mapping: { [key: string]: string } = {
+      'Individual': 'mid',
+      'Manager': 'senior',
+      'Director': 'senior',
+      'C-Level': 'c_level',
+    };
+    return mapping[role] || 'mid';
+  };
+
+  // Map language to language code
+  const mapLanguageToCode = (language: string): string => {
+    const mapping: { [key: string]: string } = {
+      'English': 'en',
+      'Arabic': 'ar',
+    };
+    return mapping[language] || 'en';
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!employee) return;
+    setLoading(true);
+
+    try {
+      // Prepare data for API
+      const apiData: any = {
+        full_name: formData.full_name,
+        email: formData.email,
+        department: formData.department,
+        age_range: calculateAgeRange(formData.date_of_birth),
+        technical_literacy: formData.technical_literacy,
+        seniority: mapRoleToSeniority(formData.role),
+        languages: formData.language ? [mapLanguageToCode(formData.language)] : ['en'],
+      };
+
+      // Only add optional fields if they have values
+      if (formData.job_title && formData.job_title.trim()) {
+        apiData.job_title = formData.job_title.trim();
+      }
+      if (formData.gender && formData.gender.trim()) {
+        apiData.gender = formData.gender.toLowerCase();
+      }
+
+      await employeeAPI.update(employee.id, apiData);
+      onSuccess();
+    } catch (error: any) {
+      console.error('Failed to update employee:', error);
+      const errorMsg = error.detail || error.message || 'Unknown error';
+      alert(`Failed to update employee: ${errorMsg}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!employee) return null;
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Edit Employee" subtitle="Edit employee info directory">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Full Name */}
+        <Input
+          label="Full Name"
+          required
+          value={formData.full_name}
+          onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+          placeholder="Enter full name"
+        />
+
+        {/* Email */}
+        <Input
+          label="Email Address"
+          type="email"
+          required
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          placeholder="Enter email address"
+        />
+
+        {/* Department */}
+        <Select
+          label="Department"
+          required
+          value={formData.department}
+          onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+          options={[
+            { value: '', label: 'Select department' },
+            { value: 'Finance', label: 'Finance' },
+            { value: 'Engineering', label: 'Engineering' },
+            { value: 'Sales', label: 'Sales' },
+            { value: 'Hr', label: 'Hr' },
+          ]}
+        />
+
+        {/* Job Title (optional) */}
+        <Input
+          label="Job Title (Optional)"
+          value={formData.job_title}
+          onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
+          placeholder="e.g., Software Engineer"
+        />
+
+        {/* Role | Gender (two columns) */}
+        <div className="grid grid-cols-2 gap-4">
+          <Select
+            label="Role"
+            required
+            value={formData.role}
+            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+            options={[
+              { value: '', label: 'Select role' },
+              { value: 'Director', label: 'Director' },
+              { value: 'Manager', label: 'Manager' },
+              { value: 'Individual', label: 'Individual' },
+              { value: 'C-Level', label: 'C-Level' },
+            ]}
+          />
+          <Select
+            label="Gender"
+            value={formData.gender}
+            onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+            options={[
+              { value: '', label: 'Select gender' },
+              { value: 'Male', label: 'Male' },
+              { value: 'Female', label: 'Female' },
+              { value: 'Other', label: 'Other' },
+            ]}
+          />
+        </div>
+
+        {/* Date of Birth | Language (two columns) */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Date of Birth <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              required
+              value={formData.date_of_birth}
+              onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+              className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+          <Select
+            label="Language"
+            required
+            value={formData.language}
+            onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+            options={[
+              { value: '', label: 'Select language' },
+              { value: 'English', label: 'English' },
+              { value: 'Arabic', label: 'Arabic' },
+            ]}
+          />
+        </div>
+
+        {/* Technical Literacy */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Technical Literacy (1-10)
+          </label>
+          <input
+            type="number"
+            min="1"
+            max="10"
+            required
+            value={formData.technical_literacy}
+            onChange={(e) => setFormData({ ...formData, technical_literacy: parseInt(e.target.value) || 5 })}
+            className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
+          <p className="text-xs text-slate-500 mt-1">1 = Low, 10 = High technical skills</p>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex items-center justify-end space-x-3 pt-4">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="primary" loading={loading}>
+            Update
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
