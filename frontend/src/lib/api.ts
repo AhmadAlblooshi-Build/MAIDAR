@@ -137,6 +137,7 @@ export const employeeAPI = {
     });
   },
   statistics: () => apiCall<EmployeeStatistics>('GET', '/employees/statistics'),
+  getJobTitles: () => apiCall<{ job_titles: string[] }>('GET', '/employees/job-titles/list'),
 };
 
 // Scenario API

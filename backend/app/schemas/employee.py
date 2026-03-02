@@ -166,6 +166,7 @@ class EmployeeSearchRequest(BaseModel):
     gender: Optional[str] = None
     seniority: Optional[str] = None
     department: Optional[str] = None
+    job_title: Optional[str] = None
     min_technical_literacy: Optional[int] = Field(None, ge=0, le=10)
     max_technical_literacy: Optional[int] = Field(None, ge=0, le=10)
     page: int = Field(1, ge=1)

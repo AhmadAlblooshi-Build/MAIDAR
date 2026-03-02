@@ -220,6 +220,27 @@ def get_employee_statistics(
         avg_risk_score=round(float(avg_risk), 2) if avg_risk else None,
         high_risk_count=high_risk_count
     )
+
+
+@router.get("/job-titles/list")
+def get_job_titles(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get list of distinct job titles in the tenant.
+    """
+    job_titles = db.query(Employee.job_title).filter(
+        Employee.tenant_id == current_user.tenant_id,
+        Employee.deleted_at == None,
+        Employee.job_title.isnot(None),
+        Employee.job_title != ''
+    ).distinct().order_by(Employee.job_title).all()
+
+    # Extract job titles from tuples
+    return {"job_titles": [jt[0] for jt in job_titles]}
+
+
 @router.get("/{employee_id}", response_model=EmployeeResponse)
 def get_employee(
     employee_id: str,
@@ -481,6 +502,9 @@ def search_employees(
 
     if search_request.department:
         query = query.filter(Employee.department.ilike(f"%{search_request.department}%"))
+
+    if search_request.job_title:
+        query = query.filter(Employee.job_title == search_request.job_title)
 
     if search_request.min_technical_literacy is not None:
         query = query.filter(Employee.technical_literacy >= search_request.min_technical_literacy)

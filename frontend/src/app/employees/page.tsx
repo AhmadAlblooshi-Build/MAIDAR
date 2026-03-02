@@ -40,15 +40,29 @@ function EmployeesContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
+  const [jobTitles, setJobTitles] = useState<string[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
+    loadJobTitles();
+  }, []);
+
+  useEffect(() => {
     console.log('Loading employees - Page:', currentPage, 'Total Pages:', totalPages);
     loadEmployees();
   }, [currentPage, searchTerm, filterRole]);
+
+  const loadJobTitles = async () => {
+    try {
+      const response = await employeeAPI.getJobTitles();
+      setJobTitles(response.job_titles || []);
+    } catch (error) {
+      console.error('Failed to load job titles:', error);
+    }
+  };
 
   const loadEmployees = async () => {
     try {
@@ -57,7 +71,7 @@ function EmployeesContent() {
         page: currentPage,
         page_size: 12,
         search: searchTerm || undefined,
-        role: filterRole !== 'all' ? filterRole : undefined,
+        job_title: filterRole !== 'all' ? filterRole : undefined,
       };
 
       const response = await employeeAPI.search(searchParams);
@@ -171,10 +185,11 @@ function EmployeesContent() {
           className="px-4 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500"
         >
           <option value="all">All Roles</option>
-          <option value="LEAD DEV">Lead Dev</option>
-          <option value="DESIGNER">Designer</option>
-          <option value="MANAGER">Manager</option>
-          <option value="EXECUTIVE">Executive</option>
+          {jobTitles.map((title) => (
+            <option key={title} value={title}>
+              {title}
+            </option>
+          ))}
         </select>
       </div>
 
