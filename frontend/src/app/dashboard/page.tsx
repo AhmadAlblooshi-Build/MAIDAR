@@ -61,11 +61,6 @@ function DashboardContent() {
             page: 1,
             page_size: 1000
           })
-        }).then(async res => {
-          if (!res.ok) {
-            console.error('Employee search failed:', res.status, await res.text());
-          }
-          return res;
         }),
         fetch(`${apiUrl}/api/v1/simulations/search`, {
           method: 'POST',
@@ -76,6 +71,12 @@ function DashboardContent() {
           body: JSON.stringify({ page: 1, page_size: 5, sort_by: 'created_at', sort_order: 'desc' })
         })
       ]);
+
+      // Check response status
+      if (!riskDistRes.ok) console.error('Risk distribution API failed:', riskDistRes.status);
+      if (!employeeStatsRes.ok) console.error('Employee stats API failed:', employeeStatsRes.status);
+      if (!employeesRes.ok) console.error('Employee search API failed:', employeesRes.status);
+      if (!simulationsRes.ok) console.error('Simulations API failed:', simulationsRes.status);
 
       const riskDistribution = await riskDistRes.json();
       const employeeStats = await employeeStatsRes.json();
