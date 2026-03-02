@@ -123,13 +123,6 @@ function DashboardContent() {
         .filter((emp: any) => emp.risk_score !== null && emp.risk_score !== undefined)
         .sort((a: any, b: any) => (b.risk_score || 0) - (a.risk_score || 0));
 
-      console.log('Dashboard Data Loaded:', {
-        totalEmployees: riskDistribution.total_employees,
-        sortedEmployeesCount: sortedEmployees.length,
-        breakdownsCount: Object.keys(riskBreakdowns).length,
-        simulationsCount: simulations.simulations?.length || 0
-      });
-
       setDashboardData({
         riskDistribution,
         employeeStats,
@@ -486,10 +479,7 @@ function DashboardContent() {
           <div className="w-48 relative z-10">
             <Select
               value={topEmployeesLimit}
-              onChange={(e) => {
-                console.log('Changing limit from', topEmployeesLimit, 'to', e.target.value);
-                setTopEmployeesLimit(e.target.value);
-              }}
+              onChange={(e) => setTopEmployeesLimit(e.target.value)}
               options={[
                 { value: '10', label: 'Top 10 Employees' },
                 { value: '20', label: 'Top 20 Employees' },
@@ -511,12 +501,8 @@ function DashboardContent() {
               </tr>
             </thead>
             <tbody>
-              {(() => {
-                const displayCount = parseInt(topEmployeesLimit);
-                const employeesToShow = sortedEmployees.slice(0, displayCount);
-                console.log(`Showing ${employeesToShow.length} employees (limit: ${topEmployeesLimit})`);
-                return sortedEmployees.length > 0 ? (
-                  employeesToShow.map((emp: any, idx: number) => {
+              {sortedEmployees.length > 0 ? (
+                sortedEmployees.slice(0, parseInt(topEmployeesLimit)).map((emp: any, idx: number) => {
                   const tier = getRiskTier(emp.risk_score);
                   return (
                     <tr key={emp.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
@@ -565,8 +551,7 @@ function DashboardContent() {
                     <p>No high-risk employees found</p>
                   </td>
                 </tr>
-              );
-              })()}
+              )}
             </tbody>
           </table>
         </div>
