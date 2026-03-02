@@ -1,19 +1,18 @@
 /**
- * Get API URL with HTTPS enforcement for production
+ * Get API URL - HTTPS for production, HTTP only for localhost
  */
 export function getApiUrl(): string {
-  // If we're in browser and not on localhost, use production HTTPS URL
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return 'https://maidar-production-3ee1.up.railway.app';
+  // Check if we're on localhost (development)
+  if (typeof window !== 'undefined') {
+    const isLocalhost = window.location.hostname === 'localhost' ||
+                       window.location.hostname === '127.0.0.1';
+
+    if (isLocalhost) {
+      // Development: use HTTP localhost
+      return 'http://localhost:8001';
+    }
   }
 
-  // Otherwise use environment variable or localhost
-  let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-
-  // Force HTTPS for Railway URLs
-  if (url.includes('railway.app') && url.startsWith('http://')) {
-    url = url.replace('http://', 'https://');
-  }
-
-  return url;
+  // Production: ALWAYS use HTTPS Railway URL
+  return 'https://maidar-production-3ee1.up.railway.app';
 }
