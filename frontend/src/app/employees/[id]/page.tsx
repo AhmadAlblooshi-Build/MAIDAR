@@ -1,6 +1,6 @@
 /**
  * Employee Profile Page
- * Individual employee details with risk explainability breakdown
+ * Workforce Risk Directory - Individual employee risk profile
  */
 
 'use client';
@@ -9,26 +9,16 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import TenantAdminGuard from '@/components/guards/TenantAdminGuard';
 import TenantAdminLayout from '@/components/tenant-admin/TenantAdminLayout';
-import { useAuthStore } from '@/store/authStore';
-import Card from '@/components/ui/Card';
-import Badge from '@/components/ui/Badge';
-import Button from '@/components/ui/Button';
+import { employeeAPI } from '@/lib/api';
 import Spinner from '@/components/ui/Spinner';
 import {
-  User,
-  Mail,
-  Briefcase,
-  Building,
-  MapPin,
-  Calendar,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  CheckCircle,
-  Target,
+  UserIcon,
+  ArrowLeft,
+  AlertCircle,
+  Clock,
   FileText,
-  Download,
-  Send
+  CheckCircle,
+  Target as TargetIcon,
 } from 'lucide-react';
 
 export default function EmployeeProfilePage() {
@@ -44,7 +34,6 @@ export default function EmployeeProfilePage() {
 function EmployeeProfileContent() {
   const router = useRouter();
   const params = useParams();
-  const { token } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [employee, setEmployee] = useState<any>(null);
   const [error, setError] = useState('');
@@ -58,17 +47,7 @@ function EmployeeProfileContent() {
   const loadEmployeeData = async () => {
     try {
       setLoading(true);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-
-      const response = await fetch(`${apiUrl}/api/v1/employees/${params.id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to load employee data');
-      }
-
-      const data = await response.json();
+      const data = await employeeAPI.get(params.id as string);
       setEmployee(data);
     } catch (err: any) {
       console.error('Failed to load employee:', err);
@@ -87,230 +66,268 @@ function EmployeeProfileContent() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error || 'Employee not found'}</p>
-          <Button onClick={() => router.push('/employees')}>
+          <button
+            onClick={() => router.push('/employees')}
+            className="px-6 py-2 rounded-lg bg-teal-500 text-white hover:bg-teal-600"
+          >
             Back to Employees
-          </Button>
+          </button>
         </div>
       </div>
     );
   }
 
-  const getRiskColor = (score: number) => {
-    if (score >= 8) return 'text-red-600';
-    if (score >= 6) return 'text-orange-600';
-    if (score >= 4) return 'text-yellow-600';
-    return 'text-green-600';
+  // Calculate risk score (0-100 scale for display)
+  const riskScore = employee.risk_score ? Math.round(employee.risk_score * 10) : 0;
+  const riskScoreOutOf10 = employee.risk_score || 0;
+
+  const getRiskTier = (score: number) => {
+    if (score >= 8) return { label: 'Critical Risk Tier', color: 'bg-red-100 text-red-600', borderColor: 'border-red-300' };
+    if (score >= 6) return { label: 'High Risk Tier', color: 'bg-orange-100 text-orange-600', borderColor: 'border-orange-300' };
+    if (score >= 4) return { label: 'Medium Risk Tier', color: 'bg-yellow-100 text-yellow-600', borderColor: 'border-yellow-300' };
+    return { label: 'Low Risk Tier', color: 'bg-green-100 text-green-600', borderColor: 'border-green-300' };
   };
 
-  const getRiskBgColor = (score: number) => {
-    if (score >= 8) return 'from-red-500 to-rose-600';
-    if (score >= 6) return 'from-orange-500 to-amber-600';
-    if (score >= 4) return 'from-yellow-500 to-amber-500';
-    return 'from-green-500 to-emerald-600';
-  };
-
-  const riskScore = employee.risk_score || 0;
+  const riskTier = getRiskTier(riskScoreOutOf10);
 
   return (
     <div className="space-y-6">
-      {/* Header with Actions */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <button
             onClick={() => router.push('/employees')}
-            className="text-sm text-slate-500 hover:text-slate-700 mb-2"
+            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-2 transition-colors"
           >
-            ← Back to Employees
+            <ArrowLeft className="w-4 h-4" />
+            <span>Workforce Risk Directory</span>
           </button>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-            Employee Profile
-          </h1>
+          <p className="text-sm text-slate-500">Monitor intelligence and manage training for all employees.</p>
         </div>
-        <div className="flex items-center space-x-3">
-          <Button
-            variant="secondary"
-            icon={<Download className="w-4 h-4" />}
-            onClick={() => {
-              // Export employee report
-              alert('Export functionality coming soon');
-            }}
-          >
-            Export Report
-          </Button>
-          <Button
-            variant="primary"
-            icon={<Send className="w-4 h-4" />}
-            onClick={() => {
-              // Create campaign for this employee
-              router.push(`/campaigns/new?employee=${employee.id}`);
-            }}
-          >
-            Create Campaign
-          </Button>
+        <div className="flex gap-3">
+          <button className="px-6 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-700 font-medium hover:bg-slate-50">
+            Assign Assessment
+          </button>
+          <button className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-teal-500 to-cyan-500 text-white font-medium hover:shadow-lg">
+            Schedule Targeted Drill
+          </button>
         </div>
       </div>
 
-      {/* Employee Info & Risk Score */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Employee Basic Info */}
-        <Card className="lg:col-span-2">
-          <div className="flex items-start space-x-6">
-            <div className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${getRiskBgColor(riskScore)} flex items-center justify-center text-white font-bold text-3xl shadow-lg`}>
-              {employee.full_name?.charAt(0) || 'U'}
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-3 gap-6">
+        {/* Left Column - Employee Info & Risk Gauge */}
+        <div className="space-y-6">
+          {/* Employee Card */}
+          <div className="bg-white rounded-2xl p-6 border border-slate-200">
+            {/* Avatar Icon */}
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center mb-4">
+              <UserIcon className="w-8 h-8 text-white" />
             </div>
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">{employee.full_name}</h2>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="flex items-center space-x-2 text-slate-600">
-                  <Mail className="w-4 h-4" />
-                  <span>{employee.email}</span>
+
+            {/* Name & Title */}
+            <h2 className="text-xl font-bold text-slate-900 mb-1">{employee.full_name}</h2>
+            <p className="text-sm text-slate-500 mb-4">{employee.job_title || 'No title'}</p>
+
+            {/* Badges */}
+            <div className="flex gap-2 mb-6">
+              <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                {employee.department}
+              </span>
+              <span className="px-3 py-1 rounded-full text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200">
+                {employee.seniority || 'N/A'}
+              </span>
+            </div>
+
+            {/* Risk Gauge */}
+            <div className="flex flex-col items-center py-8">
+              <div className="relative w-48 h-48">
+                {/* SVG Gauge */}
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                  {/* Background arc */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="none"
+                    stroke="#e2e8f0"
+                    strokeWidth="8"
+                    strokeDasharray="188.4 62.8"
+                  />
+                  {/* Foreground arc (75% = 188.4 units) */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="none"
+                    stroke="#ef4444"
+                    strokeWidth="8"
+                    strokeDasharray={`${(riskScore / 100) * 188.4} 251.2`}
+                    strokeLinecap="round"
+                    className="transition-all duration-1000"
+                  />
+                </svg>
+
+                {/* Center Text */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <div className="text-5xl font-bold text-slate-900">{riskScore}</div>
+                  <div className="text-sm text-slate-500 font-medium">Human Risk</div>
                 </div>
-                <div className="flex items-center space-x-2 text-slate-600">
-                  <Briefcase className="w-4 h-4" />
-                  <span>{employee.job_title || 'N/A'}</span>
-                </div>
-                <div className="flex items-center space-x-2 text-slate-600">
-                  <Building className="w-4 h-4" />
-                  <span>{employee.department || 'N/A'}</span>
-                </div>
-                <div className="flex items-center space-x-2 text-slate-600">
-                  <User className="w-4 h-4" />
-                  <span>{employee.seniority || 'N/A'}</span>
-                </div>
-                <div className="flex items-center space-x-2 text-slate-600">
-                  <Calendar className="w-4 h-4" />
-                  <span>Joined {employee.created_at ? new Date(employee.created_at).toLocaleDateString() : 'N/A'}</span>
-                </div>
+              </div>
+
+              {/* Risk Tier Badge */}
+              <div className={`mt-6 px-4 py-2 rounded-lg text-sm font-medium border ${riskTier.color} ${riskTier.borderColor}`}>
+                {riskTier.label}
+              </div>
+            </div>
+
+            {/* Why is the score high? */}
+            <div className="mt-8">
+              <h3 className="text-lg font-bold text-slate-900 mb-4">Why is the score high?</h3>
+              <div className="space-y-4">
+                {/* Risk Factors */}
+                <RiskFactor
+                  title="Technical Literacy"
+                  description={`Literacy level: ${employee.technical_literacy || 'N/A'}/10`}
+                  severity={employee.technical_literacy < 5 ? 'Critical' : employee.technical_literacy < 7 ? 'Warning' : 'Nominal'}
+                  timeAgo="Current assessment"
+                />
+                <RiskFactor
+                  title="Seniority Level"
+                  description={`${employee.seniority || 'Unknown'} position with elevated access`}
+                  severity={employee.seniority === 'Executive' ? 'Critical' : 'Warning'}
+                  timeAgo="Position data"
+                />
+                <RiskFactor
+                  title="Department Risk"
+                  description={`${employee.department} department profile`}
+                  severity={employee.department?.toLowerCase().includes('finance') || employee.department?.toLowerCase().includes('executive') ? 'Critical' : 'Nominal'}
+                  timeAgo="Department assessment"
+                />
+                <RiskFactor
+                  title="Age Demographics"
+                  description={`Age range: ${employee.age_range ? employee.age_range.replace('_', '-') : 'N/A'}`}
+                  severity="Nominal"
+                  timeAgo="Demographic data"
+                />
               </div>
             </div>
           </div>
-        </Card>
+        </div>
 
-        {/* Risk Score Card */}
-        <Card className={`bg-gradient-to-br ${getRiskBgColor(riskScore)} text-white`}>
-          <div className="text-center">
-            <div className="text-sm font-medium opacity-90 mb-2">Risk Score</div>
-            <div className="text-6xl font-bold mb-2">{riskScore.toFixed(1)}</div>
-            <Badge variant={riskScore >= 6 ? 'danger' : riskScore >= 4 ? 'warning' : 'success'}>
-              {employee.risk_band || (riskScore >= 8 ? 'Critical' : riskScore >= 6 ? 'High' : riskScore >= 4 ? 'Medium' : 'Low')}
-            </Badge>
+        {/* Middle Column - Risk Attribution */}
+        <div className="space-y-6">
+          <div className="bg-white rounded-2xl p-6 border border-slate-200 h-[400px]">
+            <h3 className="text-lg font-bold text-slate-900 mb-6">Risk Attribution</h3>
+            <div className="flex items-center justify-center h-[300px]">
+              <div className="text-center text-slate-400">
+                <p className="text-sm">Risk attribution chart</p>
+                <p className="text-xs mt-2">Radar chart visualization</p>
+              </div>
+            </div>
           </div>
-        </Card>
+
+          {/* Risk History Timeline */}
+          <div className="bg-white rounded-2xl p-6 border border-slate-200">
+            <h3 className="text-lg font-bold text-slate-900 mb-6">Risk History Timeline</h3>
+            <div className="space-y-4">
+              <TimelineEvent
+                icon={<AlertCircle className="w-4 h-4 text-red-500" />}
+                title="Risk Score Calculated"
+                description={`Current risk score: ${riskScoreOutOf10.toFixed(1)}/10`}
+                points={`${riskScore} pts`}
+                pointsColor="text-red-600"
+                time="Current"
+              />
+              <TimelineEvent
+                icon={<FileText className="w-4 h-4 text-blue-500" />}
+                title="Profile Created"
+                description="Employee added to system"
+                points="0 pts"
+                pointsColor="text-slate-600"
+                time={new Date(employee.created_at).toLocaleDateString()}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column - Risk Change Rate */}
+        <div className="space-y-6">
+          <div className="bg-white rounded-2xl p-6 border border-slate-200 h-[400px]">
+            <h3 className="text-lg font-bold text-slate-900 mb-6">Risk Change Rate</h3>
+            <div className="flex items-center justify-center h-[300px]">
+              <div className="text-center text-slate-400">
+                <p className="text-sm">Risk trend over time</p>
+                <p className="text-xs mt-2">Area chart visualization</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-
-      {/* Risk Explainability Breakdown */}
-      <Card>
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="p-2 rounded-lg bg-purple-100">
-            <AlertTriangle className="w-5 h-5 text-purple-600" />
-          </div>
-          <h2 className="text-xl font-bold text-slate-900">Risk Explainability</h2>
-        </div>
-        <p className="text-slate-600 mb-6">
-          Factors contributing to this employee's risk score:
-        </p>
-        <div className="space-y-4">
-          <RiskFactorItem
-            label="Age Range"
-            value={employee.age_range ? employee.age_range.replace('_', '-') : 'N/A'}
-            impact={employee.age_range && (employee.age_range === '18_24' || employee.age_range === '25_34') ? 'high' : 'medium'}
-            description={employee.age_range && (employee.age_range === '18_24' || employee.age_range === '25_34') ? 'Younger employees tend to have less security awareness' : 'Age within typical risk range'}
-          />
-          <RiskFactorItem
-            label="Seniority Level"
-            value={employee.seniority || 'N/A'}
-            impact={employee.seniority === 'EXECUTIVE' || employee.seniority === 'SENIOR' || employee.seniority === 'Executive' || employee.seniority === 'Senior' ? 'high' : 'medium'}
-            description={employee.seniority === 'EXECUTIVE' || employee.seniority === 'Executive' ? 'Executive positions have access to highly sensitive data' : employee.seniority === 'SENIOR' || employee.seniority === 'Senior' ? 'Senior positions have elevated access privileges' : 'Standard employee access level'}
-          />
-          <RiskFactorItem
-            label="Technical Literacy"
-            value={employee.technical_literacy ? `${employee.technical_literacy}/10` : 'N/A'}
-            impact={employee.technical_literacy && employee.technical_literacy < 5 ? 'high' : employee.technical_literacy && employee.technical_literacy < 7 ? 'medium' : 'low'}
-            description={employee.technical_literacy && employee.technical_literacy < 5 ? 'Low technical literacy increases susceptibility to phishing' : employee.technical_literacy && employee.technical_literacy < 7 ? 'Moderate technical skills' : 'Strong technical skills reduce risk'}
-          />
-          <RiskFactorItem
-            label="Department"
-            value={employee.department || 'N/A'}
-            impact={employee.department?.toLowerCase().includes('finance') || employee.department?.toLowerCase().includes('hr') || employee.department?.toLowerCase().includes('executive') ? 'high' : 'medium'}
-            description={employee.department?.toLowerCase().includes('finance') ? 'Finance departments are high-value targets' : employee.department?.toLowerCase().includes('hr') ? 'HR has access to sensitive employee data' : 'Department risk level moderate'}
-          />
-          <RiskFactorItem
-            label="Job Title"
-            value={employee.job_title || 'N/A'}
-            impact={employee.job_title?.toLowerCase().includes('manager') || employee.job_title?.toLowerCase().includes('director') || employee.job_title?.toLowerCase().includes('ceo') || employee.job_title?.toLowerCase().includes('cfo') ? 'high' : 'medium'}
-            description={employee.job_title?.toLowerCase().includes('ceo') || employee.job_title?.toLowerCase().includes('cfo') ? 'C-level positions are prime targets for spear phishing' : employee.job_title?.toLowerCase().includes('manager') || employee.job_title?.toLowerCase().includes('director') ? 'Leadership positions have access to sensitive data' : 'Standard role risk level'}
-          />
-        </div>
-      </Card>
-
-      {/* Simulation History */}
-      <Card>
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-lg bg-teal-100">
-              <Target className="w-5 h-5 text-teal-600" />
-            </div>
-            <h2 className="text-xl font-bold text-slate-900">Simulation History</h2>
-          </div>
-        </div>
-        <div className="text-center py-8 text-slate-500">
-          Simulation history will be displayed here once available
-        </div>
-      </Card>
-
-      {/* Survey Responses */}
-      <Card>
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-lg bg-blue-100">
-              <FileText className="w-5 h-5 text-blue-600" />
-            </div>
-            <h2 className="text-xl font-bold text-slate-900">Survey Responses</h2>
-          </div>
-        </div>
-        <div className="text-center py-8 text-slate-500">
-          Survey responses will be displayed here once available
-        </div>
-      </Card>
     </div>
   );
 }
 
-function RiskFactorItem({
-  label,
-  value,
-  impact,
-  description
+function RiskFactor({
+  title,
+  description,
+  severity,
+  timeAgo,
 }: {
-  label: string;
-  value: string;
-  impact: 'low' | 'medium' | 'high';
+  title: string;
   description: string;
+  severity: 'Critical' | 'Warning' | 'Increasing' | 'Nominal';
+  timeAgo: string;
 }) {
-  const getImpactColor = () => {
-    if (impact === 'high') return 'text-red-600';
-    if (impact === 'medium') return 'text-yellow-600';
-    return 'text-green-600';
-  };
-
-  const getImpactIcon = () => {
-    if (impact === 'high') return <TrendingUp className="w-4 h-4" />;
-    if (impact === 'medium') return <TrendingDown className="w-4 h-4" />;
-    return <CheckCircle className="w-4 h-4" />;
+  const severityColors = {
+    Critical: 'text-red-600',
+    Warning: 'text-orange-600',
+    Increasing: 'text-yellow-600',
+    Nominal: 'text-slate-600',
   };
 
   return (
-    <div className="flex items-start justify-between p-4 rounded-lg border border-slate-200 hover:border-teal-500 hover:bg-teal-50 transition-all">
+    <div className="flex items-start gap-3">
+      <div className="w-2 h-2 rounded-full bg-teal-500 mt-2" />
       <div className="flex-1">
-        <div className="flex items-center space-x-3 mb-1">
-          <span className="font-semibold text-slate-900">{label}</span>
-          <span className={`flex items-center space-x-1 text-sm font-medium ${getImpactColor()}`}>
-            {getImpactIcon()}
-            <span className="capitalize">{impact} Impact</span>
-          </span>
+        <div className="flex items-start justify-between mb-1">
+          <h4 className="font-semibold text-slate-900 text-sm">{title}</h4>
+          <span className={`text-xs font-medium ${severityColors[severity]}`}>{severity}</span>
         </div>
-        <div className="text-sm text-slate-600 mb-1">{value}</div>
-        <div className="text-xs text-slate-500">{description}</div>
+        <p className="text-xs text-slate-600">{description}</p>
+        <p className="text-xs text-slate-400 mt-1">{timeAgo}</p>
+      </div>
+    </div>
+  );
+}
+
+function TimelineEvent({
+  icon,
+  title,
+  description,
+  points,
+  pointsColor,
+  time,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  points: string;
+  pointsColor: string;
+  time: string;
+}) {
+  return (
+    <div className="flex items-start gap-4">
+      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center border border-slate-200">
+        {icon}
+      </div>
+      <div className="flex-1">
+        <h4 className="font-semibold text-slate-900 text-sm mb-1">{title}</h4>
+        <p className="text-xs text-slate-600">{description}</p>
+      </div>
+      <div className="text-right flex-shrink-0">
+        <div className={`text-sm font-semibold ${pointsColor}`}>{points}</div>
+        <div className="text-xs text-slate-400">{time}</div>
       </div>
     </div>
   );

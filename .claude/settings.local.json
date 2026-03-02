@@ -71,7 +71,9 @@
       "Bash(Select-String -Pattern \"MISSING|EXTRA|matches perfectly|Total mismatches\")",
       "Bash(vercel login:*)",
       "Bash(vercel:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(del page.tsx)",
+      "Bash(ren:*)"
     ]
   }
 }
