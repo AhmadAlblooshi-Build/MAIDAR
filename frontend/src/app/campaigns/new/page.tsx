@@ -13,7 +13,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import TenantAdminGuard from '@/components/guards/TenantAdminGuard';
 import TenantAdminLayout from '@/components/tenant-admin/TenantAdminLayout';
 import { useAuthStore } from '@/store/authStore';
-import { getApiUrl } from '@/lib/apiUrl';
+import { employeeAPI, scenarioAPI, simulationAPI } from '@/lib/api';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import {
@@ -89,30 +89,11 @@ function CampaignWizardContent() {
 
   const loadWizardData = async () => {
     try {
-      const apiUrl = getApiUrl();
-
-      // Load employees, scenarios in parallel
-      const [employeesRes, scenariosRes] = await Promise.all([
-        fetch(`${apiUrl}/api/v1/employees/search`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ page: 1, page_size: 500 })
-        }),
-        fetch(`${apiUrl}/api/v1/scenarios/search`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ page: 1, page_size: 100 })
-        })
+      // Load employees, scenarios in parallel using API client
+      const [employeesData, scenariosData] = await Promise.all([
+        employeeAPI.search({ page: 1, page_size: 500 }),
+        scenarioAPI.search({ page: 1, page_size: 100 })
       ]);
-
-      const employeesData = await employeesRes.json();
-      const scenariosData = await scenariosRes.json();
 
       setEmployees(employeesData.employees || []);
       setScenarios(scenariosData.scenarios || []);
@@ -140,7 +121,6 @@ function CampaignWizardContent() {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      const apiUrl = getApiUrl();
 
       // Build target employees list
       let targetEmployees = [...campaignData.targetEmployees];
@@ -178,21 +158,8 @@ function CampaignWizardContent() {
         track_credentials: campaignData.trackCredentials
       };
 
-      const response = await fetch(`${apiUrl}/api/v1/simulations`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Failed to create campaign');
-      }
-
-      const newCampaign = await response.json();
+      // Use API client instead of raw fetch
+      const newCampaign = await simulationAPI.create(payload);
 
       // Redirect to campaign status page
       router.push(`/campaigns/${newCampaign.id}`);
