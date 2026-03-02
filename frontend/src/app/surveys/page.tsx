@@ -35,39 +35,12 @@ function RiskAssessmentContent() {
   const loadAssessments = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with real API call
-      // For now, using mock data matching UX screenshot
-      const mockData = [
-        {
-          id: '1',
-          title: 'Remote Security Protocol 2024',
-          status: 'In Progress',
-          participants: 842,
-          avgTime: '0m',
-        },
-        {
-          id: '2',
-          title: 'Social Engineering Awareness',
-          status: 'In Progress',
-          participants: 842,
-          avgTime: '3m',
-        },
-        {
-          id: '3',
-          title: 'MFA Sentiment Analysis',
-          status: 'In Progress',
-          participants: 842,
-          avgTime: '4m',
-        },
-        {
-          id: '4',
-          title: 'Remote Security Protocol 2024',
-          status: 'In Progress',
-          participants: 842,
-          avgTime: '0m',
-        },
-      ];
-      setAssessments(mockData);
+      // TODO: Replace with real API call to fetch assessments
+      // const response = await assessmentAPI.search({ page: 1, page_size: 50 });
+      // setAssessments(response.assessments || []);
+
+      // For now, showing empty state (no mock data)
+      setAssessments([]);
     } catch (error) {
       console.error('Failed to load assessments:', error);
     } finally {
