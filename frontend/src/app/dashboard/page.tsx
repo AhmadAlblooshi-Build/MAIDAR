@@ -384,7 +384,7 @@ function DashboardContent() {
               onChange={(e) => setSelectedDepartment(e.target.value)}
               options={[
                 { value: 'all', label: 'All Departments' },
-                ...departmentBreakdown.map(d => ({ value: d.department, label: d.department }))
+                ...departmentBreakdown.map((d: any) => ({ value: d.department, label: d.department }))
               ]}
             />
           </div>
