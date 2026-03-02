@@ -91,6 +91,24 @@ function AssessmentWizard() {
         return;
       }
 
+      // Validate questions have text
+      const emptyQuestions = assessment.questions.filter((q: any) => !q.text || q.text.trim() === '');
+      if (emptyQuestions.length > 0) {
+        alert('All questions must have text. Please fill in all question fields.');
+        setCurrentStep(3);
+        return;
+      }
+
+      // Validate questions have at least one response with text
+      for (const q of assessment.questions) {
+        const validResponses = q.responses.filter((r: any) => r.text && r.text.trim() !== '');
+        if (validResponses.length === 0) {
+          alert(`Question "${q.text}" must have at least one response option with text.`);
+          setCurrentStep(3);
+          return;
+        }
+      }
+
       // Transform questions to API format
       const questions: Question[] = assessment.questions.map((q, index) => {
         // Map question type from display format to API format
@@ -99,31 +117,41 @@ function AssessmentWizard() {
         else if (q.questionType === 'Scenario Based') questionType = 'scenario_based';
         else if (q.questionType === 'Short Text') questionType = 'short_text';
 
-        return {
-          question_text: q.text || 'Untitled Question',
-          question_type: questionType,
-          order_index: index,
-          responses: q.responses.map((r: any, rIndex: number): QuestionResponse => ({
-            response_text: r.text || '',
+        // Filter out empty responses and map to API format
+        const validResponses = q.responses
+          .filter((r: any) => r.text && r.text.trim() !== '')
+          .map((r: any, rIndex: number): QuestionResponse => ({
+            response_text: r.text.trim(),
             is_correct: r.isCorrect || undefined,
             order_index: rIndex,
-          })),
+          }));
+
+        return {
+          question_text: q.text.trim(),
+          question_type: questionType,
+          order_index: index,
+          responses: validResponses,
         };
       });
 
-      // Create assessment
-      const created = await assessmentAPI.create({
-        title: assessment.title,
-        category: assessment.category || undefined,
-        priority: assessment.priority || undefined,
-        description: assessment.description || undefined,
+      // Prepare assessment data
+      const assessmentData = {
+        title: assessment.title.trim(),
+        category: assessment.category?.trim() || undefined,
+        priority: assessment.priority?.trim() || undefined,
+        description: assessment.description?.trim() || undefined,
         target_audience: assessment.targetAudience as 'global' | 'departmental' | 'risk' | 'newhires',
         time_limit: assessment.timeLimit || undefined,
         randomize_questions: assessment.randomizeQuestions,
         allow_pause_resume: assessment.allowPauseResume,
         anonymous_responses: assessment.anonymousResponses,
         questions,
-      });
+      };
+
+      console.log('Creating assessment with data:', assessmentData);
+
+      // Create assessment
+      const created = await assessmentAPI.create(assessmentData);
 
       // Deploy the assessment (make it active)
       await assessmentAPI.deploy(created.id);
