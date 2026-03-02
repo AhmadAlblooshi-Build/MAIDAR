@@ -176,6 +176,13 @@ function CampaignWizardContent() {
   const [showAddSegment, setShowAddSegment] = useState(false);
   const [customSegments, setCustomSegments] = useState<any[]>([]);
 
+  // Edit Segment Modal
+  const [showEditSegment, setShowEditSegment] = useState(false);
+  const [editingSegment, setEditingSegment] = useState<any>(null);
+
+  // Hidden segments (for hiding built-in/department segments)
+  const [hiddenSegments, setHiddenSegments] = useState<string[]>([]);
+
   const steps = [
     { number: 1, title: 'Target Segment' },
     { number: 2, title: 'Scenario Theme' },
@@ -238,7 +245,9 @@ function CampaignWizardContent() {
     })),
   ];
 
-  const targetSegments = [...builtInSegments, ...customSegments];
+  const targetSegments = [...builtInSegments, ...customSegments].filter(
+    (segment) => !hiddenSegments.includes(segment.id)
+  );
 
   // Step 2: Foundation themes (from real scenarios)
   const foundationThemes = scenarios.slice(0, 4).map((scenario) => ({
@@ -440,16 +449,22 @@ function CampaignWizardContent() {
                         icon={segment.icon}
                         selected={selectedSegment === segment.id}
                         onClick={() => setSelectedSegment(segment.id)}
-                        onDelete={
-                          segment.type === 'custom'
-                            ? () => {
-                                setCustomSegments(customSegments.filter((s) => s.id !== segment.id));
-                                if (selectedSegment === segment.id) {
-                                  setSelectedSegment('');
-                                }
-                              }
-                            : undefined
-                        }
+                        onEdit={() => {
+                          setEditingSegment(segment);
+                          setShowEditSegment(true);
+                        }}
+                        onDelete={() => {
+                          if (segment.type === 'custom') {
+                            // Remove custom segment
+                            setCustomSegments(customSegments.filter((s) => s.id !== segment.id));
+                          } else {
+                            // Hide built-in/department segment
+                            setHiddenSegments([...hiddenSegments, segment.id]);
+                          }
+                          if (selectedSegment === segment.id) {
+                            setSelectedSegment('');
+                          }
+                        }}
                       />
                     ))}
                   </div>
@@ -530,6 +545,112 @@ function CampaignWizardContent() {
                             </Button>
                             <Button type="submit" variant="primary">
                               Add
+                            </Button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Edit Segment Modal */}
+                  {showEditSegment && editingSegment && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-slate-200">
+                          <h3 className="text-lg font-semibold text-slate-900">Edit Segment</h3>
+                          <button
+                            onClick={() => {
+                              setShowEditSegment(false);
+                              setEditingSegment(null);
+                            }}
+                            className="text-slate-400 hover:text-slate-600 transition-colors"
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.currentTarget);
+                            const title = formData.get('title') as string;
+                            const description = formData.get('description') as string;
+
+                            if (editingSegment.type === 'custom') {
+                              // Update custom segment
+                              setCustomSegments(
+                                customSegments.map((s) =>
+                                  s.id === editingSegment.id
+                                    ? { ...s, title, description }
+                                    : s
+                                )
+                              );
+                            } else {
+                              // For built-in/department segments, create a custom override
+                              const updatedSegment = {
+                                ...editingSegment,
+                                title,
+                                description,
+                              };
+                              // Update the segment in place (for this session only)
+                              if (editingSegment.type === 'built-in') {
+                                builtInSegments.find((s) => s.id === editingSegment.id)!.title = title;
+                                builtInSegments.find((s) => s.id === editingSegment.id)!.description = description;
+                              }
+                            }
+
+                            setShowEditSegment(false);
+                            setEditingSegment(null);
+                          }}
+                          className="p-6"
+                        >
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-2">
+                                Title
+                              </label>
+                              <input
+                                type="text"
+                                name="title"
+                                required
+                                defaultValue={editingSegment.title}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+                                placeholder="Enter Title"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-2">
+                                Description
+                              </label>
+                              <textarea
+                                name="description"
+                                required
+                                rows={3}
+                                defaultValue={editingSegment.description}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none resize-none"
+                                placeholder="Enter Description"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex justify-end gap-3 mt-6">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={() => {
+                                setShowEditSegment(false);
+                                setEditingSegment(null);
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button type="submit" variant="primary">
+                              Save
                             </Button>
                           </div>
                         </form>
