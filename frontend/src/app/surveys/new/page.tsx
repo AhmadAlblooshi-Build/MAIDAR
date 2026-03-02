@@ -11,6 +11,7 @@ import TenantAdminGuard from '@/components/guards/TenantAdminGuard';
 import TenantAdminLayout from '@/components/tenant-admin/TenantAdminLayout';
 import Button from '@/components/ui/Button';
 import assessmentAPI, { Question, QuestionResponse } from '@/lib/api/assessment';
+import { useToast, ToastContainer } from '@/components/ui/Toast';
 import {
   Check,
   ChevronRight,
@@ -36,6 +37,7 @@ export default function NewAssessmentPage() {
 
 function AssessmentWizard() {
   const router = useRouter();
+  const { toasts, success, error, warning, removeToast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [assessment, setAssessment] = useState({
@@ -80,13 +82,13 @@ function AssessmentWizard() {
 
       // Validate basic fields
       if (!assessment.title.trim()) {
-        alert('Please provide a title for the assessment');
+        warning('Missing Title', 'Please provide a title for the assessment');
         setCurrentStep(1);
         return;
       }
 
       if (assessment.questions.length === 0) {
-        alert('Please add at least one question to the assessment');
+        warning('No Questions', 'Please add at least one question to the assessment');
         setCurrentStep(3);
         return;
       }
@@ -94,7 +96,7 @@ function AssessmentWizard() {
       // Validate questions have text
       const emptyQuestions = assessment.questions.filter((q: any) => !q.text || q.text.trim() === '');
       if (emptyQuestions.length > 0) {
-        alert('All questions must have text. Please fill in all question fields.');
+        warning('Empty Questions', 'All questions must have text. Please fill in all question fields.');
         setCurrentStep(3);
         return;
       }
@@ -103,7 +105,7 @@ function AssessmentWizard() {
       for (const q of assessment.questions) {
         const validResponses = q.responses.filter((r: any) => r.text && r.text.trim() !== '');
         if (validResponses.length === 0) {
-          alert(`Question "${q.text}" must have at least one response option with text.`);
+          warning('Missing Responses', `Question "${q.text}" must have at least one response option with text.`);
           setCurrentStep(3);
           return;
         }
@@ -156,8 +158,16 @@ function AssessmentWizard() {
       // Deploy the assessment (make it active)
       await assessmentAPI.deploy(created.id);
 
-      alert('Assessment deployed successfully!');
-      router.push('/surveys');
+      success(
+        'Assessment Deployed Successfully!',
+        `"${assessment.title}" is now active and available to employees.`,
+        6000
+      );
+
+      // Redirect after showing success message
+      setTimeout(() => {
+        router.push('/surveys');
+      }, 2000);
     } catch (error: any) {
       console.error('Failed to deploy assessment:', error);
       console.error('Error details:', error.response?.data);
@@ -174,16 +184,18 @@ function AssessmentWizard() {
         errorMessage = error.message;
       }
 
-      alert(`Failed to deploy assessment: ${errorMessage}`);
+      error('Deployment Failed', errorMessage, 8000);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 -m-8 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-4 gap-8">
+    <>
+      <ToastContainer toasts={toasts} onClose={removeToast} />
+      <div className="min-h-screen bg-slate-50 -m-8 p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-4 gap-8">
           {/* Left Sidebar - Steps */}
           <div className="col-span-1 space-y-3">
             {steps.map((step) => (
@@ -629,7 +641,9 @@ function Step4Settings({ assessment, setAssessment }: any) {
             </p>
           </div>
         </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
