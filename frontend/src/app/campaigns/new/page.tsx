@@ -355,7 +355,18 @@ function CampaignWizardContent() {
       setCurrentStep(5);
     } catch (err: any) {
       console.error('Failed to launch campaign:', err);
-      alert('Failed to launch campaign: ' + (err.detail || err.message));
+
+      // Extract error message
+      let errorMessage = 'Unknown error';
+      if (err.detail) {
+        errorMessage = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
+      } else if (err.message) {
+        errorMessage = err.message;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      }
+
+      alert('Failed to launch campaign: ' + errorMessage);
     } finally {
       setLoading(false);
     }
