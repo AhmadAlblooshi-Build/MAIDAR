@@ -76,7 +76,8 @@
       "Bash(ren:*)",
       "Bash(awk:*)",
       "Bash(npx vercel --prod)",
-      "Bash(tr:*)"
+      "Bash(tr:*)",
+      "Bash(timeout 30 bash -c 'while true; do hash=$\\(curl -s https://maidar.vercel.app/surveys/new | grep -o \"\"surveys/new/page-[a-f0-9]*.js\"\" | head -1\\); if [ \"\"$hash\"\" != \"\"surveys/new/page-4fc8cadb86fa07ce.js\"\" ]; then echo \"\"New deployment detected: $hash\"\"; exit 0; fi; echo \"\"Still old deployment, waiting...\"\"; sleep 5; done')"
     ]
   }
 }

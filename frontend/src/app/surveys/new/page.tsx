@@ -5,7 +5,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import TenantAdminGuard from '@/components/guards/TenantAdminGuard';
 import TenantAdminLayout from '@/components/tenant-admin/TenantAdminLayout';
@@ -38,6 +38,7 @@ function AssessmentWizard() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [totalEmployees, setTotalEmployees] = useState(0);
   const [assessment, setAssessment] = useState({
     // Step 1 - Identity
     title: '',
@@ -62,6 +63,21 @@ function AssessmentWizard() {
     { num: 3, label: 'Questions', completed: currentStep > 3 },
     { num: 4, label: 'Settings', completed: currentStep > 4 },
   ];
+
+  // Load employee count for audience step
+  useEffect(() => {
+    loadEmployeeCount();
+  }, []);
+
+  const loadEmployeeCount = async () => {
+    try {
+      const { employeeAPI } = await import('@/lib/api');
+      const response = await employeeAPI.search({ page: 1, page_size: 1 });
+      setTotalEmployees(response.total || 0);
+    } catch (error) {
+      console.error('Failed to load employee count:', error);
+    }
+  };
 
   const handleNext = () => {
     if (currentStep < 4) {
@@ -92,6 +108,13 @@ function AssessmentWizard() {
         return;
       }
 
+      // Validate departmental filter has departments selected
+      if (assessment.targetAudience === 'departmental' && assessment.selectedDepartments.length === 0) {
+        alert('Please select at least one department for departmental filter');
+        setCurrentStep(2);
+        return;
+      }
+
       // Transform questions to API format
       const questions: Question[] = assessment.questions.map((q, index) => {
         let questionType: 'multiple_choice' | 'true_false' | 'scenario_based' | 'short_text' = 'multiple_choice';
@@ -114,13 +137,6 @@ function AssessmentWizard() {
           responses: validResponses,
         };
       });
-
-      // Validate departmental filter has departments selected
-      if (assessment.targetAudience === 'departmental' && assessment.selectedDepartments.length === 0) {
-        alert('Please select at least one department for departmental filter');
-        setCurrentStep(2);
-        return;
-      }
 
       // Create assessment
       const created = await assessmentAPI.create({
@@ -156,7 +172,7 @@ function AssessmentWizard() {
     const newQuestion = {
       id: Date.now().toString(),
       text: '',
-      responses: [{ id: '1', text: '' }],
+      responses: [{ id: '1', text: '', isCorrect: false }],
       questionType: 'Multiple Choice',
     };
     setAssessment({
@@ -186,7 +202,7 @@ function AssessmentWizard() {
       ...assessment,
       questions: assessment.questions.map((q: any) =>
         q.id === qId
-          ? { ...q, responses: [...q.responses, { id: Date.now().toString(), text: '' }] }
+          ? { ...q, responses: [...q.responses, { id: Date.now().toString(), text: '', isCorrect: false }] }
           : q
       ),
     });
@@ -251,7 +267,12 @@ function AssessmentWizard() {
                     <span className="font-bold">{step.num}</span>
                   )}
                 </div>
-                <span className="font-semibold text-slate-900">{step.label}</span>
+                <div>
+                  <div className="text-xs text-slate-500">Step {step.num}</div>
+                  <div className={`font-semibold ${currentStep === step.num ? 'text-slate-900' : 'text-slate-600'}`}>
+                    {step.label}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -260,7 +281,7 @@ function AssessmentWizard() {
           <div className="col-span-3">
             {/* Steps Content */}
             {currentStep === 1 && <Step1Identity assessment={assessment} setAssessment={setAssessment} />}
-            {currentStep === 2 && <Step2Audience assessment={assessment} setAssessment={setAssessment} />}
+            {currentStep === 2 && <Step2Audience assessment={assessment} setAssessment={setAssessment} totalEmployees={totalEmployees} />}
             {currentStep === 3 && (
               <Step3Questions
                 assessment={assessment}
@@ -273,7 +294,7 @@ function AssessmentWizard() {
                 deleteResponse={deleteResponse}
               />
             )}
-            {currentStep === 4 && <Step4Settings assessment={assessment} setAssessment={setAssessment} />}
+            {currentStep === 4 && <Step4Settings assessment={assessment} setAssessment={setAssessment} totalEmployees={totalEmployees} />}
 
             {/* Navigation Footer */}
             <div className="flex items-center justify-between mt-12 pt-6 border-t border-slate-200">
@@ -289,7 +310,7 @@ function AssessmentWizard() {
                 <Button
                   variant="primary"
                   onClick={handleNext}
-                  className="bg-gradient-to-r from-teal-500 to-cyan-500"
+                  className="bg-teal-500 hover:bg-teal-600"
                 >
                   Next <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
@@ -298,7 +319,7 @@ function AssessmentWizard() {
                   variant="primary"
                   onClick={handleDeploy}
                   disabled={loading}
-                  className="bg-gradient-to-r from-teal-500 to-cyan-500"
+                  className="bg-teal-500 hover:bg-teal-600"
                 >
                   {loading ? 'Deploying...' : 'Deploy Assessment'} <Send className="w-4 h-4 ml-1" />
                 </Button>
@@ -324,58 +345,65 @@ function Step1Identity({ assessment, setAssessment }: any) {
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Assessment Title *
+          <label className="block text-sm font-medium text-slate-900 mb-2">
+            Assessment Title
           </label>
           <input
             type="text"
             value={assessment.title}
             onChange={(e) => setAssessment({ ...assessment, title: e.target.value })}
-            placeholder="Enter assessment title"
-            className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            placeholder="Enter Assessment Title"
+            className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-600 placeholder:text-slate-400"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Category</label>
+            <label className="block text-sm font-medium text-slate-900 mb-2">Category</label>
             <input
               type="text"
               value={assessment.category}
               onChange={(e) => setAssessment({ ...assessment, category: e.target.value })}
-              placeholder="e.g., Security"
-              className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              placeholder="Enter Category"
+              className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-600 placeholder:text-slate-400"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Priority</label>
+            <label className="block text-sm font-medium text-slate-900 mb-2">Priority</label>
             <input
               type="text"
               value={assessment.priority}
               onChange={(e) => setAssessment({ ...assessment, priority: e.target.value })}
-              placeholder="e.g., High"
-              className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              placeholder="Enter Priority"
+              className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-600 placeholder:text-slate-400"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
+          <label className="block text-sm font-medium text-slate-900 mb-2">Internal Description</label>
           <textarea
             value={assessment.description}
             onChange={(e) => setAssessment({ ...assessment, description: e.target.value })}
-            placeholder="Describe the assessment purpose"
-            rows={4}
-            className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            placeholder="What intelligence are we trying to gather?"
+            rows={5}
+            className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-600 placeholder:text-slate-400"
           />
         </div>
+      </div>
+
+      {/* Warning Box */}
+      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+        <p className="text-sm text-orange-700">
+          <span className="font-semibold">Caution:</span> Assessments are permanent record points in the Human Risk Profile. Review all questions for clarity and compliance before final deployment.
+        </p>
       </div>
     </div>
   );
 }
 
 // Step 2: Audience
-function Step2Audience({ assessment, setAssessment }: any) {
+function Step2Audience({ assessment, setAssessment, totalEmployees }: any) {
   const [departments, setDepartments] = React.useState<string[]>([]);
   const [loadingDepartments, setLoadingDepartments] = React.useState(false);
 
@@ -418,36 +446,68 @@ function Step2Audience({ assessment, setAssessment }: any) {
   };
 
   const audiences = [
-    { id: 'global', label: 'Global Deployment', description: 'All active employees' },
-    { id: 'risk', label: 'Risk Threshold', description: 'High-risk employees (score > 68)' },
-    { id: 'newhires', label: 'New Hires', description: 'Hired within last 90 days' },
-    { id: 'departmental', label: 'Departmental Filter', description: 'Select specific departments' },
+    {
+      id: 'global',
+      label: 'Global Deployment',
+      description: `Every employee in the organization (${totalEmployees.toLocaleString()})`,
+      icon: Target,
+    },
+    {
+      id: 'departmental',
+      label: 'Departmental Filter',
+      description: 'Select specific teams (Engineering, Finance)',
+      icon: Target,
+    },
+    {
+      id: 'risk',
+      label: 'Risk Threshold',
+      description: 'Target only users with risk score > 68',
+      icon: Target,
+    },
+    {
+      id: 'newhires',
+      label: 'New Hires',
+      description: 'Employees joined in the last 30 days',
+      icon: Target,
+    },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold text-slate-900">Target Audience</h2>
+        <h2 className="text-3xl font-bold text-slate-900">Define Target Audience</h2>
         <p className="text-slate-600 mt-2">
-          Define the workforce segment for this assessment.
+          Who should participate in this assessment?
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {audiences.map((aud) => (
-          <div
-            key={aud.id}
-            onClick={() => setAssessment({ ...assessment, targetAudience: aud.id })}
-            className={`p-6 rounded-xl border-2 cursor-pointer transition-all ${
-              assessment.targetAudience === aud.id
-                ? 'border-teal-500 bg-teal-50'
-                : 'border-slate-200 hover:border-teal-300'
-            }`}
-          >
-            <div className="font-semibold text-lg text-slate-900 mb-1">{aud.label}</div>
-            <div className="text-sm text-slate-600">{aud.description}</div>
-          </div>
-        ))}
+        {audiences.map((aud) => {
+          const Icon = aud.icon;
+          return (
+            <div
+              key={aud.id}
+              onClick={() => setAssessment({ ...assessment, targetAudience: aud.id })}
+              className={`p-6 rounded-xl border-2 cursor-pointer transition-all ${
+                assessment.targetAudience === aud.id
+                  ? 'border-teal-500 bg-teal-50'
+                  : 'border-slate-200 hover:border-teal-300 bg-white'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                  assessment.targetAudience === aud.id ? 'bg-teal-500' : 'bg-teal-100'
+                }`}>
+                  <Icon className={`w-5 h-5 ${assessment.targetAudience === aud.id ? 'text-white' : 'text-teal-600'}`} />
+                </div>
+                <div>
+                  <div className="font-semibold text-lg text-slate-900 mb-1">{aud.label}</div>
+                  <div className="text-sm text-slate-600">{aud.description}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Department Selection (shown when Departmental Filter is selected) */}
@@ -477,7 +537,7 @@ function Step2Audience({ assessment, setAssessment }: any) {
                     className={`px-4 py-3 rounded-lg border-2 text-left transition-all ${
                       isSelected
                         ? 'border-teal-500 bg-teal-50 text-teal-900 font-medium'
-                        : 'border-slate-200 hover:border-teal-300 text-slate-700'
+                        : 'border-slate-200 hover:border-teal-300 text-slate-700 bg-white'
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -507,16 +567,16 @@ function Step3Questions({ assessment, addQuestion, updateQuestion, deleteQuestio
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900">Questions</h2>
-          <p className="text-slate-600 mt-2">Build your assessment questions</p>
+          <h2 className="text-3xl font-bold text-slate-900">Question Architect</h2>
+          <p className="text-slate-600 mt-2">Add and customize questions for your assessment.</p>
         </div>
-        <Button onClick={addQuestion} variant="primary">
-          <Plus className="w-4 h-4 mr-2" /> Add Question
+        <Button onClick={addQuestion} className="bg-teal-500 hover:bg-teal-600 text-white">
+          Add Question
         </Button>
       </div>
 
       {assessment.questions.length === 0 ? (
-        <div className="text-center py-12 text-slate-500">
+        <div className="text-center py-12 text-slate-500 bg-white rounded-xl border border-slate-200">
           <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <p>No questions added yet. Click "Add Question" to get started.</p>
         </div>
@@ -525,50 +585,84 @@ function Step3Questions({ assessment, addQuestion, updateQuestion, deleteQuestio
           {assessment.questions.map((q: any, index: number) => (
             <div key={q.id} className="bg-white rounded-xl border border-slate-200 p-6">
               <div className="flex items-start gap-4">
-                <div className="w-8 h-8 rounded-lg bg-teal-500 text-white flex items-center justify-center font-bold flex-shrink-0">
-                  {index + 1}
+                {/* Drag Handle */}
+                <div className="pt-2">
+                  <GripVertical className="w-5 h-5 text-slate-400" />
                 </div>
+
                 <div className="flex-1 space-y-4">
+                  {/* Index Badge and Delete */}
+                  <div className="flex items-center justify-between">
+                    <span className="px-3 py-1 bg-teal-500 text-white text-xs font-semibold rounded">
+                      Index {index + 1}
+                    </span>
+                    <button
+                      onClick={() => deleteQuestion(q.id)}
+                      className="text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Question Input */}
                   <input
                     type="text"
                     value={q.text}
                     onChange={(e) => updateQuestion(q.id, 'text', e.target.value)}
-                    placeholder="Enter question text"
-                    className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    placeholder="Type your question prompt here..."
+                    className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-600 placeholder:text-slate-400"
                   />
 
-                  <div className="space-y-2">
-                    {q.responses.map((r: any) => (
-                      <div key={r.id} className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={r.text}
-                          onChange={(e) => updateResponse(q.id, r.id, e.target.value)}
-                          placeholder="Response option"
-                          className="flex-1 px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                        />
-                        <button
-                          onClick={() => deleteResponse(q.id, r.id)}
-                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
+                  {/* Response Nodes */}
+                  <div>
+                    <div className="text-sm font-medium text-slate-900 mb-2">Response Nodes</div>
+                    <div className="space-y-2">
+                      {q.responses.map((r: any, rIndex: number) => (
+                        <div key={r.id} className="flex items-center gap-2">
+                          <span className="px-3 py-2 bg-teal-500 text-white text-xs font-semibold rounded">
+                            Node {rIndex + 1}
+                          </span>
+                          <input
+                            type="text"
+                            value={r.text}
+                            onChange={(e) => updateResponse(q.id, r.id, e.target.value)}
+                            placeholder={`Option ${rIndex + 1}`}
+                            className="flex-1 px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-600 placeholder:text-slate-400"
+                          />
+                          {q.responses.length > 1 && (
+                            <button
+                              onClick={() => deleteResponse(q.id, r.id)}
+                              className="text-slate-400 hover:text-red-500"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Question Type and Add Response */}
+                  <div className="flex items-center justify-between">
+                    <select
+                      value={q.questionType}
+                      onChange={(e) => updateQuestion(q.id, 'questionType', e.target.value)}
+                      className="px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-600"
+                    >
+                      <option>Multiple Choice</option>
+                      <option>True/False</option>
+                      <option>Scenario Based</option>
+                      <option>Short Text</option>
+                    </select>
+
                     <button
                       onClick={() => addResponse(q.id)}
-                      className="text-sm text-teal-600 hover:text-teal-700 flex items-center gap-1"
+                      className="text-teal-500 hover:text-teal-600 font-medium text-sm flex items-center gap-1"
                     >
-                      <Plus className="w-4 h-4" /> Add Response
+                      <Plus className="w-4 h-4" /> RESPONSE NODE
                     </button>
                   </div>
                 </div>
-                <button
-                  onClick={() => deleteQuestion(q.id)}
-                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
               </div>
             </div>
           ))}
@@ -579,62 +673,75 @@ function Step3Questions({ assessment, addQuestion, updateQuestion, deleteQuestio
 }
 
 // Step 4: Settings
-function Step4Settings({ assessment, setAssessment }: any) {
+function Step4Settings({ assessment, setAssessment, totalEmployees }: any) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold text-slate-900">Assessment Settings</h2>
-        <p className="text-slate-600 mt-2">Configure assessment parameters</p>
+        <h2 className="text-3xl font-bold text-slate-900">Deployment Strategy</h2>
+        <p className="text-slate-600 mt-2">
+          Fine-tune how this assessment is delivered and monitored across the platform.
+        </p>
       </div>
 
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Time Limit (minutes)
-          </label>
-          <input
-            type="number"
-            value={assessment.timeLimit}
-            onChange={(e) => setAssessment({ ...assessment, timeLimit: parseInt(e.target.value) })}
-            min={1}
-            max={240}
-            className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
-          />
-        </div>
+      <div className="grid grid-cols-2 gap-6">
+        {/* Left Side - Settings */}
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-900 mb-2">
+              Global Time Limit (Minutes)
+            </label>
+            <input
+              type="number"
+              value={assessment.timeLimit}
+              onChange={(e) => setAssessment({ ...assessment, timeLimit: parseInt(e.target.value) || 0 })}
+              className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-600"
+            />
+          </div>
 
-        <div className="space-y-3">
-          <label className="flex items-center gap-3">
+          <label className="flex items-center gap-3 p-4 rounded-lg border border-slate-200 cursor-pointer hover:border-teal-300 transition-colors">
             <input
               type="checkbox"
               checked={assessment.randomizeQuestions}
               onChange={(e) => setAssessment({ ...assessment, randomizeQuestions: e.target.checked })}
-              className="w-5 h-5 text-teal-600"
+              className="w-5 h-5 text-teal-500 rounded focus:ring-teal-500"
             />
             <span className="text-sm font-medium text-slate-700">Randomize question order</span>
           </label>
 
-          <label className="flex items-center gap-3">
+          <label className="flex items-center gap-3 p-4 rounded-lg border border-slate-200 cursor-pointer hover:border-teal-300 transition-colors">
             <input
               type="checkbox"
               checked={assessment.allowPauseResume}
               onChange={(e) => setAssessment({ ...assessment, allowPauseResume: e.target.checked })}
-              className="w-5 h-5 text-teal-600"
+              className="w-5 h-5 text-teal-500 rounded focus:ring-teal-500"
             />
-            <span className="text-sm font-medium text-slate-700">Allow pause and resume</span>
+            <span className="text-sm font-medium text-slate-700">Allow users to pause & resume</span>
           </label>
 
-          <label className="flex items-center gap-3">
+          <label className="flex items-center gap-3 p-4 rounded-lg border border-slate-200 cursor-pointer hover:border-teal-300 transition-colors">
             <input
               type="checkbox"
               checked={assessment.anonymousResponses}
               onChange={(e) => setAssessment({ ...assessment, anonymousResponses: e.target.checked })}
-              className="w-5 h-5 text-teal-600"
+              className="w-5 h-5 text-teal-500 rounded focus:ring-teal-500"
             />
-            <span className="text-sm font-medium text-slate-700">Anonymous responses</span>
+            <span className="text-sm font-medium text-slate-700">Anonymous responses only</span>
           </label>
+        </div>
+
+        {/* Right Side - Mission Ready Card */}
+        <div className="bg-slate-50 rounded-xl border border-slate-200 p-8 flex flex-col items-center justify-center text-center">
+          <div className="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center mb-6">
+            <Send className="w-10 h-10 text-teal-500" />
+          </div>
+          <h3 className="text-2xl font-bold text-slate-900 mb-4">Mission Ready</h3>
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Deployment targets {totalEmployees.toLocaleString()} workforce profiles.
+            <br />
+            Live intelligence streaming will initialize upon transmission.
+          </p>
         </div>
       </div>
     </div>
   );
 }
-// Trigger deployment Tue, Mar  3, 2026  1:18:19 AM

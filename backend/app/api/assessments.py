@@ -285,10 +285,11 @@ def deploy_assessment(
             detail="Assessment must have at least one question to deploy",
         )
 
-    # Query employees based on target audience
+    # Query employees based on target audience (exclude soft-deleted)
     employee_query = db.query(Employee).filter(
         Employee.tenant_id == current_user.tenant_id,
         Employee.is_active == True,
+        Employee.deleted_at.is_(None),  # Exclude soft-deleted employees
     )
 
     if assessment.target_audience == TargetAudience.GLOBAL.value:
