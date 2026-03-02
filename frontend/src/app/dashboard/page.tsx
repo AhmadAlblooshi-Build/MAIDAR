@@ -79,13 +79,15 @@ function DashboardContent() {
 
       // Calculate department risk breakdown
       const employees = allEmployees.employees || [];
+      console.log('Total employees loaded:', employees.length);
+
       const deptMap = new Map<string, { count: number; totalRisk: number }>();
 
       employees.forEach((emp: any) => {
-        if (!emp.department || emp.risk_score === null) return;
+        if (!emp.department) return;
         const dept = deptMap.get(emp.department) || { count: 0, totalRisk: 0 };
         dept.count++;
-        dept.totalRisk += emp.risk_score;
+        dept.totalRisk += (emp.risk_score || 0);
         deptMap.set(emp.department, dept);
       });
 
@@ -97,11 +99,15 @@ function DashboardContent() {
         }))
         .sort((a, b) => b.avgRisk - a.avgRisk);
 
+      console.log('Department breakdown:', departmentBreakdown);
+
       // Get top 10 highest risk employees
       const highRiskEmployees = employees
-        .filter((emp: any) => emp.risk_score !== null)
+        .filter((emp: any) => emp.risk_score !== null && emp.risk_score !== undefined)
         .sort((a: any, b: any) => (b.risk_score || 0) - (a.risk_score || 0))
         .slice(0, 10);
+
+      console.log('High risk employees:', highRiskEmployees.length);
 
       setDashboardData({
         riskDistribution,
@@ -346,7 +352,9 @@ function DashboardContent() {
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <div className="text-3xl font-bold text-slate-900">
-                  {(riskDistribution.total_employees / 1000).toFixed(1)}k
+                  {riskDistribution.total_employees >= 1000
+                    ? (riskDistribution.total_employees / 1000).toFixed(1) + 'k'
+                    : riskDistribution.total_employees}
                 </div>
                 <div className="text-xs text-slate-500">Total Hired</div>
               </div>
@@ -389,20 +397,27 @@ function DashboardContent() {
             />
           </div>
           <div className="space-y-4">
-            {filteredDepartments.map((dept: any, idx: number) => (
-              <div key={idx}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-slate-700">{dept.department}</span>
-                  <span className="text-sm font-bold text-slate-900">{dept.percentage.toFixed(0)}%</span>
+            {filteredDepartments.length > 0 ? (
+              filteredDepartments.map((dept: any, idx: number) => (
+                <div key={idx}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-slate-700">{dept.department}</span>
+                    <span className="text-sm font-bold text-slate-900">{dept.percentage.toFixed(0)}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full transition-all duration-500"
+                      style={{ width: `${dept.percentage}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full transition-all duration-500"
-                    style={{ width: `${dept.percentage}%` }}
-                  />
-                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-slate-500">
+                <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <p>No department data available</p>
               </div>
-            ))}
+            )}
           </div>
         </Card>
 
@@ -466,48 +481,57 @@ function DashboardContent() {
               </tr>
             </thead>
             <tbody>
-              {highRiskEmployees.map((emp: any, idx: number) => {
-                const tier = getRiskTier(emp.risk_score);
-                return (
-                  <tr key={emp.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                    <td className="py-4 px-4">
-                      <button
-                        onClick={() => router.push(`/employees/${emp.id}`)}
-                        className="text-teal-600 hover:text-teal-700 font-medium"
-                      >
-                        {emp.full_name}
-                      </button>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="text-sm text-slate-700">{emp.department}</span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="text-sm font-bold text-slate-900">{(emp.risk_score * 10).toFixed(0)}</span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <Badge variant={tier.variant}>{tier.label}</Badge>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex flex-wrap gap-1">
-                        {emp.seniority === 'junior' && (
-                          <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700">Low Seniority</span>
-                        )}
-                        {emp.technical_literacy < 5 && (
-                          <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-700">Low Tech Literacy</span>
-                        )}
-                        {emp.risk_score >= 7 && (
-                          <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-700">High Risk Profile</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <button className="text-slate-400 hover:text-slate-600">
-                        <MoreHorizontal className="w-5 h-5" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+              {highRiskEmployees.length > 0 ? (
+                highRiskEmployees.map((emp: any, idx: number) => {
+                  const tier = getRiskTier(emp.risk_score);
+                  return (
+                    <tr key={emp.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className="py-4 px-4">
+                        <button
+                          onClick={() => router.push(`/employees/${emp.id}`)}
+                          className="text-teal-600 hover:text-teal-700 font-medium"
+                        >
+                          {emp.full_name}
+                        </button>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="text-sm text-slate-700">{emp.department}</span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="text-sm font-bold text-slate-900">{(emp.risk_score * 10).toFixed(0)}</span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <Badge variant={tier.variant}>{tier.label}</Badge>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex flex-wrap gap-1">
+                          {emp.seniority === 'junior' && (
+                            <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700">Low Seniority</span>
+                          )}
+                          {emp.technical_literacy < 5 && (
+                            <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-700">Low Tech Literacy</span>
+                          )}
+                          {emp.risk_score >= 7 && (
+                            <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-700">High Risk Profile</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <button className="text-slate-400 hover:text-slate-600">
+                          <MoreHorizontal className="w-5 h-5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-slate-500">
+                    <AlertTriangle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                    <p>No high-risk employees found</p>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
