@@ -312,10 +312,25 @@ def deploy_assessment(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Departmental filter requires at least one department to be selected",
             )
-        employee_query = employee_query.filter(Employee.department.in_(assessment.target_departments))
+
+        # Convert JSONB to list if needed
+        dept_list = assessment.target_departments
+        if not isinstance(dept_list, list):
+            dept_list = list(dept_list) if dept_list else []
+
+        print(f"Filtering by departments: {dept_list}")
+        employee_query = employee_query.filter(Employee.department.in_(dept_list))
 
     # Get all targeted employees
-    targeted_employees = employee_query.all()
+    try:
+        targeted_employees = employee_query.all()
+        print(f"Found {len(targeted_employees)} targeted employees")
+    except Exception as e:
+        print(f"Error querying employees: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to query employees: {str(e)}",
+        )
 
     if len(targeted_employees) == 0:
         raise HTTPException(
@@ -347,8 +362,16 @@ def deploy_assessment(
     assessment.deployed_at = datetime.utcnow()
     assessment.updated_at = datetime.utcnow()
 
-    db.commit()
-    db.refresh(assessment)
+    try:
+        db.commit()
+        db.refresh(assessment)
+    except Exception as e:
+        db.rollback()
+        print(f"Error committing deployment: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to deploy assessment: {str(e)}",
+        )
 
     # Log deployment info
     print(f"Assessment {assessment.id} deployed to {created_count} employees (audience: {assessment.target_audience})")
