@@ -14,7 +14,7 @@ import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Select from '@/components/ui/Select';
-import { TrendingUp, Users, Target, AlertTriangle, Brain, MoreHorizontal, Eye, ClipboardList, Trash2 } from 'lucide-react';
+import { TrendingUp, Users, Target, AlertTriangle, Brain, MoreHorizontal, Eye, ClipboardList, Trash2, Edit } from 'lucide-react';
 
 export default function DashboardPage() {
   return (
@@ -156,6 +156,11 @@ function DashboardContent() {
   const handleViewDetails = (employeeId: string) => {
     setOpenActionsMenu(null);
     router.push(`/employees/${employeeId}`);
+  };
+
+  const handleEditEmployee = (employeeId: string) => {
+    setOpenActionsMenu(null);
+    router.push(`/employees/${employeeId}/edit`);
   };
 
   const handleAssignAssessment = (employeeId: string) => {
@@ -613,6 +618,13 @@ function DashboardContent() {
                               >
                                 <Eye className="w-4 h-4" />
                                 <span>View Details</span>
+                              </button>
+                              <button
+                                onClick={() => handleEditEmployee(emp.id)}
+                                className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                              >
+                                <Edit className="w-4 h-4" />
+                                <span>Edit</span>
                               </button>
                               <button
                                 onClick={() => handleAssignAssessment(emp.id)}
