@@ -162,7 +162,7 @@ export default function TenantAdminLayout({ children }: TenantAdminLayoutProps) 
                         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Settings</p>
                       </div>
                       <Link
-                        href="/settings?tab=profile"
+                        href="/settings/profile"
                         onClick={() => setIsDropdownOpen(false)}
                         className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                       >
@@ -170,7 +170,7 @@ export default function TenantAdminLayout({ children }: TenantAdminLayoutProps) 
                         <span>Profile Settings</span>
                       </Link>
                       <Link
-                        href="/settings?tab=security"
+                        href="/settings/security"
                         onClick={() => setIsDropdownOpen(false)}
                         className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                       >
@@ -178,7 +178,7 @@ export default function TenantAdminLayout({ children }: TenantAdminLayoutProps) 
                         <span>Security & Password</span>
                       </Link>
                       <Link
-                        href="/settings?tab=notifications"
+                        href="/settings/notifications"
                         onClick={() => setIsDropdownOpen(false)}
                         className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                       >
@@ -186,7 +186,7 @@ export default function TenantAdminLayout({ children }: TenantAdminLayoutProps) 
                         <span>Notifications</span>
                       </Link>
                       <Link
-                        href="/settings?tab=organization"
+                        href="/settings/organization"
                         onClick={() => setIsDropdownOpen(false)}
                         className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                       >
