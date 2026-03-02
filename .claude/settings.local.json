@@ -73,7 +73,8 @@
       "Bash(vercel:*)",
       "Bash(git reset:*)",
       "Bash(del page.tsx)",
-      "Bash(ren:*)"
+      "Bash(ren:*)",
+      "Bash(awk:*)"
     ]
   }
 }

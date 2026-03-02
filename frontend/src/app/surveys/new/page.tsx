@@ -168,20 +168,20 @@ function AssessmentWizard() {
       setTimeout(() => {
         router.push('/surveys');
       }, 2000);
-    } catch (error: any) {
-      console.error('Failed to deploy assessment:', error);
-      console.error('Error details:', error.response?.data);
+    } catch (err: any) {
+      console.error('Failed to deploy assessment:', err);
+      console.error('Error details:', err.response?.data);
 
       let errorMessage = 'Unknown error occurred';
-      if (error.response?.data?.detail) {
+      if (err.response?.data?.detail) {
         // Handle both string and array of errors
-        if (Array.isArray(error.response.data.detail)) {
-          errorMessage = error.response.data.detail.map((e: any) => e.msg || JSON.stringify(e)).join(', ');
+        if (Array.isArray(err.response.data.detail)) {
+          errorMessage = err.response.data.detail.map((e: any) => e.msg || JSON.stringify(e)).join(', ');
         } else {
-          errorMessage = error.response.data.detail;
+          errorMessage = err.response.data.detail;
         }
-      } else if (error.message) {
-        errorMessage = error.message;
+      } else if (err.message) {
+        errorMessage = err.message;
       }
 
       error('Deployment Failed', errorMessage, 8000);
@@ -191,13 +191,13 @@ function AssessmentWizard() {
   };
 
   return (
-    <>
+    <div>
       <ToastContainer toasts={toasts} onClose={removeToast} />
       <div className="min-h-screen bg-slate-50 -m-8 p-8">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-4 gap-8">
-          {/* Left Sidebar - Steps */}
-          <div className="col-span-1 space-y-3">
+            {/* Left Sidebar - Steps */}
+            <div className="col-span-1 space-y-3">
             {steps.map((step) => (
               <div
                 key={step.num}
@@ -644,6 +644,6 @@ function Step4Settings({ assessment, setAssessment }: any) {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

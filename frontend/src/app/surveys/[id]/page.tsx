@@ -11,7 +11,7 @@ import TenantAdminGuard from '@/components/guards/TenantAdminGuard';
 import TenantAdminLayout from '@/components/tenant-admin/TenantAdminLayout';
 import Spinner from '@/components/ui/Spinner';
 import assessmentAPI from '@/lib/api/assessment';
-import employeeAPI from '@/lib/api/employee';
+import { employeeAPI } from '@/lib/api';
 import { ArrowLeft, FileText, AlertCircle, Download } from 'lucide-react';
 
 export default function AssessmentDetailPage() {
