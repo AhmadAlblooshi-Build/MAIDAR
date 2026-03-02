@@ -13,6 +13,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import TenantAdminGuard from '@/components/guards/TenantAdminGuard';
 import TenantAdminLayout from '@/components/tenant-admin/TenantAdminLayout';
 import { useAuthStore } from '@/store/authStore';
+import { getApiUrl } from '@/lib/apiUrl';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import {
@@ -88,8 +89,7 @@ function CampaignWizardContent() {
 
   const loadWizardData = async () => {
     try {
-      // Hardcode HTTPS Railway URL to avoid mixed content issues
-      const apiUrl = 'https://maidar-production-3ee1.up.railway.app';
+      const apiUrl = getApiUrl();
 
       // Load employees, scenarios in parallel
       const [employeesRes, scenariosRes] = await Promise.all([
@@ -140,8 +140,7 @@ function CampaignWizardContent() {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      // Hardcode HTTPS Railway URL to avoid mixed content issues
-      const apiUrl = 'https://maidar-production-3ee1.up.railway.app';
+      const apiUrl = getApiUrl();
 
       // Build target employees list
       let targetEmployees = [...campaignData.targetEmployees];
