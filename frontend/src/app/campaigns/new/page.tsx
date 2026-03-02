@@ -157,6 +157,7 @@ function CampaignWizardContent() {
   const [employees, setEmployees] = useState<any[]>([]);
   const [scenarios, setScenarios] = useState<any[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
+  const [seniorities, setSeniorities] = useState<string[]>([]);
 
   // Wizard state
   const [selectedSegment, setSelectedSegment] = useState<string>('');
@@ -170,6 +171,10 @@ function CampaignWizardContent() {
   const [variants, setVariants] = useState<any[]>([]);
   const [selectedVariant, setSelectedVariant] = useState(0);
   const [generatedScenario, setGeneratedScenario] = useState<any>(null);
+
+  // Add Segment Modal
+  const [showAddSegment, setShowAddSegment] = useState(false);
+  const [customSegments, setCustomSegments] = useState<any[]>([]);
 
   const steps = [
     { number: 1, title: 'Target Segment' },
@@ -196,34 +201,54 @@ function CampaignWizardContent() {
       // Extract unique departments
       const depts = [...new Set(employeesData.employees?.map((e: any) => e.department).filter(Boolean))] as string[];
       setDepartments(depts);
+
+      // Extract unique seniority levels
+      const seniorityLevels = [...new Set(employeesData.employees?.map((e: any) => e.seniority).filter(Boolean))] as string[];
+      setSeniorities(seniorityLevels);
     } catch (err) {
       console.error('Failed to load data:', err);
     }
   };
 
   // Step 1: Target segments (dynamic based on real data)
-  const targetSegments = [
+  const builtInSegments = [
     {
       id: 'all',
       title: 'All Employees',
       description: `Broadcast to entire workforce (${employees.length} employees)`,
       icon: <Users className="w-6 h-6 text-teal-600" />,
+      type: 'built-in',
     },
     {
       id: 'high_risk',
       title: 'Critical Risk Group',
       description: `Targeting Human Risk Score > 80 (${employees.filter(e => e.risk_score > 80).length} employees)`,
       icon: <Users className="w-6 h-6 text-red-600" />,
+      type: 'built-in',
     },
-    ...departments.slice(0, 2).map((dept) => ({
+    // All departments
+    ...departments.map((dept) => ({
       id: `dept_${dept}`,
       title: `${dept} Department`,
       description: `Specialized ${dept.toLowerCase()} phishing vectors (${
         employees.filter((e) => e.department === dept).length
       } employees)`,
       icon: <Users className="w-6 h-6 text-blue-600" />,
+      type: 'department',
+    })),
+    // All seniority levels
+    ...seniorities.map((seniority) => ({
+      id: `seniority_${seniority}`,
+      title: `${seniority} Level`,
+      description: `Target ${seniority.toLowerCase()} employees (${
+        employees.filter((e) => e.seniority === seniority).length
+      } employees)`,
+      icon: <Users className="w-6 h-6 text-purple-600" />,
+      type: 'seniority',
     })),
   ];
+
+  const targetSegments = [...builtInSegments, ...customSegments];
 
   // Step 2: Foundation themes (from real scenarios)
   const foundationThemes = scenarios.slice(0, 4).map((scenario) => ({
@@ -319,6 +344,17 @@ function CampaignWizardContent() {
       } else if (selectedSegment.startsWith('dept_')) {
         const dept = selectedSegment.replace('dept_', '');
         targetEmployeeIds = employees.filter((e) => e.department === dept).map((e) => e.id);
+      } else if (selectedSegment.startsWith('seniority_')) {
+        const seniority = selectedSegment.replace('seniority_', '');
+        targetEmployeeIds = employees.filter((e) => e.seniority === seniority).map((e) => e.id);
+      } else if (selectedSegment.startsWith('custom_')) {
+        // Find the custom segment
+        const customSegment = customSegments.find((s) => s.id === selectedSegment);
+        if (customSegment) {
+          targetEmployeeIds = employees
+            .filter((e) => e.risk_score >= customSegment.minRisk && e.risk_score <= customSegment.maxRisk)
+            .map((e) => e.id);
+        }
       }
 
       // Create scenario from selected variant
@@ -407,13 +443,13 @@ function CampaignWizardContent() {
                         Define the workforce group receiving the simulation based on this segment's demographic profile
                       </p>
                     </div>
-                    <Button variant="primary" size="sm">
+                    <Button variant="primary" size="sm" onClick={() => setShowAddSegment(true)}>
                       <Plus className="w-4 h-4 mr-2" />
                       Add Segment
                     </Button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4 max-h-[600px] overflow-y-auto pr-2">
                     {targetSegments.map((segment) => (
                       <SegmentCard
                         key={segment.id}
@@ -422,9 +458,111 @@ function CampaignWizardContent() {
                         icon={segment.icon}
                         selected={selectedSegment === segment.id}
                         onClick={() => setSelectedSegment(segment.id)}
+                        onDelete={
+                          segment.type === 'custom'
+                            ? () => {
+                                setCustomSegments(customSegments.filter((s) => s.id !== segment.id));
+                                if (selectedSegment === segment.id) {
+                                  setSelectedSegment('');
+                                }
+                              }
+                            : undefined
+                        }
                       />
                     ))}
                   </div>
+
+                  {/* Add Segment Modal */}
+                  {showAddSegment && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                      <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
+                        <h3 className="text-2xl font-bold text-slate-900 mb-4">Create Custom Segment</h3>
+                        <p className="text-slate-600 mb-6">
+                          Define a custom employee segment based on specific criteria
+                        </p>
+
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.currentTarget);
+                            const name = formData.get('name') as string;
+                            const minRisk = parseInt(formData.get('minRisk') as string) || 0;
+                            const maxRisk = parseInt(formData.get('maxRisk') as string) || 100;
+
+                            const matchingEmployees = employees.filter(
+                              (emp) => emp.risk_score >= minRisk && emp.risk_score <= maxRisk
+                            );
+
+                            const newSegment = {
+                              id: `custom_${Date.now()}`,
+                              title: name,
+                              description: `Custom segment with risk score ${minRisk}-${maxRisk} (${matchingEmployees.length} employees)`,
+                              icon: <Users className="w-6 h-6 text-orange-600" />,
+                              type: 'custom',
+                              minRisk,
+                              maxRisk,
+                            };
+
+                            setCustomSegments([...customSegments, newSegment]);
+                            setShowAddSegment(false);
+                          }}
+                        >
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-2">
+                                Segment Name
+                              </label>
+                              <input
+                                type="text"
+                                name="name"
+                                required
+                                className="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-teal-500 focus:outline-none"
+                                placeholder="e.g., High Risk Finance Team"
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                  Min Risk Score
+                                </label>
+                                <input
+                                  type="number"
+                                  name="minRisk"
+                                  min="0"
+                                  max="100"
+                                  defaultValue="0"
+                                  className="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-teal-500 focus:outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                  Max Risk Score
+                                </label>
+                                <input
+                                  type="number"
+                                  name="maxRisk"
+                                  min="0"
+                                  max="100"
+                                  defaultValue="100"
+                                  className="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-teal-500 focus:outline-none"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-3 mt-6">
+                            <Button type="button" variant="secondary" onClick={() => setShowAddSegment(false)}>
+                              Cancel
+                            </Button>
+                            <Button type="submit" variant="primary">
+                              Create Segment
+                            </Button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
