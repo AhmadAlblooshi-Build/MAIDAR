@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_
 
 from app.config.database import get_db
-from app.core.auth import get_current_user
+from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.models.assessment import (
     Assessment,
