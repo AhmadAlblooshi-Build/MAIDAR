@@ -124,7 +124,8 @@ if not settings.DEBUG:
 async def startup_event():
     """Run on application startup."""
     logger.info("🚀 Starting MAIDAR backend...")
-    run_migrations()
+    # TEMPORARY: Auto-migrations disabled to fix Railway deployment hang
+    # run_migrations()
 
 
 # Root endpoint
