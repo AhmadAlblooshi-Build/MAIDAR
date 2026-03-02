@@ -59,7 +59,7 @@ function DashboardContent() {
           },
           body: JSON.stringify({
             page: 1,
-            page_size: 1000
+            page_size: 500
           })
         }),
         fetch(`${apiUrl}/api/v1/simulations/search`, {
