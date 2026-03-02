@@ -32,7 +32,7 @@ function DashboardContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dashboardData, setDashboardData] = useState<any>(null);
-  const [selectedDepartment, setSelectedDepartment] = useState('all');
+  const [breakdownView, setBreakdownView] = useState('Department');
 
   useEffect(() => {
     loadDashboardData();
@@ -77,29 +77,43 @@ function DashboardContent() {
       const allEmployees = await employeesRes.json();
       const simulations = await simulationsRes.json();
 
-      // Calculate department risk breakdown
+      // Calculate risk breakdowns for different categories
       const employees = allEmployees.employees || [];
       console.log('Total employees loaded:', employees.length);
 
-      const deptMap = new Map<string, { count: number; totalRisk: number }>();
+      // Helper function to calculate breakdown
+      const calculateBreakdown = (field: string) => {
+        const breakdownMap = new Map<string, { count: number; totalRisk: number }>();
 
-      employees.forEach((emp: any) => {
-        if (!emp.department) return;
-        const dept = deptMap.get(emp.department) || { count: 0, totalRisk: 0 };
-        dept.count++;
-        dept.totalRisk += (emp.risk_score || 0);
-        deptMap.set(emp.department, dept);
-      });
+        employees.forEach((emp: any) => {
+          let value = emp[field];
+          if (!value) value = 'Unknown';
+          if (field === 'languages' && Array.isArray(value)) value = value.join(', ');
 
-      const departmentBreakdown = Array.from(deptMap.entries())
-        .map(([dept, data]) => ({
-          department: dept,
-          avgRisk: data.count > 0 ? (data.totalRisk / data.count) : 0,
-          percentage: data.count > 0 ? ((data.totalRisk / data.count) * 10) : 0 // Convert to percentage
-        }))
-        .sort((a, b) => b.avgRisk - a.avgRisk);
+          const item = breakdownMap.get(value) || { count: 0, totalRisk: 0 };
+          item.count++;
+          item.totalRisk += (emp.risk_score || 0);
+          breakdownMap.set(value, item);
+        });
 
-      console.log('Department breakdown:', departmentBreakdown);
+        return Array.from(breakdownMap.entries())
+          .map(([name, data]) => ({
+            name: name,
+            avgRisk: data.count > 0 ? (data.totalRisk / data.count) : 0,
+            percentage: data.count > 0 ? ((data.totalRisk / data.count) * 10) : 0
+          }))
+          .sort((a, b) => b.avgRisk - a.avgRisk);
+      };
+
+      const riskBreakdowns = {
+        Department: calculateBreakdown('department'),
+        Seniority: calculateBreakdown('seniority'),
+        'Age group': calculateBreakdown('age_range'),
+        Gender: calculateBreakdown('gender'),
+        Language: calculateBreakdown('languages')
+      };
+
+      console.log('Risk breakdowns:', riskBreakdowns);
 
       // Get top 10 highest risk employees
       const highRiskEmployees = employees
@@ -112,7 +126,7 @@ function DashboardContent() {
       setDashboardData({
         riskDistribution,
         employeeStats,
-        departmentBreakdown,
+        riskBreakdowns,
         highRiskEmployees,
         simulations: simulations.simulations || []
       });
@@ -181,7 +195,7 @@ function DashboardContent() {
 
   if (!dashboardData) return null;
 
-  const { riskDistribution, employeeStats, departmentBreakdown, highRiskEmployees, simulations } = dashboardData;
+  const { riskDistribution, employeeStats, riskBreakdowns, highRiskEmployees, simulations } = dashboardData;
 
   // Calculate overall risk score (0-100 scale)
   const overallRiskScore = riskDistribution.mean_risk_score || 0;
@@ -191,10 +205,8 @@ function DashboardContent() {
   const likelihoodScore = Math.round(overallRiskScore * 0.4);
   const impactScore = Math.round(overallRiskScore * 0.52);
 
-  // Filter departments if selected
-  const filteredDepartments = selectedDepartment === 'all'
-    ? departmentBreakdown
-    : departmentBreakdown.filter((d: any) => d.department === selectedDepartment);
+  // Get current breakdown based on selected view
+  const currentBreakdown = riskBreakdowns[breakdownView] || [];
 
   return (
     <div className="space-y-6">
@@ -388,26 +400,29 @@ function DashboardContent() {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-slate-900">Risk Health Breakdown</h2>
             <Select
-              value={selectedDepartment}
-              onChange={(e) => setSelectedDepartment(e.target.value)}
+              value={breakdownView}
+              onChange={(e) => setBreakdownView(e.target.value)}
               options={[
-                { value: 'all', label: 'All Departments' },
-                ...departmentBreakdown.map((d: any) => ({ value: d.department, label: d.department }))
+                { value: 'Department', label: 'Department' },
+                { value: 'Seniority', label: 'Seniority' },
+                { value: 'Age group', label: 'Age group' },
+                { value: 'Gender', label: 'Gender' },
+                { value: 'Language', label: 'Language' }
               ]}
             />
           </div>
           <div className="space-y-4">
-            {filteredDepartments.length > 0 ? (
-              filteredDepartments.map((dept: any, idx: number) => (
+            {currentBreakdown.length > 0 ? (
+              currentBreakdown.map((item: any, idx: number) => (
                 <div key={idx}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-slate-700">{dept.department}</span>
-                    <span className="text-sm font-bold text-slate-900">{dept.percentage.toFixed(0)}%</span>
+                    <span className="text-sm font-medium text-slate-700 capitalize">{item.name}</span>
+                    <span className="text-sm font-bold text-slate-900">{item.percentage.toFixed(0)}%</span>
                   </div>
                   <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full transition-all duration-500"
-                      style={{ width: `${dept.percentage}%` }}
+                      style={{ width: `${item.percentage}%` }}
                     />
                   </div>
                 </div>
@@ -415,7 +430,7 @@ function DashboardContent() {
             ) : (
               <div className="text-center py-8 text-slate-500">
                 <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                <p>No department data available</p>
+                <p>No {breakdownView.toLowerCase()} data available</p>
               </div>
             )}
           </div>
