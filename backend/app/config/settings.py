@@ -89,20 +89,26 @@ class Settings(BaseSettings):
         elif self.DATABASE_URL.startswith("postgres://"):
             self.DATABASE_URL = self.DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
 
-        # Set CORS origins from environment or defaults
+        # Set CORS origins - ALWAYS include Vercel production domain
+        # Start with required production domains
+        required_origins = [
+            "https://maidar.vercel.app",  # Production frontend (REQUIRED)
+        ]
+
+        # Add development origins
+        dev_origins = [
+            "http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:8000",
+            "http://127.0.0.1:3000", "http://127.0.0.1:3001", "http://127.0.0.1:3002", "http://127.0.0.1:8000",
+        ]
+
+        # Combine: required + dev + custom from environment
         if self.ALLOWED_ORIGINS:
-            self.CORS_ORIGINS = [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
-            # Always include Vercel domain for production frontend
-            if "https://maidar.vercel.app" not in self.CORS_ORIGINS:
-                self.CORS_ORIGINS.append("https://maidar.vercel.app")
-            print(f"[CORS] Using ALLOWED_ORIGINS from environment: {self.CORS_ORIGINS}")
+            custom_origins = [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
+            self.CORS_ORIGINS = list(set(required_origins + custom_origins + dev_origins))
+            print(f"✅ [CORS] Configured with custom origins: {self.CORS_ORIGINS}")
         else:
-            self.CORS_ORIGINS = [
-                "http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:8000",
-                "http://127.0.0.1:3000", "http://127.0.0.1:3001", "http://127.0.0.1:3002", "http://127.0.0.1:8000",
-                "https://maidar.vercel.app",
-            ]
-            print(f"[CORS] Using default CORS origins: {self.CORS_ORIGINS}")
+            self.CORS_ORIGINS = list(set(required_origins + dev_origins))
+            print(f"✅ [CORS] Using default origins: {self.CORS_ORIGINS}")
 
 
 settings = Settings()
