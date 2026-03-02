@@ -9,7 +9,7 @@ from sqlalchemy.orm import relationship
 import uuid
 import enum
 
-from app.config.database import Base
+from .base import Base
 
 
 class AssessmentStatus(str, enum.Enum):
