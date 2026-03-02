@@ -59,7 +59,7 @@ function EmployeesContent() {
       const response = await employeeAPI.search(searchParams);
       setEmployees(response.employees || []);
       setTotalPages(response.total_pages || 1);
-      setTotalCount(response.total_count || 0);
+      setTotalCount(response.total || 0);
     } catch (error) {
       console.error('Failed to load employees:', error);
     } finally {
