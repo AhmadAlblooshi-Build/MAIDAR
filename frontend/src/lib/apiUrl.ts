@@ -4,15 +4,25 @@
 export function getApiUrl(): string {
   // Check if we're on localhost (development)
   if (typeof window !== 'undefined') {
-    const isLocalhost = window.location.hostname === 'localhost' ||
-                       window.location.hostname === '127.0.0.1';
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+
+    console.log('🔍 API URL Debug:', {
+      hostname,
+      isLocalhost,
+      willUse: isLocalhost ? 'HTTP localhost' : 'HTTPS Railway'
+    });
 
     if (isLocalhost) {
       // Development: use HTTP localhost
-      return 'http://localhost:8001';
+      const url = 'http://localhost:8001';
+      console.log('✅ Using API URL:', url);
+      return url;
     }
   }
 
   // Production: ALWAYS use HTTPS Railway URL
-  return 'https://maidar-production-3ee1.up.railway.app';
+  const url = 'https://maidar-production-3ee1.up.railway.app';
+  console.log('✅ Using API URL:', url);
+  return url;
 }
