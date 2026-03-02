@@ -3,7 +3,7 @@
  * Handles all API calls for risk assessments
  */
 
-import api from './axios';
+import { api } from '../api';
 
 export interface QuestionResponse {
   response_text: string;
