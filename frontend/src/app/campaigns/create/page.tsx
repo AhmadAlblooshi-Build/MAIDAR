@@ -335,7 +335,7 @@ function CampaignWizardContent() {
         is_active: true,
       };
 
-      const createdScenario = await scenarioAPI.create(scenarioPayload);
+      const createdScenario = await scenarioAPI.create(scenarioPayload) as any;
 
       // Create and launch simulation
       const simulationPayload = {
