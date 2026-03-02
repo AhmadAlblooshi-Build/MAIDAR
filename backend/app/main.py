@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 
 from app.config.settings import settings
 from app.core.security_middleware import SecurityHeadersMiddleware, RateLimitMiddleware
@@ -255,24 +256,45 @@ app.include_router(
 
 
 # Exception handlers
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc: RequestValidationError):
+    """Handle Pydantic validation errors with CORS headers."""
+    return JSONResponse(
+        status_code=422,
+        content={"error": "Validation Error", "detail": exc.errors()},
+        headers={
+            "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
+            "Access-Control-Allow-Credentials": "true",
+        }
+    )
+
+
 @app.exception_handler(ValueError)
 async def value_error_handler(request, exc):
-    """Handle validation errors."""
+    """Handle validation errors with CORS headers."""
     return JSONResponse(
         status_code=400,
-        content={"error": "Validation Error", "detail": str(exc)}
+        content={"error": "Validation Error", "detail": str(exc)},
+        headers={
+            "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
+            "Access-Control-Allow-Credentials": "true",
+        }
     )
 
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request, exc):
-    """Handle general exceptions."""
+    """Handle general exceptions with CORS headers."""
     if settings.DEBUG:
         raise exc  # In debug mode, show full traceback
 
     return JSONResponse(
         status_code=500,
-        content={"error": "Internal Server Error", "detail": "An unexpected error occurred"}
+        content={"error": "Internal Server Error", "detail": "An unexpected error occurred"},
+        headers={
+            "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
+            "Access-Control-Allow-Credentials": "true",
+        }
     )
 
 

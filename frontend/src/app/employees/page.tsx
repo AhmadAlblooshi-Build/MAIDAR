@@ -640,21 +640,29 @@ function AddEmployeeModal({
       // Generate employee_id from email (username part)
       const employee_id = formData.email.split('@')[0];
 
-      // Prepare data for API
-      const apiData = {
+      // Prepare data for API - ensure proper data types
+      const apiData: any = {
         employee_id,
         full_name: formData.full_name,
         email: formData.email,
         department: formData.department,
-        job_title: formData.job_title || undefined,
         age_range: calculateAgeRange(formData.date_of_birth),
-        gender: formData.gender.toLowerCase() || undefined,
-        languages: formData.language ? [mapLanguageToCode(formData.language)] : ['en'],
         technical_literacy: formData.technical_literacy,
         seniority: mapRoleToSeniority(formData.role),
+        languages: formData.language ? [mapLanguageToCode(formData.language)] : ['en'],
       };
 
+      // Only add optional fields if they have values
+      if (formData.job_title && formData.job_title.trim()) {
+        apiData.job_title = formData.job_title.trim();
+      }
+      if (formData.gender && formData.gender.trim()) {
+        apiData.gender = formData.gender.toLowerCase();
+      }
+
+      console.log('Creating employee with data:', apiData);
       await employeeAPI.create(apiData);
+      console.log('✅ Employee created successfully');
       onSuccess();
       // Reset form
       setFormData({
@@ -668,9 +676,11 @@ function AddEmployeeModal({
         language: '',
         technical_literacy: 5,
       });
-    } catch (error) {
-      console.error('Failed to create employee:', error);
-      alert('Failed to create employee');
+    } catch (error: any) {
+      console.error('❌ Failed to create employee:', error);
+      console.error('Error details:', error.response?.data || error.message);
+      const errorMsg = error.response?.data?.detail || error.message || 'Failed to create employee';
+      alert(`Failed to create employee: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
