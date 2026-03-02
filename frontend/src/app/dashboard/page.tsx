@@ -137,9 +137,9 @@ function DashboardContent() {
       {/* Welcome Header */}
       <div>
         <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-          Company Risk Health
+          Good Morning 👋 Welcome Back, {user?.full_name}
         </h1>
-        <p className="text-slate-500 mt-1">Real-time overview of your organization's security posture</p>
+        <p className="text-slate-500 mt-1">Here's your organization's risk overview</p>
       </div>
 
       {/* Primary Risk Score Card */}

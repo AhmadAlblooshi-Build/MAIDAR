@@ -55,7 +55,7 @@ export default function TenantAdminLayout({ children }: TenantAdminLayoutProps) 
   };
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
+    { name: 'Company Risk Health', href: '/dashboard', icon: LayoutGrid },
     { name: 'Employee Management', href: '/employees', icon: Users },
     { name: 'Campaign Management', href: '/campaigns', icon: Target },
     { name: 'Surveys & Assessments', href: '/surveys', icon: FileText },
