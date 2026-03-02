@@ -79,9 +79,15 @@ function DashboardContent() {
 
       // Calculate risk breakdowns for different categories
       const employees = allEmployees.employees || [];
+      console.log('=== EMPLOYEE DATA CHECK ===');
       console.log('Total employees loaded:', employees.length);
-      console.log('Sample employee data:', employees[0]);
+      console.log('Sample employee data:', JSON.stringify(employees[0], null, 2));
       console.log('Employees with risk scores:', employees.filter((e: any) => e.risk_score).length);
+      console.log('Employees with department:', employees.filter((e: any) => e.department).length);
+
+      if (employees.length === 0) {
+        console.error('ERROR: No employees loaded! Check API response:', allEmployees);
+      }
 
       // Helper function to calculate breakdown
       const calculateBreakdown = (field: string) => {
@@ -425,12 +431,14 @@ function DashboardContent() {
             />
           </div>
           {/* DEBUG INFO */}
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs">
-            <div>Current View: <strong>{breakdownView}</strong></div>
-            <div>Data exists: <strong>{riskBreakdowns ? 'Yes' : 'No'}</strong></div>
-            <div>Breakdown items: <strong>{currentBreakdown?.length || 0}</strong></div>
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs space-y-1">
+            <div><strong>DEBUG INFO:</strong></div>
+            <div>Current View: <strong className="text-blue-600">{breakdownView}</strong></div>
+            <div>RiskBreakdowns object exists: <strong className="text-green-600">{riskBreakdowns ? 'Yes' : 'No'}</strong></div>
+            <div>Breakdown items for {breakdownView}: <strong className="text-red-600">{currentBreakdown?.length || 0}</strong></div>
+            <div>All breakdowns available: <strong>{riskBreakdowns ? Object.keys(riskBreakdowns).join(', ') : 'None'}</strong></div>
             {currentBreakdown?.length > 0 && (
-              <div>First item: <strong>{currentBreakdown[0]?.name} - {currentBreakdown[0]?.percentage?.toFixed(1)}%</strong></div>
+              <div>First item: <strong className="text-purple-600">{currentBreakdown[0]?.name} - {currentBreakdown[0]?.percentage?.toFixed(1)}% ({currentBreakdown[0]?.count} employees)</strong></div>
             )}
           </div>
           <div className="space-y-4">
