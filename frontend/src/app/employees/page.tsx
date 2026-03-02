@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import TenantAdminGuard from '@/components/guards/TenantAdminGuard';
 import TenantAdminLayout from '@/components/tenant-admin/TenantAdminLayout';
@@ -18,7 +18,7 @@ import Badge from '@/components/ui/Badge';
 import Spinner from '@/components/ui/Spinner';
 import Table, { Pagination } from '@/components/ui/Table';
 import Modal from '@/components/ui/Modal';
-import { Search, Upload, UserPlus, MoreHorizontal, Download, FileSpreadsheet, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
+import { Search, Upload, UserPlus, MoreHorizontal, Download, FileSpreadsheet, CheckCircle, AlertCircle, Trash2, Eye, Edit, ClipboardList } from 'lucide-react';
 
 export default function EmployeesPage() {
   return (
@@ -45,6 +45,8 @@ function EmployeesContent() {
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [openActionsMenu, setOpenActionsMenu] = useState<string | null>(null);
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadJobTitles();
@@ -54,6 +56,18 @@ function EmployeesContent() {
     console.log('Loading employees - Page:', currentPage, 'Total Pages:', totalPages);
     loadEmployees();
   }, [currentPage, searchTerm, filterRole]);
+
+  // Close actions menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node)) {
+        setOpenActionsMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const loadJobTitles = async () => {
     try {
@@ -102,6 +116,38 @@ function EmployeesContent() {
       alert('Failed to delete employees. Please try again.');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleViewDetails = (employeeId: string) => {
+    setOpenActionsMenu(null);
+    router.push(`/employees/${employeeId}`);
+  };
+
+  const handleEditEmployee = (employeeId: string) => {
+    setOpenActionsMenu(null);
+    alert('Edit functionality coming soon');
+  };
+
+  const handleAssignAssessment = (employeeId: string) => {
+    setOpenActionsMenu(null);
+    alert('Assign Assessment functionality coming soon');
+  };
+
+  const handleDeleteEmployee = async (employeeId: string, employeeName: string) => {
+    setOpenActionsMenu(null);
+
+    if (!confirm(`Are you sure you want to delete ${employeeName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await employeeAPI.delete(employeeId);
+      await loadEmployees();
+      alert(`${employeeName} deleted successfully`);
+    } catch (error) {
+      console.error('Failed to delete employee:', error);
+      alert('Failed to delete employee. Please try again.');
     }
   };
 
@@ -261,15 +307,63 @@ function EmployeesContent() {
 
                       {/* Action */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // TODO: Add action menu
-                          }}
-                          className="p-1 rounded hover:bg-slate-200 transition-colors"
-                        >
-                          <MoreHorizontal className="w-5 h-5 text-slate-400" />
-                        </button>
+                        <div className="relative" ref={openActionsMenu === employee.id ? actionsMenuRef : null}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenActionsMenu(openActionsMenu === employee.id ? null : employee.id);
+                            }}
+                            className="p-1 rounded hover:bg-slate-200 transition-colors"
+                          >
+                            <MoreHorizontal className="w-5 h-5 text-slate-400" />
+                          </button>
+
+                          {/* Actions Dropdown */}
+                          {openActionsMenu === employee.id && (
+                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewDetails(employee.id);
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                              >
+                                <Eye className="w-4 h-4" />
+                                <span>View Details</span>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditEmployee(employee.id);
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                              >
+                                <Edit className="w-4 h-4" />
+                                <span>Edit</span>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAssignAssessment(employee.id);
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                              >
+                                <ClipboardList className="w-4 h-4" />
+                                <span>Assign Assessment</span>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteEmployee(employee.id, employee.full_name);
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                <span>Delete</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
