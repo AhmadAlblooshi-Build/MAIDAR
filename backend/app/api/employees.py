@@ -527,10 +527,15 @@ def search_employees(
         for emp in employees
     ]
 
+    # Calculate total pages
+    import math
+    total_pages = math.ceil(total / search_request.page_size) if search_request.page_size > 0 else 0
+
     return EmployeeListResponse(
         total=total,
         page=search_request.page,
         page_size=search_request.page_size,
+        total_pages=total_pages,
         employees=employee_responses
     )
 
