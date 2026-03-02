@@ -57,8 +57,8 @@ export default function TenantAdminLayout({ children }: TenantAdminLayoutProps) 
     { name: 'Phishing Simulations', href: '/campaigns', icon: Target },
     { name: 'Employees', href: '/employees', icon: Users },
     { name: 'Risk Assessments', href: '/surveys', icon: FileText },
-    { name: 'Analytics & Insights', href: '/analytics', icon: BarChart3 },
     { name: 'AI Scenario Lab', href: '/ai-lab', icon: Brain },
+    { name: 'Risk Analytics', href: '/analytics', icon: BarChart3 },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
