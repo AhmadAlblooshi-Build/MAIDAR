@@ -13,7 +13,8 @@ import { useAuthStore } from '@/store/authStore';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import { TrendingUp, TrendingDown, Activity, Shield, Users, Target, AlertTriangle, ArrowRight } from 'lucide-react';
+import Select from '@/components/ui/Select';
+import { TrendingUp, Users, Target, AlertTriangle, Brain, MoreHorizontal } from 'lucide-react';
 
 export default function DashboardPage() {
   return (
@@ -31,6 +32,7 @@ function DashboardContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [selectedDepartment, setSelectedDepartment] = useState('all');
 
   useEffect(() => {
     loadDashboardData();
@@ -41,21 +43,13 @@ function DashboardContent() {
       setLoading(true);
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
-      // Fetch real data from API
-      const [riskDistRes, execSummaryRes, simulationsRes, highRiskEmployeesRes] = await Promise.all([
+      // Fetch data in parallel
+      const [riskDistRes, employeeStatsRes, employeesRes, simulationsRes] = await Promise.all([
         fetch(`${apiUrl}/api/v1/analytics/risk-distribution`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`${apiUrl}/api/v1/analytics/executive-summary`, {
+        fetch(`${apiUrl}/api/v1/employees/statistics`, {
           headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`${apiUrl}/api/v1/simulations/search`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ page: 1, page_size: 5 })
         }),
         fetch(`${apiUrl}/api/v1/employees/search`, {
           method: 'POST',
@@ -65,23 +59,56 @@ function DashboardContent() {
           },
           body: JSON.stringify({
             page: 1,
-            page_size: 5,
-            sort_by: 'risk_score',
-            sort_order: 'desc'
+            page_size: 1000
           })
+        }),
+        fetch(`${apiUrl}/api/v1/simulations/search`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ page: 1, page_size: 5, sort_by: 'created_at', sort_order: 'desc' })
         })
       ]);
 
       const riskDistribution = await riskDistRes.json();
-      const executiveSummary = await execSummaryRes.json();
-      const simulationsData = await simulationsRes.json();
-      const highRiskEmployeesData = await highRiskEmployeesRes.json();
+      const employeeStats = await employeeStatsRes.json();
+      const allEmployees = await employeesRes.json();
+      const simulations = await simulationsRes.json();
+
+      // Calculate department risk breakdown
+      const employees = allEmployees.employees || [];
+      const deptMap = new Map<string, { count: number; totalRisk: number }>();
+
+      employees.forEach((emp: any) => {
+        if (!emp.department || emp.risk_score === null) return;
+        const dept = deptMap.get(emp.department) || { count: 0, totalRisk: 0 };
+        dept.count++;
+        dept.totalRisk += emp.risk_score;
+        deptMap.set(emp.department, dept);
+      });
+
+      const departmentBreakdown = Array.from(deptMap.entries())
+        .map(([dept, data]) => ({
+          department: dept,
+          avgRisk: data.count > 0 ? (data.totalRisk / data.count) : 0,
+          percentage: data.count > 0 ? ((data.totalRisk / data.count) * 10) : 0 // Convert to percentage
+        }))
+        .sort((a, b) => b.avgRisk - a.avgRisk);
+
+      // Get top 10 highest risk employees
+      const highRiskEmployees = employees
+        .filter((emp: any) => emp.risk_score !== null)
+        .sort((a: any, b: any) => (b.risk_score || 0) - (a.risk_score || 0))
+        .slice(0, 10);
 
       setDashboardData({
         riskDistribution,
-        executiveSummary,
-        simulations: simulationsData.items || simulationsData.simulations || [],
-        highRiskEmployees: highRiskEmployeesData.employees || []
+        employeeStats,
+        departmentBreakdown,
+        highRiskEmployees,
+        simulations: simulations.simulations || []
       });
     } catch (err) {
       console.error('Failed to load dashboard:', err);
@@ -89,6 +116,34 @@ function DashboardContent() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getRiskTier = (score: number) => {
+    if (score >= 8) return { label: 'Critical', variant: 'danger' as const, color: 'text-red-600' };
+    if (score >= 6) return { label: 'High', variant: 'warning' as const, color: 'text-orange-600' };
+    if (score >= 4) return { label: 'Moderate', variant: 'warning' as const, color: 'text-yellow-600' };
+    return { label: 'Low', variant: 'success' as const, color: 'text-green-600' };
+  };
+
+  const getRiskBadge = (score: number) => {
+    const avgScore = score / 10 * 100; // Convert 0-10 to 0-100
+    if (avgScore >= 70) return { label: 'Elevated', color: 'bg-orange-500 text-white' };
+    if (avgScore >= 50) return { label: 'Moderate', color: 'bg-yellow-500 text-white' };
+    return { label: 'Healthy', color: 'bg-green-500 text-white' };
+  };
+
+  const getTimeAgo = (date: string) => {
+    const now = new Date();
+    const past = new Date(date);
+    const diffInHours = Math.floor((now.getTime() - past.getTime()) / (1000 * 60 * 60));
+
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours} hours ago`;
+    const days = Math.floor(diffInHours / 24);
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days} days ago`;
+    const weeks = Math.floor(days / 7);
+    return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
   };
 
   if (loading) {
@@ -120,193 +175,341 @@ function DashboardContent() {
 
   if (!dashboardData) return null;
 
-  const { riskDistribution, executiveSummary, simulations, highRiskEmployees } = dashboardData;
-  const overallScore = (
-    (riskDistribution.critical_count * 10 +
-      riskDistribution.high_count * 7.5 +
-      riskDistribution.medium_count * 5 +
-      riskDistribution.low_count * 2.5) /
-    (riskDistribution.critical_count +
-      riskDistribution.high_count +
-      riskDistribution.medium_count +
-      riskDistribution.low_count)
-  );
+  const { riskDistribution, employeeStats, departmentBreakdown, highRiskEmployees, simulations } = dashboardData;
+
+  // Calculate overall risk score (0-100 scale)
+  const overallRiskScore = riskDistribution.mean_risk_score || 0;
+  const riskBadge = getRiskBadge(overallRiskScore / 10);
+
+  // Calculate likelihood and impact scores (simplified)
+  const likelihoodScore = Math.round(overallRiskScore * 0.4);
+  const impactScore = Math.round(overallRiskScore * 0.52);
+
+  // Filter departments if selected
+  const filteredDepartments = selectedDepartment === 'all'
+    ? departmentBreakdown
+    : departmentBreakdown.filter(d => d.department === selectedDepartment);
 
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
-      <div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-          Good Morning 👋 Welcome Back, {user?.full_name}
-        </h1>
-        <p className="text-slate-500 mt-1">Here's your organization's risk overview</p>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-slate-500 text-sm">Good Morning</p>
+          <h1 className="text-2xl font-bold text-slate-900">
+            Welcome Back, {user?.full_name}
+          </h1>
+        </div>
+        <Button
+          variant="primary"
+          icon={<Brain className="w-4 h-4" />}
+          onClick={() => router.push('/ai-lab')}
+        >
+          AI Scenario Lab
+        </Button>
       </div>
 
-      {/* Primary Risk Score Card */}
-      <Card className="relative overflow-hidden">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <h2 className="text-lg font-semibold text-slate-600 mb-4">Human Risk Score (0-100)</h2>
-            <div className="flex items-end space-x-3 mb-4">
-              <div className="text-6xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
-                {overallScore.toFixed(1)}
+      {/* Top Section: Risk Score, Description, Workforce Distribution */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Human Risk Score */}
+        <Card className="p-6">
+          <div className="flex items-center space-x-2 mb-4">
+            <h3 className="text-sm font-semibold text-slate-600">Human Risk Score (0-100)</h3>
+            <span className="text-lg">🔍</span>
+          </div>
+          <div className="flex items-center justify-center mb-6 relative">
+            <div className="relative">
+              <svg className="w-40 h-40 transform -rotate-90">
+                <circle
+                  cx="80"
+                  cy="80"
+                  r="70"
+                  stroke="#e2e8f0"
+                  strokeWidth="12"
+                  fill="none"
+                />
+                <circle
+                  cx="80"
+                  cy="80"
+                  r="70"
+                  stroke="url(#gradient)"
+                  strokeWidth="12"
+                  fill="none"
+                  strokeDasharray={`${(overallRiskScore / 100) * 439.6} 439.6`}
+                  strokeLinecap="round"
+                />
+                <defs>
+                  <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#14b8a6" />
+                    <stop offset="100%" stopColor="#06b6d4" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${riskBadge.color}`}>
+                  {riskBadge.label}
+                </span>
               </div>
-              <div className="text-2xl font-semibold text-slate-400 mb-2">Company Average</div>
-            </div>
-            <div className="mt-4">
-              <Badge variant="success" dot>
-                {overallScore < 3 ? 'Low Risk' : overallScore < 5 ? 'Medium Risk' : overallScore < 7 ? 'High Risk' : 'Critical Risk'}
-              </Badge>
             </div>
           </div>
-        </div>
-      </Card>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <div className="flex items-center space-x-4">
-            <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
-              <Users className="w-6 h-6 text-white" />
+          <div className="text-center mb-4">
+            <div className="text-4xl font-bold text-slate-900">{overallRiskScore.toFixed(1)}</div>
+            <div className="text-sm text-slate-500">Company Average</div>
+          </div>
+          <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+            <div>
+              <div className="text-xs text-slate-500">Likelihood Score</div>
+              <div className="text-xl font-bold text-slate-900">{likelihoodScore}</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-slate-900">{executiveSummary.total_employees}</div>
-              <div className="text-sm text-slate-500">Total Employees</div>
+              <div className="text-xs text-slate-500">Impact Score</div>
+              <div className="text-xl font-bold text-slate-900">{impactScore}</div>
             </div>
           </div>
         </Card>
 
-        <Card>
-          <div className="flex items-center space-x-4">
-            <div className="p-3 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-500">
-              <Shield className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-slate-900">{executiveSummary.average_risk_score}</div>
-              <div className="text-sm text-slate-500">Avg Risk Score</div>
-            </div>
-          </div>
+        {/* Description */}
+        <Card className="p-6">
+          <h3 className="text-sm font-semibold text-slate-900 mb-3">Primary risk index of organization based on:</h3>
+          <ul className="space-y-2 text-sm text-slate-600">
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span>Simulation results, risk assessments, and data quality factors</span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span>Employee behavior patterns and vulnerability trends</span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span>Department-level risk exposure and compliance metrics</span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span>Historical incident data and training effectiveness</span>
+            </li>
+          </ul>
         </Card>
 
-        <Card>
-          <div className="flex items-center space-x-4">
-            <div className="p-3 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
-              <Activity className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-slate-900">{executiveSummary.total_simulations}</div>
-              <div className="text-sm text-slate-500">Simulations Run</div>
+        {/* Workforce Distribution */}
+        <Card className="p-6">
+          <div className="flex items-center space-x-2 mb-4">
+            <h3 className="text-sm font-semibold text-slate-600">Workforce Distribution</h3>
+            <span className="text-lg">👥</span>
+          </div>
+          <div className="flex items-center justify-center mb-4">
+            <div className="relative w-48 h-48">
+              <svg viewBox="0 0 100 100" className="transform -rotate-90">
+                {/* Low Risk - Green */}
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="none"
+                  stroke="#10b981"
+                  strokeWidth="20"
+                  strokeDasharray={`${(riskDistribution.low_percentage / 100) * 251.2} 251.2`}
+                />
+                {/* Moderate Risk - Yellow */}
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="none"
+                  stroke="#f59e0b"
+                  strokeWidth="20"
+                  strokeDasharray={`${(riskDistribution.medium_percentage / 100) * 251.2} 251.2`}
+                  strokeDashoffset={`-${(riskDistribution.low_percentage / 100) * 251.2}`}
+                />
+                {/* High Risk - Orange */}
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="none"
+                  stroke="#f97316"
+                  strokeWidth="20"
+                  strokeDasharray={`${(riskDistribution.high_percentage / 100) * 251.2} 251.2`}
+                  strokeDashoffset={`-${((riskDistribution.low_percentage + riskDistribution.medium_percentage) / 100) * 251.2}`}
+                />
+                {/* Critical Risk - Red */}
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="none"
+                  stroke="#ef4444"
+                  strokeWidth="20"
+                  strokeDasharray={`${(riskDistribution.critical_percentage / 100) * 251.2} 251.2`}
+                  strokeDashoffset={`-${((riskDistribution.low_percentage + riskDistribution.medium_percentage + riskDistribution.high_percentage) / 100) * 251.2}`}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <div className="text-3xl font-bold text-slate-900">
+                  {(riskDistribution.total_employees / 1000).toFixed(1)}k
+                </div>
+                <div className="text-xs text-slate-500">Total Hired</div>
+              </div>
             </div>
           </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center space-x-4">
-            <div className="p-3 rounded-lg bg-gradient-to-br from-rose-500 to-orange-500">
-              <Target className="w-6 h-6 text-white" />
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <span className="text-slate-600">Low ({riskDistribution.low_percentage}%)</span>
             </div>
-            <div>
-              <div className="text-2xl font-bold text-slate-900">{executiveSummary.average_click_rate.toFixed(1)}%</div>
-              <div className="text-sm text-slate-500">Avg Click Rate</div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+              <span className="text-slate-600">Moderate ({riskDistribution.medium_percentage}%)</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+              <span className="text-slate-600">High ({riskDistribution.high_percentage}%)</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              <span className="text-slate-600">Critical ({riskDistribution.critical_percentage}%)</span>
             </div>
           </div>
         </Card>
       </div>
 
-      {/* Risk Distribution */}
-      <Card>
-        <h2 className="text-xl font-bold text-slate-900 mb-4">Risk Distribution</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-red-50 rounded-xl border-2 border-red-200 p-4">
-            <span className="text-sm font-semibold text-red-600">Critical Risk</span>
-            <div className="text-3xl font-bold text-slate-900 mt-2">{riskDistribution.critical_count}</div>
-            <div className="text-sm text-red-600 font-medium">{riskDistribution.critical_percentage}% of total</div>
+      {/* Middle Section: Risk Health Breakdown & Recent Simulations */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Risk Health Breakdown */}
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-slate-900">Risk Health Breakdown</h2>
+            <Select
+              value={selectedDepartment}
+              onChange={(e) => setSelectedDepartment(e.target.value)}
+              options={[
+                { value: 'all', label: 'All Departments' },
+                ...departmentBreakdown.map(d => ({ value: d.department, label: d.department }))
+              ]}
+            />
           </div>
-          <div className="bg-orange-50 rounded-xl border-2 border-orange-200 p-4">
-            <span className="text-sm font-semibold text-orange-600">High Risk</span>
-            <div className="text-3xl font-bold text-slate-900 mt-2">{riskDistribution.high_count}</div>
-            <div className="text-sm text-orange-600 font-medium">{riskDistribution.high_percentage}% of total</div>
+          <div className="space-y-4">
+            {filteredDepartments.map((dept, idx) => (
+              <div key={idx}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-slate-700">{dept.department}</span>
+                  <span className="text-sm font-bold text-slate-900">{dept.percentage.toFixed(0)}%</span>
+                </div>
+                <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full transition-all duration-500"
+                    style={{ width: `${dept.percentage}%` }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="bg-yellow-50 rounded-xl border-2 border-yellow-200 p-4">
-            <span className="text-sm font-semibold text-yellow-600">Medium Risk</span>
-            <div className="text-3xl font-bold text-slate-900 mt-2">{riskDistribution.medium_count}</div>
-            <div className="text-sm text-yellow-600 font-medium">{riskDistribution.medium_percentage}% of total</div>
-          </div>
-          <div className="bg-green-50 rounded-xl border-2 border-green-200 p-4">
-            <span className="text-sm font-semibold text-green-600">Low Risk</span>
-            <div className="text-3xl font-bold text-slate-900 mt-2">{riskDistribution.low_count}</div>
-            <div className="text-sm text-green-600 font-medium">{riskDistribution.low_percentage}% of total</div>
-          </div>
-        </div>
-      </Card>
+        </Card>
 
-      {/* High-Risk Employees Widget */}
-      <Card>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-lg bg-red-100">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
-            </div>
-            <h2 className="text-lg font-bold text-slate-900">High-Risk Employees</h2>
-          </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            icon={<ArrowRight className="w-4 h-4" />}
-            onClick={() => router.push('/employees?filter=high-risk')}
-          >
-            View All
-          </Button>
-        </div>
-        <div className="space-y-3">
-          {highRiskEmployees && highRiskEmployees.length > 0 ? (
-            highRiskEmployees.map((employee: any) => (
-              <div
-                key={employee.id}
-                onClick={() => router.push(`/employees/${employee.id}`)}
-                className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 hover:shadow-md transition-all cursor-pointer"
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-white font-bold">
-                    {employee.full_name?.charAt(0) || 'U'}
+        {/* Recent Simulations & Assessments */}
+        <Card className="p-6">
+          <h2 className="text-lg font-bold text-slate-900 mb-6">Recent Simulations & Assessments</h2>
+          <div className="space-y-4">
+            {simulations.length > 0 ? simulations.map((sim: any) => (
+              <div key={sim.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer"
+                onClick={() => router.push(`/campaigns/${sim.id}`)}>
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
+                    <Target className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <div className="font-semibold text-slate-900">{employee.full_name}</div>
-                    <div className="text-sm text-slate-500">{employee.email}</div>
+                    <div className="font-medium text-slate-900">{sim.name}</div>
+                    <div className="text-xs text-slate-500">{getTimeAgo(sim.created_at)}</div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-red-600">{employee.risk_score ? employee.risk_score.toFixed(1) : 'N/A'}</div>
-                  <Badge variant="danger">{employee.risk_band || 'High Risk'}</Badge>
-                </div>
+                <Badge variant={sim.status === 'completed' ? 'success' : 'info'}>
+                  {sim.status}
+                </Badge>
               </div>
-            ))
-          ) : (
-            <div className="text-center py-8 text-slate-500">
-              No high-risk employees found. Great job!
-            </div>
-          )}
-        </div>
-      </Card>
+            )) : (
+              <div className="text-center py-8 text-slate-500">
+                <Target className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <p>No simulations yet</p>
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
 
-      {/* Recent Simulations */}
-      <Card>
-        <h2 className="text-lg font-bold text-slate-900 mb-4">Recent Simulations</h2>
-        <div className="space-y-3">
-          {simulations.map((sim: any) => (
-            <div key={sim.id} className="flex items-center justify-between p-4 rounded-xl bg-slate-50">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500">
-                  <Target className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <div className="font-semibold text-slate-900">{sim.name}</div>
-                  <div className="text-sm text-slate-500">{new Date(sim.created_at).toLocaleDateString()}</div>
-                </div>
-              </div>
-              <Badge variant={sim.status === 'completed' ? 'success' : 'info'}>{sim.status}</Badge>
-            </div>
-          ))}
+      {/* Bottom Section: Highest Risk Employees */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Highest risk employees</h2>
+            <p className="text-sm text-slate-500">Immediate intervention queue based on employee behavior.</p>
+          </div>
+          <Select
+            value="10"
+            onChange={() => {}}
+            options={[
+              { value: '10', label: 'Top 10 Employees' },
+              { value: '20', label: 'Top 20 Employees' },
+              { value: '50', label: 'Top 50 Employees' },
+            ]}
+          />
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-200">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Employee</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Department</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Risk Score</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Risk Tier</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Top Risk Factors</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {highRiskEmployees.map((emp: any, idx: number) => {
+                const tier = getRiskTier(emp.risk_score);
+                return (
+                  <tr key={emp.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <td className="py-4 px-4">
+                      <button
+                        onClick={() => router.push(`/employees/${emp.id}`)}
+                        className="text-teal-600 hover:text-teal-700 font-medium"
+                      >
+                        {emp.full_name}
+                      </button>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className="text-sm text-slate-700">{emp.department}</span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className="text-sm font-bold text-slate-900">{(emp.risk_score * 10).toFixed(0)}</span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <Badge variant={tier.variant}>{tier.label}</Badge>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex flex-wrap gap-1">
+                        {emp.seniority === 'junior' && (
+                          <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700">Low Seniority</span>
+                        )}
+                        {emp.technical_literacy < 5 && (
+                          <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-700">Low Tech Literacy</span>
+                        )}
+                        {emp.risk_score >= 7 && (
+                          <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-700">High Risk Profile</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <button className="text-slate-400 hover:text-slate-600">
+                        <MoreHorizontal className="w-5 h-5" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </Card>
     </div>
