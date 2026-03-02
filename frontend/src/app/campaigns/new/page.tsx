@@ -171,7 +171,7 @@ function CampaignWizardContent() {
         scenario_id: campaignData.scenario_id,
         target_employee_ids: targetEmployees,
         send_immediately: campaignData.sendImmediately,
-        scheduled_send_time: campaignData.sendImmediately ? null : `${campaignData.scheduledDate}T${campaignData.scheduledTime}:00Z`,
+        scheduled_at: campaignData.sendImmediately ? null : `${campaignData.scheduledDate}T${campaignData.scheduledTime}:00`,
         track_opens: campaignData.trackOpens,
         track_clicks: campaignData.trackClicks,
         track_credentials: campaignData.trackCredentials
