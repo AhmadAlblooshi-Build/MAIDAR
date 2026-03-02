@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import TenantAdminGuard from '@/components/guards/TenantAdminGuard';
 import TenantAdminLayout from '@/components/tenant-admin/TenantAdminLayout';
@@ -14,7 +14,7 @@ import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Select from '@/components/ui/Select';
-import { TrendingUp, Users, Target, AlertTriangle, Brain, MoreHorizontal } from 'lucide-react';
+import { TrendingUp, Users, Target, AlertTriangle, Brain, MoreHorizontal, Eye, ClipboardList, Trash2 } from 'lucide-react';
 
 export default function DashboardPage() {
   return (
@@ -34,9 +34,24 @@ function DashboardContent() {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [breakdownView, setBreakdownView] = useState('Department');
   const [topEmployeesLimit, setTopEmployeesLimit] = useState('10');
+  const [openActionsMenu, setOpenActionsMenu] = useState<string | null>(null);
+  const [deletingEmployee, setDeletingEmployee] = useState<string | null>(null);
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadDashboardData();
+  }, []);
+
+  // Close actions menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node)) {
+        setOpenActionsMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const loadDashboardData = async () => {
@@ -135,6 +150,49 @@ function DashboardContent() {
       setError('Failed to load dashboard data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleViewDetails = (employeeId: string) => {
+    setOpenActionsMenu(null);
+    router.push(`/employees/${employeeId}`);
+  };
+
+  const handleAssignAssessment = (employeeId: string) => {
+    setOpenActionsMenu(null);
+    router.push(`/surveys?employeeId=${employeeId}`);
+  };
+
+  const handleDeleteEmployee = async (employeeId: string, employeeName: string) => {
+    setOpenActionsMenu(null);
+
+    if (!confirm(`Are you sure you want to delete ${employeeName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setDeletingEmployee(employeeId);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+
+      const response = await fetch(`${apiUrl}/api/v1/employees/${employeeId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        // Reload dashboard data to reflect the deletion
+        await loadDashboardData();
+      } else {
+        const error = await response.json();
+        alert(`Failed to delete employee: ${error.detail || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Failed to delete employee:', error);
+      alert('Failed to delete employee. Please try again.');
+    } finally {
+      setDeletingEmployee(null);
     }
   };
 
@@ -537,9 +595,42 @@ function DashboardContent() {
                         </div>
                       </td>
                       <td className="py-4 px-4">
-                        <button className="text-slate-400 hover:text-slate-600">
-                          <MoreHorizontal className="w-5 h-5" />
-                        </button>
+                        <div className="relative" ref={openActionsMenu === emp.id ? actionsMenuRef : null}>
+                          <button
+                            onClick={() => setOpenActionsMenu(openActionsMenu === emp.id ? null : emp.id)}
+                            className="text-slate-400 hover:text-slate-600 p-1 rounded hover:bg-slate-100 transition-colors"
+                            disabled={deletingEmployee === emp.id}
+                          >
+                            <MoreHorizontal className="w-5 h-5" />
+                          </button>
+
+                          {/* Actions Dropdown */}
+                          {openActionsMenu === emp.id && (
+                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
+                              <button
+                                onClick={() => handleViewDetails(emp.id)}
+                                className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                              >
+                                <Eye className="w-4 h-4" />
+                                <span>View Details</span>
+                              </button>
+                              <button
+                                onClick={() => handleAssignAssessment(emp.id)}
+                                className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                              >
+                                <ClipboardList className="w-4 h-4" />
+                                <span>Assign Assessment</span>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteEmployee(emp.id, emp.full_name)}
+                                className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                <span>Delete</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
