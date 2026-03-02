@@ -75,7 +75,8 @@
       "Bash(del page.tsx)",
       "Bash(ren:*)",
       "Bash(awk:*)",
-      "Bash(npx vercel --prod)"
+      "Bash(npx vercel --prod)",
+      "Bash(tr:*)"
     ]
   }
 }

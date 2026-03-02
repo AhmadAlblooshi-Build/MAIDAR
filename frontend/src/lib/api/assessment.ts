@@ -24,6 +24,7 @@ export interface AssessmentCreateRequest {
   priority?: string;
   description?: string;
   target_audience: 'global' | 'departmental' | 'risk' | 'newhires';
+  target_departments?: string[];
   time_limit?: number;
   randomize_questions: boolean;
   allow_pause_resume: boolean;
@@ -40,6 +41,7 @@ export interface Assessment {
   priority?: string;
   description?: string;
   target_audience: string;
+  target_departments?: string[];
   time_limit?: number;
   randomize_questions: boolean;
   allow_pause_resume: boolean;

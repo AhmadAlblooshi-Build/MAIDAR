@@ -59,6 +59,7 @@ class Assessment(Base):
 
     # Audience targeting (validated by Pydantic schema)
     target_audience = Column(String(50), nullable=False, default='global')
+    target_departments = Column(JSONB, nullable=True)  # Array of department names for departmental targeting
 
     # Settings
     time_limit = Column(Integer, nullable=True)  # Minutes

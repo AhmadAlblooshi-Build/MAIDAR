@@ -71,6 +71,7 @@ class AssessmentCreate(BaseModel):
 
     # Audience
     target_audience: TargetAudience = TargetAudience.GLOBAL
+    target_departments: Optional[List[str]] = None  # For departmental targeting
 
     # Settings
     time_limit: Optional[int] = Field(None, ge=1, le=240)  # 1-240 minutes
@@ -89,6 +90,7 @@ class AssessmentUpdate(BaseModel):
     priority: Optional[str] = Field(None, max_length=100)
     description: Optional[str] = None
     target_audience: Optional[TargetAudience] = None
+    target_departments: Optional[List[str]] = None
     time_limit: Optional[int] = Field(None, ge=1, le=240)
     randomize_questions: Optional[bool] = None
     allow_pause_resume: Optional[bool] = None
@@ -112,6 +114,7 @@ class AssessmentResponse(BaseModel):
 
     # Audience
     target_audience: TargetAudience
+    target_departments: Optional[List[str]] = None
 
     # Settings
     time_limit: Optional[int]

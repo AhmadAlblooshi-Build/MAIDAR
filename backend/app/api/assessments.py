@@ -257,7 +257,12 @@ def deploy_assessment(
     Deploy an assessment, making it active and available to employees.
 
     Validates that assessment has at least one question before deploying.
+    Creates AssessmentResult records for all targeted employees based on audience type.
     """
+    from app.models.employee import Employee
+    from app.models.assessment import AssessmentResult, TargetAudience
+    from datetime import timedelta
+
     assessment = (
         db.query(Assessment)
         .filter(
@@ -280,13 +285,72 @@ def deploy_assessment(
             detail="Assessment must have at least one question to deploy",
         )
 
-    # Update status
+    # Query employees based on target audience
+    employee_query = db.query(Employee).filter(
+        Employee.tenant_id == current_user.tenant_id,
+        Employee.is_active == True,
+    )
+
+    if assessment.target_audience == TargetAudience.GLOBAL.value:
+        # All active employees
+        pass  # No additional filter needed
+
+    elif assessment.target_audience == TargetAudience.RISK.value:
+        # High risk employees (risk_score > 68, which is > 6.8 on 0-10 scale)
+        employee_query = employee_query.filter(Employee.risk_score > 68)
+
+    elif assessment.target_audience == TargetAudience.NEWHIRES.value:
+        # Employees hired in the last 90 days
+        ninety_days_ago = datetime.utcnow() - timedelta(days=90)
+        employee_query = employee_query.filter(Employee.created_at >= ninety_days_ago)
+
+    elif assessment.target_audience == TargetAudience.DEPARTMENTAL.value:
+        # Specific departments
+        if not assessment.target_departments or len(assessment.target_departments) == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Departmental filter requires at least one department to be selected",
+            )
+        employee_query = employee_query.filter(Employee.department.in_(assessment.target_departments))
+
+    # Get all targeted employees
+    targeted_employees = employee_query.all()
+
+    if len(targeted_employees) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No employees match the selected audience criteria ({assessment.target_audience})",
+        )
+
+    # Create AssessmentResult records for each targeted employee
+    created_count = 0
+    for employee in targeted_employees:
+        # Check if result already exists (avoid duplicates on re-deploy)
+        existing = db.query(AssessmentResult).filter(
+            AssessmentResult.assessment_id == assessment.id,
+            AssessmentResult.employee_id == employee.id,
+        ).first()
+
+        if not existing:
+            result = AssessmentResult(
+                assessment_id=assessment.id,
+                employee_id=employee.id,
+                status="in_progress",
+                started_at=datetime.utcnow(),
+            )
+            db.add(result)
+            created_count += 1
+
+    # Update assessment status
     assessment.status = AssessmentStatus.ACTIVE
     assessment.deployed_at = datetime.utcnow()
     assessment.updated_at = datetime.utcnow()
 
     db.commit()
     db.refresh(assessment)
+
+    # Log deployment info
+    print(f"Assessment {assessment.id} deployed to {created_count} employees (audience: {assessment.target_audience})")
 
     return assessment
 

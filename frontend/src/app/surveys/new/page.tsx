@@ -46,6 +46,7 @@ function AssessmentWizard() {
     description: '',
     // Step 2 - Audience
     targetAudience: 'global',
+    selectedDepartments: [] as string[],
     // Step 3 - Questions
     questions: [] as any[],
     // Step 4 - Settings
@@ -114,6 +115,13 @@ function AssessmentWizard() {
         };
       });
 
+      // Validate departmental filter has departments selected
+      if (assessment.targetAudience === 'departmental' && assessment.selectedDepartments.length === 0) {
+        alert('Please select at least one department for departmental filter');
+        setCurrentStep(2);
+        return;
+      }
+
       // Create assessment
       const created = await assessmentAPI.create({
         title: assessment.title.trim(),
@@ -121,6 +129,7 @@ function AssessmentWizard() {
         priority: assessment.priority?.trim() || undefined,
         description: assessment.description?.trim() || undefined,
         target_audience: assessment.targetAudience as 'global' | 'departmental' | 'risk' | 'newhires',
+        target_departments: assessment.selectedDepartments.length > 0 ? assessment.selectedDepartments : undefined,
         time_limit: assessment.timeLimit || undefined,
         randomize_questions: assessment.randomizeQuestions,
         allow_pause_resume: assessment.allowPauseResume,
@@ -367,11 +376,52 @@ function Step1Identity({ assessment, setAssessment }: any) {
 
 // Step 2: Audience
 function Step2Audience({ assessment, setAssessment }: any) {
+  const [departments, setDepartments] = React.useState<string[]>([]);
+  const [loadingDepartments, setLoadingDepartments] = React.useState(false);
+
+  React.useEffect(() => {
+    loadDepartments();
+  }, []);
+
+  const loadDepartments = async () => {
+    try {
+      setLoadingDepartments(true);
+      const { employeeAPI } = await import('@/lib/api');
+      const response = await employeeAPI.search({ page: 1, page_size: 10000 });
+
+      // Extract unique departments
+      const uniqueDepts = Array.from(new Set(
+        response.employees.map((emp: any) => emp.department).filter(Boolean)
+      )).sort();
+
+      setDepartments(uniqueDepts as string[]);
+    } catch (error) {
+      console.error('Failed to load departments:', error);
+    } finally {
+      setLoadingDepartments(false);
+    }
+  };
+
+  const toggleDepartment = (dept: string) => {
+    const selected = assessment.selectedDepartments || [];
+    if (selected.includes(dept)) {
+      setAssessment({
+        ...assessment,
+        selectedDepartments: selected.filter((d: string) => d !== dept),
+      });
+    } else {
+      setAssessment({
+        ...assessment,
+        selectedDepartments: [...selected, dept],
+      });
+    }
+  };
+
   const audiences = [
-    { id: 'global', label: 'Global Deployment', description: 'Target all workforce entities' },
-    { id: 'departmental', label: 'Departmental Filter', description: 'Specific departments' },
-    { id: 'risk', label: 'Risk Threshold', description: 'High-risk employees' },
-    { id: 'newhires', label: 'New Hires', description: 'Recently onboarded' },
+    { id: 'global', label: 'Global Deployment', description: 'All active employees' },
+    { id: 'risk', label: 'Risk Threshold', description: 'High-risk employees (score > 68)' },
+    { id: 'newhires', label: 'New Hires', description: 'Hired within last 90 days' },
+    { id: 'departmental', label: 'Departmental Filter', description: 'Select specific departments' },
   ];
 
   return (
@@ -399,6 +449,54 @@ function Step2Audience({ assessment, setAssessment }: any) {
           </div>
         ))}
       </div>
+
+      {/* Department Selection (shown when Departmental Filter is selected) */}
+      {assessment.targetAudience === 'departmental' && (
+        <div className="mt-6 p-6 bg-slate-50 rounded-xl border border-slate-200">
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">
+            Select Departments
+            {assessment.selectedDepartments && assessment.selectedDepartments.length > 0 && (
+              <span className="ml-2 text-sm font-normal text-teal-600">
+                ({assessment.selectedDepartments.length} selected)
+              </span>
+            )}
+          </h3>
+
+          {loadingDepartments ? (
+            <div className="text-center py-4 text-slate-500">Loading departments...</div>
+          ) : departments.length === 0 ? (
+            <div className="text-center py-4 text-slate-500">No departments found</div>
+          ) : (
+            <div className="grid grid-cols-3 gap-3">
+              {departments.map((dept) => {
+                const isSelected = assessment.selectedDepartments?.includes(dept);
+                return (
+                  <button
+                    key={dept}
+                    onClick={() => toggleDepartment(dept)}
+                    className={`px-4 py-3 rounded-lg border-2 text-left transition-all ${
+                      isSelected
+                        ? 'border-teal-500 bg-teal-50 text-teal-900 font-medium'
+                        : 'border-slate-200 hover:border-teal-300 text-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                          isSelected ? 'bg-teal-500 border-teal-500' : 'border-slate-300'
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3 h-3 text-white" />}
+                      </div>
+                      <span className="text-sm">{dept}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
