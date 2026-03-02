@@ -468,7 +468,7 @@ function CampaignWizardContent() {
                             className={`p-3 rounded-lg border-2 capitalize transition-all ${
                               aiConfig.personalization === level
                                 ? 'border-teal-500 bg-teal-50 text-teal-700'
-                                : 'border-slate-200 bg-white hover:border-teal-300'
+                                : 'border-slate-200 bg-white text-slate-700 hover:border-teal-300'
                             }`}
                           >
                             {level}
@@ -488,7 +488,7 @@ function CampaignWizardContent() {
                             className={`p-3 rounded-lg border-2 capitalize transition-all ${
                               aiConfig.tone === tone
                                 ? 'border-teal-500 bg-teal-50 text-teal-700'
-                                : 'border-slate-200 bg-white hover:border-teal-300'
+                                : 'border-slate-200 bg-white text-slate-700 hover:border-teal-300'
                             }`}
                           >
                             {tone}
@@ -522,7 +522,7 @@ function CampaignWizardContent() {
                             className={`p-3 rounded-lg border-2 transition-all ${
                               aiConfig.contentType === type.value
                                 ? 'border-teal-500 bg-teal-50 text-teal-700'
-                                : 'border-slate-200 bg-white hover:border-teal-300'
+                                : 'border-slate-200 bg-white text-slate-700 hover:border-teal-300'
                             }`}
                           >
                             {type.label}
