@@ -167,15 +167,15 @@ function EmployeeProfileContent() {
                 </div>
                 <div className="flex items-center space-x-2 text-slate-600">
                   <Briefcase className="w-4 h-4" />
-                  <span>{employee.position || 'N/A'}</span>
+                  <span>{employee.job_title || 'N/A'}</span>
                 </div>
                 <div className="flex items-center space-x-2 text-slate-600">
                   <Building className="w-4 h-4" />
                   <span>{employee.department || 'N/A'}</span>
                 </div>
                 <div className="flex items-center space-x-2 text-slate-600">
-                  <MapPin className="w-4 h-4" />
-                  <span>{employee.location || 'N/A'}</span>
+                  <User className="w-4 h-4" />
+                  <span>{employee.seniority || 'N/A'}</span>
                 </div>
                 <div className="flex items-center space-x-2 text-slate-600">
                   <Calendar className="w-4 h-4" />
@@ -211,34 +211,34 @@ function EmployeeProfileContent() {
         </p>
         <div className="space-y-4">
           <RiskFactorItem
-            label="Age Factor"
-            value={employee.age ? `${employee.age} years` : 'N/A'}
-            impact={employee.age && employee.age < 30 ? 'high' : 'medium'}
-            description={employee.age && employee.age < 30 ? 'Younger employees tend to have less security awareness' : 'Age within typical risk range'}
+            label="Age Range"
+            value={employee.age_range ? employee.age_range.replace('_', '-') : 'N/A'}
+            impact={employee.age_range && (employee.age_range === '18_24' || employee.age_range === '25_34') ? 'high' : 'medium'}
+            description={employee.age_range && (employee.age_range === '18_24' || employee.age_range === '25_34') ? 'Younger employees tend to have less security awareness' : 'Age within typical risk range'}
           />
           <RiskFactorItem
-            label="Position Level"
-            value={employee.position || 'N/A'}
-            impact={employee.position?.toLowerCase().includes('manager') || employee.position?.toLowerCase().includes('director') ? 'high' : 'medium'}
-            description={employee.position?.toLowerCase().includes('manager') ? 'Leadership positions have access to sensitive data' : 'Standard employee access level'}
+            label="Seniority Level"
+            value={employee.seniority || 'N/A'}
+            impact={employee.seniority === 'EXECUTIVE' || employee.seniority === 'SENIOR' || employee.seniority === 'Executive' || employee.seniority === 'Senior' ? 'high' : 'medium'}
+            description={employee.seniority === 'EXECUTIVE' || employee.seniority === 'Executive' ? 'Executive positions have access to highly sensitive data' : employee.seniority === 'SENIOR' || employee.seniority === 'Senior' ? 'Senior positions have elevated access privileges' : 'Standard employee access level'}
+          />
+          <RiskFactorItem
+            label="Technical Literacy"
+            value={employee.technical_literacy ? `${employee.technical_literacy}/10` : 'N/A'}
+            impact={employee.technical_literacy && employee.technical_literacy < 5 ? 'high' : employee.technical_literacy && employee.technical_literacy < 7 ? 'medium' : 'low'}
+            description={employee.technical_literacy && employee.technical_literacy < 5 ? 'Low technical literacy increases susceptibility to phishing' : employee.technical_literacy && employee.technical_literacy < 7 ? 'Moderate technical skills' : 'Strong technical skills reduce risk'}
           />
           <RiskFactorItem
             label="Department"
             value={employee.department || 'N/A'}
-            impact={employee.department?.toLowerCase().includes('finance') || employee.department?.toLowerCase().includes('hr') ? 'high' : 'medium'}
-            description={employee.department?.toLowerCase().includes('finance') ? 'Finance departments are high-value targets' : 'Department risk level moderate'}
+            impact={employee.department?.toLowerCase().includes('finance') || employee.department?.toLowerCase().includes('hr') || employee.department?.toLowerCase().includes('executive') ? 'high' : 'medium'}
+            description={employee.department?.toLowerCase().includes('finance') ? 'Finance departments are high-value targets' : employee.department?.toLowerCase().includes('hr') ? 'HR has access to sensitive employee data' : 'Department risk level moderate'}
           />
           <RiskFactorItem
-            label="Security Training"
-            value={employee.training_completed ? 'Completed' : 'Not Completed'}
-            impact={employee.training_completed ? 'low' : 'high'}
-            description={employee.training_completed ? 'Recent security training completed' : 'No recent security training recorded'}
-          />
-          <RiskFactorItem
-            label="Simulation Performance"
-            value={`${employee.simulations_failed || 0} failed`}
-            impact={employee.simulations_failed > 2 ? 'high' : employee.simulations_failed > 0 ? 'medium' : 'low'}
-            description={employee.simulations_failed > 2 ? 'Multiple failed phishing simulations indicate high risk' : employee.simulations_failed > 0 ? 'Some failed simulations' : 'Good simulation performance'}
+            label="Job Title"
+            value={employee.job_title || 'N/A'}
+            impact={employee.job_title?.toLowerCase().includes('manager') || employee.job_title?.toLowerCase().includes('director') || employee.job_title?.toLowerCase().includes('ceo') || employee.job_title?.toLowerCase().includes('cfo') ? 'high' : 'medium'}
+            description={employee.job_title?.toLowerCase().includes('ceo') || employee.job_title?.toLowerCase().includes('cfo') ? 'C-level positions are prime targets for spear phishing' : employee.job_title?.toLowerCase().includes('manager') || employee.job_title?.toLowerCase().includes('director') ? 'Leadership positions have access to sensitive data' : 'Standard role risk level'}
           />
         </div>
       </Card>

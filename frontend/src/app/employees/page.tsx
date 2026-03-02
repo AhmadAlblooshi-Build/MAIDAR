@@ -313,6 +313,8 @@ function AddEmployeeModal({
     email: '',
     department: '',
     job_title: '',
+    age_range: '25_34',
+    technical_literacy: 5,
     seniority: 'Mid-Level',
   });
 
@@ -363,6 +365,34 @@ function AddEmployeeModal({
           onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
           placeholder="Software Engineer"
         />
+        <Select
+          label="Age Range"
+          required
+          value={formData.age_range}
+          onChange={(e) => setFormData({ ...formData, age_range: e.target.value })}
+          options={[
+            { value: '18_24', label: '18-24' },
+            { value: '25_34', label: '25-34' },
+            { value: '35_44', label: '35-44' },
+            { value: '45_54', label: '45-54' },
+            { value: '55_plus', label: '55+' },
+          ]}
+        />
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Technical Literacy (1-10)
+          </label>
+          <input
+            type="number"
+            min="1"
+            max="10"
+            required
+            value={formData.technical_literacy}
+            onChange={(e) => setFormData({ ...formData, technical_literacy: parseInt(e.target.value) })}
+            className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
+          <p className="text-xs text-slate-500 mt-1">1 = Low, 10 = High technical skills</p>
+        </div>
         <Select
           label="Seniority"
           required
