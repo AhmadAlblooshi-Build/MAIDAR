@@ -57,8 +57,8 @@ class Assessment(Base):
     priority = Column(String(100), nullable=True)
     description = Column(Text, nullable=True)
 
-    # Audience targeting
-    target_audience = Column(SQLEnum(TargetAudience), nullable=False, default=TargetAudience.GLOBAL)
+    # Audience targeting (validated by Pydantic schema)
+    target_audience = Column(String(50), nullable=False, default='global')
 
     # Settings
     time_limit = Column(Integer, nullable=True)  # Minutes
@@ -66,8 +66,8 @@ class Assessment(Base):
     allow_pause_resume = Column(Boolean, default=False)
     anonymous_responses = Column(Boolean, default=False)
 
-    # Status
-    status = Column(SQLEnum(AssessmentStatus), nullable=False, default=AssessmentStatus.DRAFT)
+    # Status (validated by Pydantic schema)
+    status = Column(String(20), nullable=False, default='draft')
 
     # Timestamps
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
@@ -87,7 +87,7 @@ class AssessmentQuestion(Base):
     assessment_id = Column(UUID(as_uuid=True), ForeignKey("assessments.id", ondelete="CASCADE"), nullable=False, index=True)
 
     question_text = Column(Text, nullable=False)
-    question_type = Column(SQLEnum(QuestionType), nullable=False, default=QuestionType.MULTIPLE_CHOICE)
+    question_type = Column(String(50), nullable=False, default='multiple_choice')  # Validated by Pydantic schema
     order_index = Column(Integer, nullable=False, default=0)
 
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
@@ -120,8 +120,8 @@ class AssessmentResult(Base):
     assessment_id = Column(UUID(as_uuid=True), ForeignKey("assessments.id", ondelete="CASCADE"), nullable=False, index=True)
     employee_id = Column(UUID(as_uuid=True), ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
 
-    # Status and timing
-    status = Column(SQLEnum(AssessmentResultStatus), nullable=False, default=AssessmentResultStatus.IN_PROGRESS)
+    # Status and timing (validated by Pydantic schema)
+    status = Column(String(20), nullable=False, default='in_progress')
     started_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
     time_taken = Column(Integer, nullable=True)  # Seconds

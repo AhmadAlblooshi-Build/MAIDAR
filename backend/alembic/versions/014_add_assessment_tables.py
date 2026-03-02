@@ -32,8 +32,8 @@ def upgrade():
         sa.Column('priority', sa.String(100), nullable=True),
         sa.Column('description', sa.Text, nullable=True),
 
-        # Audience targeting
-        sa.Column('target_audience', sa.Enum('global', 'departmental', 'risk', 'newhires', name='targetaudience'), nullable=False, server_default='global'),
+        # Audience targeting (validated by Pydantic schema)
+        sa.Column('target_audience', sa.String(50), nullable=False, server_default='global'),
 
         # Settings
         sa.Column('time_limit', sa.Integer, nullable=True),
@@ -41,8 +41,8 @@ def upgrade():
         sa.Column('allow_pause_resume', sa.Boolean, nullable=False, server_default='false'),
         sa.Column('anonymous_responses', sa.Boolean, nullable=False, server_default='false'),
 
-        # Status
-        sa.Column('status', sa.Enum('draft', 'active', 'completed', 'archived', name='assessmentstatus'), nullable=False, server_default='draft'),
+        # Status (validated by Pydantic schema)
+        sa.Column('status', sa.String(20), nullable=False, server_default='draft'),
 
         # Timestamps
         sa.Column('created_at', sa.DateTime, nullable=False, server_default=sa.text('NOW()')),
@@ -57,7 +57,7 @@ def upgrade():
         sa.Column('assessment_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('assessments.id', ondelete='CASCADE'), nullable=False, index=True),
 
         sa.Column('question_text', sa.Text, nullable=False),
-        sa.Column('question_type', sa.Enum('multiple_choice', 'true_false', 'scenario_based', 'short_text', name='questiontype'), nullable=False, server_default='multiple_choice'),
+        sa.Column('question_type', sa.String(50), nullable=False, server_default='multiple_choice'),
         sa.Column('order_index', sa.Integer, nullable=False, server_default='0'),
 
         sa.Column('created_at', sa.DateTime, nullable=False, server_default=sa.text('NOW()')),
@@ -81,8 +81,8 @@ def upgrade():
         sa.Column('assessment_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('assessments.id', ondelete='CASCADE'), nullable=False, index=True),
         sa.Column('employee_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('employees.id', ondelete='CASCADE'), nullable=False, index=True),
 
-        # Status and timing
-        sa.Column('status', sa.Enum('in_progress', 'completed', 'abandoned', name='assessmentresultstatus'), nullable=False, server_default='in_progress'),
+        # Status and timing (validated by Pydantic schema)
+        sa.Column('status', sa.String(20), nullable=False, server_default='in_progress'),
         sa.Column('started_at', sa.DateTime, nullable=False, server_default=sa.text('NOW()')),
         sa.Column('completed_at', sa.DateTime, nullable=True),
         sa.Column('time_taken', sa.Integer, nullable=True),  # Seconds
@@ -129,9 +129,3 @@ def downgrade():
     op.drop_table('assessment_question_responses')
     op.drop_table('assessment_questions')
     op.drop_table('assessments')
-
-    # Drop enums
-    op.execute('DROP TYPE IF EXISTS assessmentresultstatus')
-    op.execute('DROP TYPE IF EXISTS questiontype')
-    op.execute('DROP TYPE IF EXISTS assessmentstatus')
-    op.execute('DROP TYPE IF EXISTS targetaudience')
