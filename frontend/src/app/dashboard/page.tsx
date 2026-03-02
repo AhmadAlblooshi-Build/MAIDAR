@@ -188,7 +188,7 @@ function DashboardContent() {
   // Filter departments if selected
   const filteredDepartments = selectedDepartment === 'all'
     ? departmentBreakdown
-    : departmentBreakdown.filter(d => d.department === selectedDepartment);
+    : departmentBreakdown.filter((d: any) => d.department === selectedDepartment);
 
   return (
     <div className="space-y-6">
