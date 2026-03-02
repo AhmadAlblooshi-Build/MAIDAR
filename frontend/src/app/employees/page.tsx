@@ -18,7 +18,7 @@ import Badge from '@/components/ui/Badge';
 import Spinner from '@/components/ui/Spinner';
 import Table, { Pagination } from '@/components/ui/Table';
 import Modal from '@/components/ui/Modal';
-import { Search, Upload, UserPlus, MoreHorizontal, Download, FileSpreadsheet, CheckCircle, AlertCircle } from 'lucide-react';
+import { Search, Upload, UserPlus, MoreHorizontal, Download, FileSpreadsheet, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 
 export default function EmployeesPage() {
   return (
@@ -42,6 +42,8 @@ function EmployeesContent() {
   const [filterRole, setFilterRole] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadEmployees();
@@ -65,6 +67,26 @@ function EmployeesContent() {
       console.error('Failed to load employees:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      setDeleting(true);
+
+      // Delete all employees one by one
+      const deletePromises = employees.map(emp => employeeAPI.delete(emp.id));
+      await Promise.all(deletePromises);
+
+      // Reload employees list
+      await loadEmployees();
+      setShowDeleteConfirmModal(false);
+      alert(`Successfully deleted ${employees.length} employees`);
+    } catch (error) {
+      console.error('Failed to delete employees:', error);
+      alert('Failed to delete employees. Please try again.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -113,6 +135,13 @@ function EmployeesContent() {
             className="px-6 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-700 font-medium hover:bg-slate-50 transition-colors"
           >
             Bulk Import
+          </button>
+          <button
+            onClick={() => setShowDeleteConfirmModal(true)}
+            disabled={employees.length === 0}
+            className="px-6 py-2.5 rounded-lg bg-white border border-red-300 text-red-600 font-medium hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Bulk Delete
           </button>
           <button
             onClick={() => setShowAddModal(true)}
@@ -294,6 +323,68 @@ function EmployeesContent() {
           loadEmployees();
         }}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirmModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">Bulk Delete Employees</h2>
+                <p className="text-sm text-slate-500">This action cannot be undone</p>
+              </div>
+            </div>
+
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-red-900 font-medium mb-2">
+                ⚠️ Warning: You are about to delete all employees on this page
+              </p>
+              <p className="text-sm text-red-800">
+                This will permanently delete <strong>{employees.length} employees</strong> and all their associated data including:
+              </p>
+              <ul className="text-sm text-red-800 mt-2 ml-4 list-disc space-y-1">
+                <li>Risk scores and history</li>
+                <li>Simulation results</li>
+                <li>Survey responses</li>
+              </ul>
+            </div>
+
+            <p className="text-slate-700 mb-6 font-medium">
+              Are you sure you want to delete all {employees.length} employees?
+            </p>
+
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirmModal(false)}
+                disabled={deleting}
+                className="px-6 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-700 font-medium hover:bg-slate-50 transition-colors disabled:opacity-50"
+              >
+                No, Cancel
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={deleting}
+                className="px-6 py-2.5 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {deleting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Yes, Delete All
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
