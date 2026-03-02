@@ -265,38 +265,102 @@ function EmployeesContent() {
             <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
               <div className="text-sm text-slate-600">
                 {employees.length > 0
-                  ? `1 of ${totalPages} Users shows`
+                  ? `Page ${currentPage} of ${totalPages} • Showing ${employees.length} of ${totalCount} employees`
                   : 'No employees found'}
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 rounded text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Previous
                 </button>
-                {[...Array(Math.min(5, totalPages))].map((_, idx) => {
-                  const page = idx + 1;
-                  return (
+
+                {/* Page numbers */}
+                {totalPages <= 7 ? (
+                  // Show all pages if 7 or fewer
+                  [...Array(totalPages)].map((_, idx) => {
+                    const page = idx + 1;
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
+                          currentPage === page
+                            ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-md'
+                            : 'text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    );
+                  })
+                ) : (
+                  // Show smart pagination for more than 7 pages
+                  <>
+                    {/* First page */}
                     <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`w-8 h-8 rounded text-sm font-medium transition-colors ${
-                        currentPage === page
-                          ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white'
+                      onClick={() => setCurrentPage(1)}
+                      className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
+                        currentPage === 1
+                          ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-md'
                           : 'text-slate-600 hover:bg-slate-100'
                       }`}
                     >
-                      {page}
+                      1
                     </button>
-                  );
-                })}
-                {totalPages > 5 && <span className="text-slate-400">...</span>}
+
+                    {currentPage > 3 && <span className="text-slate-400">...</span>}
+
+                    {/* Middle pages */}
+                    {[...Array(5)].map((_, idx) => {
+                      let page;
+                      if (currentPage <= 3) {
+                        page = idx + 2;
+                      } else if (currentPage >= totalPages - 2) {
+                        page = totalPages - 5 + idx;
+                      } else {
+                        page = currentPage - 2 + idx;
+                      }
+
+                      if (page <= 1 || page >= totalPages) return null;
+
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
+                            currentPage === page
+                              ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-md'
+                              : 'text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
+
+                    {currentPage < totalPages - 2 && <span className="text-slate-400">...</span>}
+
+                    {/* Last page */}
+                    <button
+                      onClick={() => setCurrentPage(totalPages)}
+                      className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
+                        currentPage === totalPages
+                          ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-md'
+                          : 'text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      {totalPages}
+                    </button>
+                  </>
+                )}
+
                 <button
                   onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 rounded text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Next
                 </button>
