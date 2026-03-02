@@ -45,37 +45,40 @@ def create_employee(
 
     Requires TENANT_ADMIN or PLATFORM_SUPER_ADMIN role.
     """
-    logger.info(f"Creating employee with age_range: {employee_data.age_range} (type: {type(employee_data.age_range)})")
-
-    # Check if employee_id already exists in tenant
-    existing = db.query(Employee).filter(
-        Employee.tenant_id == current_user.tenant_id,
-        Employee.employee_id == employee_data.employee_id,
-        Employee.deleted_at == None
-    ).first()
-
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Employee with ID '{employee_data.employee_id}' already exists"
-        )
-
-    # Check if email already exists in tenant
-    existing_email = db.query(Employee).filter(
-        Employee.tenant_id == current_user.tenant_id,
-        Employee.email == employee_data.email,
-        Employee.deleted_at == None
-    ).first()
-
-    if existing_email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Employee with email '{employee_data.email}' already exists"
-        )
-
-    # Create employee
-    logger.info("About to create Employee object...")
     try:
+        logger.info(f"📥 Creating employee: {employee_data.email}")
+        logger.info(f"   Data: age_range={employee_data.age_range}, seniority={employee_data.seniority}, "
+                   f"department={employee_data.department}, technical_literacy={employee_data.technical_literacy}, "
+                   f"languages={employee_data.languages}, gender={employee_data.gender}")
+
+        # Check if employee_id already exists in tenant
+        existing = db.query(Employee).filter(
+            Employee.tenant_id == current_user.tenant_id,
+            Employee.employee_id == employee_data.employee_id,
+            Employee.deleted_at == None
+        ).first()
+
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Employee with ID '{employee_data.employee_id}' already exists"
+            )
+
+        # Check if email already exists in tenant
+        existing_email = db.query(Employee).filter(
+            Employee.tenant_id == current_user.tenant_id,
+            Employee.email == employee_data.email,
+            Employee.deleted_at == None
+        ).first()
+
+        if existing_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Employee with email '{employee_data.email}' already exists"
+            )
+
+        # Create employee
+        logger.info("📝 Creating Employee object...")
         employee = Employee(
             tenant_id=current_user.tenant_id,
             employee_id=employee_data.employee_id,
@@ -89,37 +92,46 @@ def create_employee(
             department=employee_data.department,
             job_title=employee_data.job_title
         )
-        logger.info("Employee object created successfully")
+        logger.info("✅ Employee object created")
+
+        logger.info("💾 Saving to database...")
+        db.add(employee)
+        db.flush()  # Flush to assign ID before commit
+        logger.info("🔄 Committing transaction...")
+        db.commit()  # Commit transaction
+        logger.info("🔃 Refreshing employee data...")
+        db.refresh(employee)  # Refresh to get latest DB state
+
+        logger.info(f"✅ Employee created successfully: {employee.employee_id}")
+
+        return EmployeeResponse(
+            id=str(employee.id),
+            tenant_id=str(employee.tenant_id),
+            employee_id=employee.employee_id,
+            email=employee.email,
+            full_name=employee.full_name,
+            age_range=employee.age_range,
+            gender=employee.gender if employee.gender else None,
+            languages=employee.languages,
+            technical_literacy=employee.technical_literacy,
+            seniority=employee.seniority,
+            department=employee.department,
+            job_title=employee.job_title,
+            risk_score=employee.risk_score,
+            risk_band=employee.risk_band,
+            created_at=employee.created_at,
+            updated_at=employee.updated_at,
+            is_deleted=employee.is_deleted
+        )
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
     except Exception as e:
-        logger.error(f"Failed to create Employee object: {e}")
-        raise
-
-    db.add(employee)
-    db.flush()  # Flush to assign ID before commit
-    db.commit()  # Commit transaction
-    db.refresh(employee)  # Refresh to get latest DB state
-
-    logger.info(f"Employee created: {employee.employee_id} by user {current_user.email}")
-
-    return EmployeeResponse(
-        id=str(employee.id),
-        tenant_id=str(employee.tenant_id),
-        employee_id=employee.employee_id,
-        email=employee.email,
-        full_name=employee.full_name,
-        age_range=employee.age_range,
-        gender=employee.gender if employee.gender else None,
-        languages=employee.languages,
-        technical_literacy=employee.technical_literacy,
-        seniority=employee.seniority,
-        department=employee.department,
-        job_title=employee.job_title,
-        risk_score=employee.risk_score,
-        risk_band=employee.risk_band,
-        created_at=employee.created_at,
-        updated_at=employee.updated_at,
-        is_deleted=employee.is_deleted
-    )
+        logger.error(f"❌ CRITICAL ERROR creating employee: {type(e).__name__}: {str(e)}")
+        logger.exception("Full traceback:")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create employee: {type(e).__name__}: {str(e)}"
+        )
 
 
 @router.get("/statistics", response_model=EmployeeStatistics)
