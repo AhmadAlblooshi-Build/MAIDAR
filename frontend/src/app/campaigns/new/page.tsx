@@ -441,7 +441,7 @@ function Step1CampaignType({ campaignData, setCampaignData }: any) {
             value={campaignData.name}
             onChange={(e) => setCampaignData({ ...campaignData, name: e.target.value })}
             placeholder="e.g., Q1 2026 Phishing Test"
-            className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900 bg-white"
           />
         </div>
 
@@ -454,7 +454,7 @@ function Step1CampaignType({ campaignData, setCampaignData }: any) {
             onChange={(e) => setCampaignData({ ...campaignData, description: e.target.value })}
             placeholder="Brief description of this campaign's purpose"
             rows={3}
-            className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900 bg-white"
           />
         </div>
       </div>
@@ -702,13 +702,13 @@ function Step3Content({ campaignData, setCampaignData, scenarios }: any) {
                   type="date"
                   value={campaignData.scheduledDate}
                   onChange={(e) => setCampaignData({ ...campaignData, scheduledDate: e.target.value })}
-                  className="px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
+                  className="px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm text-slate-900 bg-white"
                 />
                 <input
                   type="time"
                   value={campaignData.scheduledTime}
                   onChange={(e) => setCampaignData({ ...campaignData, scheduledTime: e.target.value })}
-                  className="px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
+                  className="px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm text-slate-900 bg-white"
                 />
               </div>
             )}
