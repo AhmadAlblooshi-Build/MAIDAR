@@ -119,6 +119,10 @@ def create_simulation(
         status=status_value,
         target_employee_ids=employee_uuids,  # Store the employee IDs array
         scheduled_at=simulation_data.scheduled_at,
+        send_immediately=simulation_data.send_immediately,
+        track_opens=simulation_data.track_opens,
+        track_clicks=simulation_data.track_clicks,
+        track_credentials=simulation_data.track_credentials,
         created_by=current_user.id
     )
 
@@ -139,6 +143,19 @@ def create_simulation(
     db.refresh(simulation)
 
     logger.info(f"Simulation created: {simulation.name} by user {current_user.email} with {len(employee_uuids)} targets")
+
+    # Auto-launch if send_immediately is True
+    if simulation_data.send_immediately:
+        simulation.started_at = datetime.utcnow()
+        db.commit()
+
+        # Queue background task to send emails immediately
+        logger.info(f"Auto-launching simulation {simulation.id} - sending emails immediately")
+        launch_simulation_emails.delay(
+            simulation_id=str(simulation.id),
+            admin_email=current_user.email,
+            admin_name=current_user.full_name
+        )
 
     return SimulationResponse(
         id=str(simulation.id),
