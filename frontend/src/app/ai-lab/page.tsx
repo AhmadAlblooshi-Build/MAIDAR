@@ -49,7 +49,7 @@ function AILabContent() {
   const loadSavedScenarios = async () => {
     try {
       setLoadingScenarios(true);
-      const response = await scenarioAPI.search({ page: 1, page_size: 100 });
+      const response = await scenarioAPI.search({ page: 1, page_size: 100 }) as any;
       setSavedScenarios(response.scenarios || []);
     } catch (err) {
       console.error('Failed to load scenarios:', err);
