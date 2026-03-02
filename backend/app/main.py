@@ -285,12 +285,20 @@ async def value_error_handler(request, exc):
 @app.exception_handler(Exception)
 async def general_exception_handler(request, exc):
     """Handle general exceptions with CORS headers."""
+    # Don't catch HTTPException - let FastAPI handle it
+    from fastapi import HTTPException as FastAPIHTTPException
+    if isinstance(exc, FastAPIHTTPException):
+        raise exc
+
     if settings.DEBUG:
         raise exc  # In debug mode, show full traceback
 
+    # Log the error for debugging
+    logger.error(f"Unhandled exception: {type(exc).__name__}: {str(exc)}")
+
     return JSONResponse(
         status_code=500,
-        content={"error": "Internal Server Error", "detail": "An unexpected error occurred"},
+        content={"error": "Internal Server Error", "detail": f"{type(exc).__name__}: {str(exc)}"},
         headers={
             "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
             "Access-Control-Allow-Credentials": "true",
