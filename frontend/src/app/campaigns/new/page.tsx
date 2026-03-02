@@ -98,7 +98,7 @@ function CampaignWizardContent() {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ page: 1, page_size: 1000 })
+          body: JSON.stringify({ page: 1, page_size: 500 })
         }),
         fetch(`${apiUrl}/api/v1/scenarios/search`, {
           method: 'POST',
@@ -113,11 +113,11 @@ function CampaignWizardContent() {
       const employeesData = await employeesRes.json();
       const scenariosData = await scenariosRes.json();
 
-      setEmployees(employeesData.items || []);
-      setScenarios(scenariosData.items || []);
+      setEmployees(employeesData.employees || []);
+      setScenarios(scenariosData.scenarios || []);
 
       // Extract unique departments
-      const depts = [...new Set(employeesData.items?.map((e: any) => e.department).filter(Boolean))] as string[];
+      const depts = [...new Set(employeesData.employees?.map((e: any) => e.department).filter(Boolean))] as string[];
       setDepartments(depts);
     } catch (err) {
       console.error('Failed to load wizard data:', err);
