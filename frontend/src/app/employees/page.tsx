@@ -416,12 +416,12 @@ function BulkImportModal({
 
     try {
       setUploading(true);
-      const result = await employeeAPI.uploadCSV(selectedFile);
+      const result = await employeeAPI.uploadCSV(selectedFile) as any;
       setUploadResult(result);
       setSelectedFile(null);
 
       // If successful, refresh the employee list after a short delay
-      if (result.successful > 0) {
+      if (result?.successful > 0) {
         setTimeout(() => {
           onSuccess();
         }, 2000);
