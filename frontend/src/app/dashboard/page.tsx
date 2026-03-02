@@ -80,6 +80,8 @@ function DashboardContent() {
       // Calculate risk breakdowns for different categories
       const employees = allEmployees.employees || [];
       console.log('Total employees loaded:', employees.length);
+      console.log('Sample employee data:', employees[0]);
+      console.log('Employees with risk scores:', employees.filter((e: any) => e.risk_score).length);
 
       // Helper function to calculate breakdown
       const calculateBreakdown = (field: string) => {
@@ -121,7 +123,10 @@ function DashboardContent() {
         Language: calculateBreakdown('languages')
       };
 
-      console.log('Risk breakdowns:', riskBreakdowns);
+      console.log('=== RISK BREAKDOWNS DATA ===');
+      console.log('Department breakdown:', riskBreakdowns.Department);
+      console.log('Seniority breakdown:', riskBreakdowns.Seniority);
+      console.log('Full riskBreakdowns object:', riskBreakdowns);
 
       // Get top 10 highest risk employees
       const highRiskEmployees = employees
@@ -419,8 +424,17 @@ function DashboardContent() {
               ]}
             />
           </div>
+          {/* DEBUG INFO */}
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs">
+            <div>Current View: <strong>{breakdownView}</strong></div>
+            <div>Data exists: <strong>{riskBreakdowns ? 'Yes' : 'No'}</strong></div>
+            <div>Breakdown items: <strong>{currentBreakdown?.length || 0}</strong></div>
+            {currentBreakdown?.length > 0 && (
+              <div>First item: <strong>{currentBreakdown[0]?.name} - {currentBreakdown[0]?.percentage?.toFixed(1)}%</strong></div>
+            )}
+          </div>
           <div className="space-y-4">
-            {currentBreakdown.length > 0 ? (
+            {currentBreakdown && currentBreakdown.length > 0 ? (
               currentBreakdown.map((item: any, idx: number) => (
                 <div key={idx}>
                   <div className="flex items-center justify-between mb-2">
