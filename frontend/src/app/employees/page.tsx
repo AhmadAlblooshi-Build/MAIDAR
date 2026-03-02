@@ -70,7 +70,7 @@ function EmployeesContent() {
       const searchParams: any = {
         page: currentPage,
         page_size: 12,
-        search: searchTerm || undefined,
+        query: searchTerm || undefined,  // Changed from 'search' to 'query' to match backend
         job_title: filterRole !== 'all' ? filterRole : undefined,
       };
 
