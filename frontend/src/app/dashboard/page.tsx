@@ -166,6 +166,7 @@ function DashboardContent() {
   const handleEditEmployee = async (employeeId: string) => {
     setOpenActionsMenu(null);
     try {
+      // Fetch employee data and open edit modal (no navigation)
       const employee = await employeeAPI.get(employeeId);
       setSelectedEmployee(employee);
       setShowEditModal(true);
