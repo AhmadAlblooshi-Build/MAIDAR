@@ -109,7 +109,7 @@ function AssessmentWizard() {
       }
 
       // Validate departmental filter has departments selected
-      if (assessment.targetAudience === 'departmental' && assessment.selectedDepartments.length === 0) {
+      if (assessment.targetAudience === 'departmental' && (!assessment.selectedDepartments || assessment.selectedDepartments.length === 0)) {
         alert('Please select at least one department for departmental filter');
         setCurrentStep(2);
         return;
@@ -138,6 +138,17 @@ function AssessmentWizard() {
         };
       });
 
+      // Prepare target_departments (only for departmental audience)
+      const targetDepartments = assessment.targetAudience === 'departmental' && assessment.selectedDepartments?.length > 0
+        ? assessment.selectedDepartments
+        : undefined;
+
+      console.log('Deploying with:', {
+        targetAudience: assessment.targetAudience,
+        targetDepartments,
+        selectedDepartments: assessment.selectedDepartments,
+      });
+
       // Create assessment
       const created = await assessmentAPI.create({
         title: assessment.title.trim(),
@@ -145,13 +156,15 @@ function AssessmentWizard() {
         priority: assessment.priority?.trim() || undefined,
         description: assessment.description?.trim() || undefined,
         target_audience: assessment.targetAudience as 'global' | 'departmental' | 'risk' | 'newhires',
-        target_departments: assessment.selectedDepartments.length > 0 ? assessment.selectedDepartments : undefined,
+        target_departments: targetDepartments,
         time_limit: assessment.timeLimit || undefined,
         randomize_questions: assessment.randomizeQuestions,
         allow_pause_resume: assessment.allowPauseResume,
         anonymous_responses: assessment.anonymousResponses,
         questions,
       });
+
+      console.log('Assessment created:', created);
 
       // Deploy the assessment
       await assessmentAPI.deploy(created.id);
