@@ -23,7 +23,11 @@ import type {
   ApiError,
 } from '@/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// Force HTTPS for production Railway URL
+let API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+if (API_URL.includes('railway.app') && API_URL.startsWith('http://')) {
+  API_URL = API_URL.replace('http://', 'https://');
+}
 const API_PREFIX = process.env.NEXT_PUBLIC_API_PREFIX || '/api/v1';
 
 // Create axios instance
