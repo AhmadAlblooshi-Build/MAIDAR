@@ -678,9 +678,12 @@ function AddEmployeeModal({
       });
     } catch (error: any) {
       console.error('❌ Failed to create employee:', error);
-      console.error('Error details:', error.response?.data || error.message);
-      const errorMsg = error.response?.data?.detail || error.message || 'Failed to create employee';
-      alert(`Failed to create employee: ${errorMsg}`);
+      console.error('Error response:', error.response);
+      console.error('Error status:', error.response?.status);
+      console.error('Error data:', error.response?.data);
+      console.error('Full error object:', JSON.stringify(error, null, 2));
+      const errorMsg = error.response?.data?.detail || error.response?.data?.error || error.message || 'Unknown error';
+      alert(`Failed to create employee (${error.response?.status || 'unknown'}): ${errorMsg}`);
     } finally {
       setLoading(false);
     }
