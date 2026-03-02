@@ -588,18 +588,86 @@ function AddEmployeeModal({
     email: '',
     department: '',
     job_title: '',
-    age_range: '25_34',
+    role: '',
+    gender: '',
+    date_of_birth: '',
+    language: '',
     technical_literacy: 5,
-    seniority: 'Mid-Level',
   });
+
+  // Calculate age range from date of birth
+  const calculateAgeRange = (dob: string): string => {
+    if (!dob) return '25_34';
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    if (age >= 18 && age <= 24) return '18_24';
+    if (age >= 25 && age <= 34) return '25_34';
+    if (age >= 35 && age <= 44) return '35_44';
+    if (age >= 45 && age <= 54) return '45_54';
+    return '55_plus';
+  };
+
+  // Map role to seniority
+  const mapRoleToSeniority = (role: string): string => {
+    const mapping: { [key: string]: string } = {
+      'Individual': 'mid',
+      'Manager': 'senior',
+      'Director': 'senior',
+      'C-Level': 'c_level',
+    };
+    return mapping[role] || 'mid';
+  };
+
+  // Map language to language code
+  const mapLanguageToCode = (language: string): string => {
+    const mapping: { [key: string]: string } = {
+      'English': 'en',
+      'Arabic': 'ar',
+    };
+    return mapping[language] || 'en';
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      await employeeAPI.create(formData);
+      // Generate employee_id from email (username part)
+      const employee_id = formData.email.split('@')[0];
+
+      // Prepare data for API
+      const apiData = {
+        employee_id,
+        full_name: formData.full_name,
+        email: formData.email,
+        department: formData.department,
+        job_title: formData.job_title || undefined,
+        age_range: calculateAgeRange(formData.date_of_birth),
+        gender: formData.gender.toLowerCase() || undefined,
+        languages: formData.language ? [mapLanguageToCode(formData.language)] : ['en'],
+        technical_literacy: formData.technical_literacy,
+        seniority: mapRoleToSeniority(formData.role),
+      };
+
+      await employeeAPI.create(apiData);
       onSuccess();
+      // Reset form
+      setFormData({
+        full_name: '',
+        email: '',
+        department: '',
+        job_title: '',
+        role: '',
+        gender: '',
+        date_of_birth: '',
+        language: '',
+        technical_literacy: 5,
+      });
     } catch (error) {
       console.error('Failed to create employee:', error);
       alert('Failed to create employee');
@@ -609,50 +677,106 @@ function AddEmployeeModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Add Employee" subtitle="Add a new employee to your organization">
+    <Modal isOpen={isOpen} onClose={onClose} title="Add New Employee" subtitle="Add employee information to the directory">
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Full Name */}
         <Input
           label="Full Name"
           required
           value={formData.full_name}
           onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-          placeholder="John Doe"
+          placeholder="Enter full name"
         />
+
+        {/* Email */}
         <Input
           label="Email"
           type="email"
           required
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          placeholder="john@company.com"
+          placeholder="Enter email address"
         />
-        <Input
+
+        {/* Department */}
+        <Select
           label="Department"
           required
           value={formData.department}
           onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-          placeholder="Engineering"
-        />
-        <Input
-          label="Job Title"
-          required
-          value={formData.job_title}
-          onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
-          placeholder="Software Engineer"
-        />
-        <Select
-          label="Age Range"
-          required
-          value={formData.age_range}
-          onChange={(e) => setFormData({ ...formData, age_range: e.target.value })}
           options={[
-            { value: '18_24', label: '18-24' },
-            { value: '25_34', label: '25-34' },
-            { value: '35_44', label: '35-44' },
-            { value: '45_54', label: '45-54' },
-            { value: '55_plus', label: '55+' },
+            { value: '', label: 'Select department' },
+            { value: 'Finance', label: 'Finance' },
+            { value: 'Engineering', label: 'Engineering' },
+            { value: 'Sales', label: 'Sales' },
+            { value: 'Hr', label: 'Hr' },
           ]}
         />
+
+        {/* Job Title (optional) */}
+        <Input
+          label="Job Title (Optional)"
+          value={formData.job_title}
+          onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
+          placeholder="e.g., Software Engineer"
+        />
+
+        {/* Role | Gender (two columns) */}
+        <div className="grid grid-cols-2 gap-4">
+          <Select
+            label="Role"
+            required
+            value={formData.role}
+            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+            options={[
+              { value: '', label: 'Select role' },
+              { value: 'Director', label: 'Director' },
+              { value: 'Manager', label: 'Manager' },
+              { value: 'Individual', label: 'Individual' },
+              { value: 'C-Level', label: 'C-Level' },
+            ]}
+          />
+          <Select
+            label="Gender"
+            value={formData.gender}
+            onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+            options={[
+              { value: '', label: 'Select gender' },
+              { value: 'Male', label: 'Male' },
+              { value: 'Female', label: 'Female' },
+              { value: 'Other', label: 'Other' },
+            ]}
+          />
+        </div>
+
+        {/* Date of Birth | Language (two columns) */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Date of Birth <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              required
+              value={formData.date_of_birth}
+              onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+              className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+          <Select
+            label="Language"
+            required
+            value={formData.language}
+            onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+            options={[
+              { value: '', label: 'Select language' },
+              { value: 'English', label: 'English' },
+              { value: 'Arabic', label: 'Arabic' },
+            ]}
+          />
+        </div>
+
+        {/* Technical Literacy (hidden from UX but required by backend) */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Technical Literacy (1-10)
@@ -663,23 +787,13 @@ function AddEmployeeModal({
             max="10"
             required
             value={formData.technical_literacy}
-            onChange={(e) => setFormData({ ...formData, technical_literacy: parseInt(e.target.value) })}
+            onChange={(e) => setFormData({ ...formData, technical_literacy: parseInt(e.target.value) || 5 })}
             className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
           />
           <p className="text-xs text-slate-500 mt-1">1 = Low, 10 = High technical skills</p>
         </div>
-        <Select
-          label="Seniority"
-          required
-          value={formData.seniority}
-          onChange={(e) => setFormData({ ...formData, seniority: e.target.value })}
-          options={[
-            { value: 'Entry', label: 'Entry Level' },
-            { value: 'Mid-Level', label: 'Mid-Level' },
-            { value: 'Senior', label: 'Senior' },
-            { value: 'Executive', label: 'Executive' },
-          ]}
-        />
+
+        {/* Buttons */}
         <div className="flex items-center justify-end space-x-3 pt-4">
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
