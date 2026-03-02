@@ -18,21 +18,29 @@ depends_on = None
 def upgrade():
     """Convert assessment enum columns to varchar."""
 
-    # Alter assessments table columns
+    # Step 1: Drop default values that reference enum types
+    op.execute('ALTER TABLE assessments ALTER COLUMN target_audience DROP DEFAULT')
+    op.execute('ALTER TABLE assessments ALTER COLUMN status DROP DEFAULT')
+    op.execute('ALTER TABLE assessment_questions ALTER COLUMN question_type DROP DEFAULT')
+    op.execute('ALTER TABLE assessment_results ALTER COLUMN status DROP DEFAULT')
+
+    # Step 2: Convert columns to VARCHAR
     op.execute('ALTER TABLE assessments ALTER COLUMN target_audience TYPE VARCHAR(50) USING target_audience::text')
     op.execute('ALTER TABLE assessments ALTER COLUMN status TYPE VARCHAR(20) USING status::text')
-
-    # Alter assessment_questions table columns
     op.execute('ALTER TABLE assessment_questions ALTER COLUMN question_type TYPE VARCHAR(50) USING question_type::text')
-
-    # Alter assessment_results table columns
     op.execute('ALTER TABLE assessment_results ALTER COLUMN status TYPE VARCHAR(20) USING status::text')
 
-    # Drop the enum types (they're no longer needed)
-    op.execute('DROP TYPE IF EXISTS targetaudience')
-    op.execute('DROP TYPE IF EXISTS assessmentstatus')
-    op.execute('DROP TYPE IF EXISTS questiontype')
-    op.execute('DROP TYPE IF EXISTS assessmentresultstatus')
+    # Step 3: Set new default values (as strings)
+    op.execute("ALTER TABLE assessments ALTER COLUMN target_audience SET DEFAULT 'global'")
+    op.execute("ALTER TABLE assessments ALTER COLUMN status SET DEFAULT 'draft'")
+    op.execute("ALTER TABLE assessment_questions ALTER COLUMN question_type SET DEFAULT 'multiple_choice'")
+    op.execute("ALTER TABLE assessment_results ALTER COLUMN status SET DEFAULT 'in_progress'")
+
+    # Step 4: Drop the enum types (now safe to drop)
+    op.execute('DROP TYPE IF EXISTS targetaudience CASCADE')
+    op.execute('DROP TYPE IF EXISTS assessmentstatus CASCADE')
+    op.execute('DROP TYPE IF EXISTS questiontype CASCADE')
+    op.execute('DROP TYPE IF EXISTS assessmentresultstatus CASCADE')
 
 
 def downgrade():
