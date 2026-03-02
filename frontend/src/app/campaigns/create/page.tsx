@@ -1,6 +1,7 @@
 /**
  * AI-Powered Campaign Creation Wizard
  * 4-Step Flow with AI Scenario Generation
+ * Version: 2.0
  */
 
 'use client';
