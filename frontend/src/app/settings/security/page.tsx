@@ -13,7 +13,7 @@ import { authAPI } from '@/lib/api';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { Lock, Shield, Key, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Lock, Shield, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 
 export default function SecuritySettingsPage() {
   return (
@@ -176,34 +176,6 @@ function SecuritySettingsContent() {
               Enable 2FA
             </Button>
           </div>
-        </div>
-      </Card>
-
-      {/* API Keys Card */}
-      <Card>
-        <h2 className="text-xl font-bold text-slate-900 mb-6">API Keys</h2>
-
-        <div className="space-y-4">
-          <p className="text-sm text-slate-600">
-            API keys allow you to access MAIDAR programmatically. Keep your keys secure and never share them publicly.
-          </p>
-
-          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200">
-            <div className="flex items-center space-x-3">
-              <Key className="w-5 h-5 text-slate-400" />
-              <div>
-                <p className="text-sm font-medium text-slate-900">Production API Key</p>
-                <p className="text-xs text-slate-500">Last used 2 days ago</p>
-              </div>
-            </div>
-            <Button variant="secondary" size="sm">
-              Regenerate
-            </Button>
-          </div>
-
-          <Button variant="secondary" size="sm">
-            Generate New Key
-          </Button>
         </div>
       </Card>
     </div>
