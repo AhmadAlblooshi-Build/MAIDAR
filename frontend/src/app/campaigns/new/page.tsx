@@ -183,6 +183,13 @@ function CampaignWizardContent() {
   // Hidden segments (for hiding built-in/department segments)
   const [hiddenSegments, setHiddenSegments] = useState<string[]>([]);
 
+  // Theme/Scenario Modals
+  const [showAddTheme, setShowAddTheme] = useState(false);
+  const [showEditTheme, setShowEditTheme] = useState(false);
+  const [editingTheme, setEditingTheme] = useState<any>(null);
+  const [customThemes, setCustomThemes] = useState<any[]>([]);
+  const [hiddenThemes, setHiddenThemes] = useState<string[]>([]);
+
   const steps = [
     { number: 1, title: 'Target Segment' },
     { number: 2, title: 'Scenario Theme' },
@@ -249,13 +256,18 @@ function CampaignWizardContent() {
     (segment) => !hiddenSegments.includes(segment.id)
   );
 
-  // Step 2: Foundation themes (from real scenarios)
-  const foundationThemes = scenarios.slice(0, 4).map((scenario) => ({
+  // Step 2: Foundation themes (from real scenarios + custom)
+  const builtInThemes = scenarios.map((scenario) => ({
     id: scenario.id,
     title: scenario.name,
-    description: 'Foundation Template',
+    description: scenario.description || 'Foundation Template',
     icon: <FileText className="w-6 h-6 text-purple-600" />,
+    type: 'scenario',
   }));
+
+  const foundationThemes = [...builtInThemes, ...customThemes].filter(
+    (theme) => !hiddenThemes.includes(theme.id)
+  );
 
   // Step 3: AI Customization options
   const personalizationLevels = ['generic', 'department', 'role', 'individual'];
@@ -673,13 +685,13 @@ function CampaignWizardContent() {
                         The base scenario or template that the AI will use to generate realistic phishing variants
                       </p>
                     </div>
-                    <Button variant="primary" size="sm">
+                    <Button variant="primary" size="sm" onClick={() => setShowAddTheme(true)}>
                       <Plus className="w-4 h-4 mr-2" />
                       Add Theme
                     </Button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4 max-h-[600px] overflow-y-auto pr-2">
                     {foundationThemes.map((theme) => (
                       <SegmentCard
                         key={theme.id}
@@ -688,9 +700,183 @@ function CampaignWizardContent() {
                         icon={theme.icon}
                         selected={selectedTheme === theme.id}
                         onClick={() => setSelectedTheme(theme.id)}
+                        onEdit={() => {
+                          setEditingTheme(theme);
+                          setShowEditTheme(true);
+                        }}
+                        onDelete={() => {
+                          if (theme.type === 'custom') {
+                            // Remove custom theme
+                            setCustomThemes(customThemes.filter((t) => t.id !== theme.id));
+                          } else {
+                            // Hide scenario theme
+                            setHiddenThemes([...hiddenThemes, theme.id]);
+                          }
+                          if (selectedTheme === theme.id) {
+                            setSelectedTheme('');
+                          }
+                        }}
                       />
                     ))}
                   </div>
+
+                  {/* Add Theme Modal */}
+                  {showAddTheme && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-200">
+                          <h3 className="text-lg font-semibold text-slate-900">Add Theme</h3>
+                          <button
+                            onClick={() => setShowAddTheme(false)}
+                            className="text-slate-400 hover:text-slate-600 transition-colors"
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.currentTarget);
+                            const title = formData.get('title') as string;
+                            const description = formData.get('description') as string;
+
+                            const newTheme = {
+                              id: `custom_theme_${Date.now()}`,
+                              title: title,
+                              description: description,
+                              icon: <FileText className="w-6 h-6 text-orange-600" />,
+                              type: 'custom',
+                            };
+
+                            setCustomThemes([...customThemes, newTheme]);
+                            setShowAddTheme(false);
+                          }}
+                          className="p-6"
+                        >
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-2">Title</label>
+                              <input
+                                type="text"
+                                name="title"
+                                required
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+                                placeholder="Enter Title"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
+                              <textarea
+                                name="description"
+                                required
+                                rows={3}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none resize-none"
+                                placeholder="Enter Description"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex justify-end gap-3 mt-6">
+                            <Button type="button" variant="secondary" onClick={() => setShowAddTheme(false)}>
+                              Cancel
+                            </Button>
+                            <Button type="submit" variant="primary">
+                              Add
+                            </Button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Edit Theme Modal */}
+                  {showEditTheme && editingTheme && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-200">
+                          <h3 className="text-lg font-semibold text-slate-900">Edit Theme</h3>
+                          <button
+                            onClick={() => {
+                              setShowEditTheme(false);
+                              setEditingTheme(null);
+                            }}
+                            className="text-slate-400 hover:text-slate-600 transition-colors"
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.currentTarget);
+                            const title = formData.get('title') as string;
+                            const description = formData.get('description') as string;
+
+                            if (editingTheme.type === 'custom') {
+                              setCustomThemes(
+                                customThemes.map((t) =>
+                                  t.id === editingTheme.id ? { ...t, title, description } : t
+                                )
+                              );
+                            }
+
+                            setShowEditTheme(false);
+                            setEditingTheme(null);
+                          }}
+                          className="p-6"
+                        >
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-2">Title</label>
+                              <input
+                                type="text"
+                                name="title"
+                                required
+                                defaultValue={editingTheme.title}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+                                placeholder="Enter Title"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
+                              <textarea
+                                name="description"
+                                required
+                                rows={3}
+                                defaultValue={editingTheme.description}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none resize-none"
+                                placeholder="Enter Description"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex justify-end gap-3 mt-6">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={() => {
+                                setShowEditTheme(false);
+                                setEditingTheme(null);
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button type="submit" variant="primary">
+                              Save
+                            </Button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
