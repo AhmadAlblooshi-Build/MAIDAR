@@ -72,34 +72,13 @@ function DashboardContent() {
         })
       ]);
 
-      // Check response status
-      if (!riskDistRes.ok) console.error('Risk distribution API failed:', riskDistRes.status);
-      if (!employeeStatsRes.ok) console.error('Employee stats API failed:', employeeStatsRes.status);
-      if (!employeesRes.ok) console.error('Employee search API failed:', employeesRes.status);
-      if (!simulationsRes.ok) console.error('Simulations API failed:', simulationsRes.status);
-
       const riskDistribution = await riskDistRes.json();
       const employeeStats = await employeeStatsRes.json();
       const allEmployees = await employeesRes.json();
       const simulations = await simulationsRes.json();
 
-      console.log('=== API RESPONSES ===');
-      console.log('All employees response:', JSON.stringify(allEmployees, null, 2));
-      console.log('Employee stats response:', JSON.stringify(employeeStats, null, 2));
-      console.log('Employees array:', allEmployees.employees);
-      console.log('Is employees an array?', Array.isArray(allEmployees.employees));
-
       // Calculate risk breakdowns for different categories
       const employees = allEmployees.employees || [];
-      console.log('=== EMPLOYEE DATA CHECK ===');
-      console.log('Total employees loaded:', employees.length);
-      console.log('Sample employee data:', JSON.stringify(employees[0], null, 2));
-      console.log('Employees with risk scores:', employees.filter((e: any) => e.risk_score).length);
-      console.log('Employees with department:', employees.filter((e: any) => e.department).length);
-
-      if (employees.length === 0) {
-        console.error('ERROR: No employees loaded! Check API response:', allEmployees);
-      }
 
       // Helper function to calculate breakdown
       const calculateBreakdown = (field: string) => {
@@ -116,11 +95,10 @@ function DashboardContent() {
           breakdownMap.set(value, item);
         });
 
-        const result = Array.from(breakdownMap.entries())
+        return Array.from(breakdownMap.entries())
           .map(([name, data]) => {
             const avgRisk = data.count > 0 ? (data.totalRisk / data.count) : 0;
             const percentage = (avgRisk * 10); // Convert 0-10 scale to 0-100%
-            console.log(`${field} - ${name}: avgRisk=${avgRisk.toFixed(2)}, percentage=${percentage.toFixed(1)}%, count=${data.count}`);
             return {
               name: name,
               avgRisk: avgRisk,
@@ -129,8 +107,6 @@ function DashboardContent() {
             };
           })
           .sort((a, b) => b.avgRisk - a.avgRisk);
-
-        return result;
       };
 
       const riskBreakdowns = {
@@ -141,18 +117,11 @@ function DashboardContent() {
         Language: calculateBreakdown('languages')
       };
 
-      console.log('=== RISK BREAKDOWNS DATA ===');
-      console.log('Department breakdown:', riskBreakdowns.Department);
-      console.log('Seniority breakdown:', riskBreakdowns.Seniority);
-      console.log('Full riskBreakdowns object:', riskBreakdowns);
-
       // Get top 10 highest risk employees
       const highRiskEmployees = employees
         .filter((emp: any) => emp.risk_score !== null && emp.risk_score !== undefined)
         .sort((a: any, b: any) => (b.risk_score || 0) - (a.risk_score || 0))
         .slice(0, 10);
-
-      console.log('High risk employees:', highRiskEmployees.length);
 
       setDashboardData({
         riskDistribution,
@@ -441,17 +410,6 @@ function DashboardContent() {
                 { value: 'Language', label: 'Language' }
               ]}
             />
-          </div>
-          {/* DEBUG INFO */}
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs space-y-1">
-            <div><strong>DEBUG INFO:</strong></div>
-            <div>Current View: <strong className="text-blue-600">{breakdownView}</strong></div>
-            <div>RiskBreakdowns object exists: <strong className="text-green-600">{riskBreakdowns ? 'Yes' : 'No'}</strong></div>
-            <div>Breakdown items for {breakdownView}: <strong className="text-red-600">{currentBreakdown?.length || 0}</strong></div>
-            <div>All breakdowns available: <strong>{riskBreakdowns ? Object.keys(riskBreakdowns).join(', ') : 'None'}</strong></div>
-            {currentBreakdown?.length > 0 && (
-              <div>First item: <strong className="text-purple-600">{currentBreakdown[0]?.name} - {currentBreakdown[0]?.percentage?.toFixed(1)}% ({currentBreakdown[0]?.count} employees)</strong></div>
-            )}
           </div>
           <div className="space-y-4">
             {currentBreakdown && currentBreakdown.length > 0 ? (
