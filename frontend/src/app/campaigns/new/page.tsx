@@ -325,6 +325,8 @@ function CampaignWizardContent() {
       const scenarioPayload = {
         name: `AI Generated - ${variants[selectedVariant].subject}`,
         description: 'AI-generated phishing simulation',
+        category: 'phishing', // Required field
+        language: aiConfig.language, // Required field - from AI config
         email_subject: variants[selectedVariant].subject,
         email_body_html: variants[selectedVariant].body,
         email_body_text: variants[selectedVariant].body.replace(/<[^>]*>/g, ''),
