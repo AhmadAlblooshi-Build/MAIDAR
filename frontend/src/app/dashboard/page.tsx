@@ -17,7 +17,7 @@ import Button from '@/components/ui/Button';
 import Select from '@/components/ui/Select';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
-import { TrendingUp, Users, Target, AlertTriangle, Brain, MoreHorizontal, Eye, ClipboardList, Trash2, Edit } from 'lucide-react';
+import { TrendingUp, Users, Target, AlertTriangle, Brain, MoreHorizontal, Eye, ClipboardList, Trash2, Edit, Check, Calendar } from 'lucide-react';
 
 export default function DashboardPage() {
   return (
@@ -41,6 +41,8 @@ function DashboardContent() {
   const [deletingEmployee, setDeletingEmployee] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+  const [showAssignAssessmentModal, setShowAssignAssessmentModal] = useState(false);
+  const [employeeToAssign, setEmployeeToAssign] = useState<{ id: string; full_name: string } | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -178,7 +180,11 @@ function DashboardContent() {
 
   const handleAssignAssessment = (employeeId: string) => {
     setOpenActionsMenu(null);
-    router.push(`/surveys?employeeId=${employeeId}`);
+    const employee = sortedEmployees.find((emp: any) => emp.id === employeeId);
+    if (employee) {
+      setEmployeeToAssign({ id: employee.id, full_name: employee.full_name });
+      setShowAssignAssessmentModal(true);
+    }
   };
 
   const handleDeleteEmployee = async (employeeId: string, employeeName: string) => {
@@ -687,6 +693,23 @@ function DashboardContent() {
           loadDashboardData();
         }}
       />
+
+      {/* Assign Assessment Modal */}
+      {employeeToAssign && (
+        <AssignAssessmentModal
+          isOpen={showAssignAssessmentModal}
+          onClose={() => {
+            setShowAssignAssessmentModal(false);
+            setEmployeeToAssign(null);
+          }}
+          employee={employeeToAssign}
+          onSuccess={() => {
+            setShowAssignAssessmentModal(false);
+            setEmployeeToAssign(null);
+            loadDashboardData();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -965,6 +988,200 @@ function EditEmployeeModal({
           </Button>
         </div>
       </form>
+    </Modal>
+  );
+}
+
+// Assign Assessment Modal Component
+function AssignAssessmentModal({
+  isOpen,
+  onClose,
+  employee,
+  onSuccess,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  employee: {
+    id: string;
+    full_name: string;
+  };
+  onSuccess: () => void;
+}) {
+  const [assessments, setAssessments] = useState<any[]>([]);
+  const [selectedAssessments, setSelectedAssessments] = useState<string[]>([]);
+  const [dueDate, setDueDate] = useState('');
+  const [riskPriority, setRiskPriority] = useState('standard');
+  const [loading, setLoading] = useState(false);
+  const [loadingAssessments, setLoadingAssessments] = useState(true);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadAssessments();
+      const defaultDate = new Date();
+      defaultDate.setDate(defaultDate.getDate() + 7);
+      setDueDate(defaultDate.toISOString().split('T')[0]);
+    }
+  }, [isOpen]);
+
+  const loadAssessments = async () => {
+    try {
+      setLoadingAssessments(true);
+      const assessmentAPI = (await import('@/lib/api/assessment')).default;
+      const response = await assessmentAPI.list({ page: 1, page_size: 100, status: 'active' });
+      setAssessments(response.assessments || []);
+    } catch (error) {
+      console.error('Failed to load assessments:', error);
+    } finally {
+      setLoadingAssessments(false);
+    }
+  };
+
+  const toggleAssessment = (assessmentId: string) => {
+    if (selectedAssessments.includes(assessmentId)) {
+      setSelectedAssessments(selectedAssessments.filter((id) => id !== assessmentId));
+    } else {
+      setSelectedAssessments([...selectedAssessments, assessmentId]);
+    }
+  };
+
+  const handleConfirm = async () => {
+    if (selectedAssessments.length === 0) {
+      alert('Please select at least one assessment');
+      return;
+    }
+    if (!dueDate) {
+      alert('Please select a due date');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Use employeeAPI instead of raw fetch for proper authentication
+      const response = await employeeAPI.assignAssessments(employee.id, {
+        assessment_ids: selectedAssessments,
+        due_date: dueDate,
+        risk_priority: riskPriority,
+      });
+
+      alert(`Successfully assigned ${selectedAssessments.length} assessment(s) to ${employee.full_name}`);
+      setSelectedAssessments([]);
+      onSuccess();
+      onClose();
+    } catch (error: any) {
+      console.error('Failed to assign assessments:', error);
+      const errorMessage = error.response?.data?.detail || error.message || 'Unknown error';
+      alert('Failed to assign assessments: ' + errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getCategoryBadge = (assessment: any) => {
+    const title = assessment.title?.toLowerCase() || '';
+    const category = assessment.category?.toLowerCase() || '';
+    if (title.includes('phishing') || category.includes('phishing')) {
+      return { label: 'SIMULATIONS', color: 'bg-blue-100 text-blue-700' };
+    } else if (title.includes('advanced') || category.includes('advanced') || category.includes('security')) {
+      return { label: 'ADVANCED', color: 'bg-purple-100 text-purple-700' };
+    } else if (title.includes('password') || title.includes('hygiene')) {
+      return { label: 'BEHAVIORAL', color: 'bg-orange-100 text-orange-700' };
+    } else if (title.includes('remote') || title.includes('work')) {
+      return { label: 'REMOTE', color: 'bg-teal-100 text-teal-700' };
+    }
+    return { label: 'GENERAL', color: 'bg-slate-100 text-slate-700' };
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Assign Assessment" subtitle={`Select multiple assessments for ${employee.full_name}`}>
+      <div className="space-y-6">
+        <div className="max-h-80 overflow-y-auto">
+          {loadingAssessments ? (
+            <div className="text-center py-8 text-slate-500">Loading assessments...</div>
+          ) : assessments.length === 0 ? (
+            <div className="text-center py-8 text-slate-500">
+              <AlertTriangle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <p>No active assessments available</p>
+              <p className="text-sm mt-1">Create an assessment first</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {assessments.map((assessment) => {
+                const isSelected = selectedAssessments.includes(assessment.id);
+                const badge = getCategoryBadge(assessment);
+                return (
+                  <button
+                    key={assessment.id}
+                    type="button"
+                    onClick={() => toggleAssessment(assessment.id)}
+                    className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                      isSelected ? 'border-teal-500 bg-teal-50' : 'border-slate-200 hover:border-teal-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                        isSelected ? 'bg-teal-500 border-teal-500' : 'border-slate-300 bg-white'
+                      }`}>
+                        {isSelected && <Check className="w-3 h-3 text-white" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-slate-900 mb-1">{assessment.title}</div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded">
+                            {assessment.question_count || 0} items
+                          </span>
+                          <span className={`text-xs px-2 py-1 rounded ${badge.color}`}>{badge.label}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Due Date</label>
+            <div className="relative">
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+              <Calendar className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Risk Priority</label>
+            <select
+              value={riskPriority}
+              onChange={(e) => setRiskPriority(e.target.value)}
+              className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              <option value="low">Low Priority</option>
+              <option value="standard">Standard Priority</option>
+              <option value="high">High Priority</option>
+              <option value="critical">Critical Priority</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+          <Button variant="secondary" onClick={onClose} disabled={loading}>Cancel</Button>
+          <Button
+            variant="primary"
+            onClick={handleConfirm}
+            disabled={loading || selectedAssessments.length === 0}
+            loading={loading}
+            className="bg-teal-500 hover:bg-teal-600"
+          >
+            Confirm Deployment
+          </Button>
+        </div>
+      </div>
     </Modal>
   );
 }
