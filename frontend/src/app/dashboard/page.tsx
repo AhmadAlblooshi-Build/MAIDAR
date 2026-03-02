@@ -180,7 +180,9 @@ function DashboardContent() {
 
   const handleAssignAssessment = (employeeId: string) => {
     setOpenActionsMenu(null);
-    const employee = sortedEmployees.find((emp: any) => emp.id === employeeId);
+    // Find employee from dashboardData
+    const employees = dashboardData?.sortedEmployees || [];
+    const employee = employees.find((emp: any) => emp.id === employeeId);
     if (employee) {
       setEmployeeToAssign({ id: employee.id, full_name: employee.full_name });
       setShowAssignAssessmentModal(true);
