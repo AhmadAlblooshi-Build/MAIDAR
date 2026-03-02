@@ -325,14 +325,14 @@ function CampaignWizardContent() {
       const scenarioPayload = {
         name: `AI Generated - ${variants[selectedVariant].subject}`,
         description: 'AI-generated phishing simulation',
-        category: 'phishing', // Required field
-        language: aiConfig.language, // Required field - from AI config
+        category: 'CREDENTIALS', // Must be: BEC, CREDENTIALS, DATA, or MALWARE
+        difficulty: 'medium', // Must be: easy, medium, or hard
+        language: aiConfig.language, // From AI config
         email_subject: variants[selectedVariant].subject,
         email_body_html: variants[selectedVariant].body,
         email_body_text: variants[selectedVariant].body.replace(/<[^>]*>/g, ''),
         sender_name: generatedScenario?.sender_name || 'IT Security',
         sender_email: generatedScenario?.sender_email || 'security@company.com',
-        difficulty_level: 'medium',
         attack_vector: aiConfig.contentType,
         is_active: true,
       };
