@@ -69,31 +69,25 @@ function AnalyticsContent() {
         const employees = employeesData.employees || [];
 
         // Calculate department vulnerability statistics
-        const deptMap = new Map<string, { count: number; totalRisk: number; previousRisk: number }>();
+        const deptMap = new Map<string, { count: number; totalRisk: number }>();
 
         employees.forEach((emp: any) => {
           if (!emp.department) return;
 
-          const dept = deptMap.get(emp.department) || { count: 0, totalRisk: 0, previousRisk: 0 };
+          const dept = deptMap.get(emp.department) || { count: 0, totalRisk: 0 };
           dept.count++;
           dept.totalRisk += emp.risk_score || 0;
-          // Simulate previous risk (in real app, this would come from historical data)
-          dept.previousRisk += (emp.risk_score || 0) * 0.95;
           deptMap.set(emp.department, dept);
         });
 
         const stats = Array.from(deptMap.entries()).map(([department, data]) => {
           const avgRisk = data.count > 0 ? (data.totalRisk / data.count) * 10 : 0;
-          const prevAvgRisk = data.count > 0 ? (data.previousRisk / data.count) * 10 : 0;
-          const change = avgRisk - prevAvgRisk;
-          const changePercent = prevAvgRisk > 0 ? ((change / prevAvgRisk) * 100) : 0;
 
           return {
             department,
-            avgRisk,
-            changePercent: Math.round(changePercent)
+            avgRisk: Math.round(avgRisk)
           };
-        }).sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent));
+        }).sort((a, b) => b.avgRisk - a.avgRisk);
 
         setDepartmentStats(stats);
       }
@@ -143,21 +137,20 @@ function AnalyticsContent() {
 
   // Calculate metrics
   const totalEmployees = riskDistribution?.total_employees || 0;
-  const dataCoverage = totalEmployees > 0 ? Math.round((totalEmployees / (totalEmployees + 10)) * 100) : 0;
+  const dataCoverage = totalEmployees > 0 ? 100 : 0; // 100% coverage if we have employees
   const readinessScore = riskDistribution?.mean_risk_score
     ? Math.round(100 - riskDistribution.mean_risk_score)
     : 0;
 
-  // Simulate risk change (in real app, this would come from historical comparison)
+  // Calculate risk change from mean risk score
   const currentRisk = riskDistribution?.mean_risk_score || 0;
-  const previousRisk = currentRisk * 1.05;
-  const riskChange = ((previousRisk - currentRisk) / 10).toFixed(1);
+  const riskChange = (currentRisk / 10).toFixed(1);
 
-  const getDepartmentBarColor = (changePercent: number) => {
-    if (changePercent >= 10) return 'bg-red-500';
-    if (changePercent >= 5) return 'bg-orange-400';
-    if (changePercent <= -5) return 'bg-green-500';
-    return 'bg-orange-400';
+  const getDepartmentBarColor = (avgRisk: number) => {
+    if (avgRisk >= 70) return 'bg-red-500';
+    if (avgRisk >= 50) return 'bg-orange-400';
+    if (avgRisk >= 30) return 'bg-yellow-400';
+    return 'bg-green-500';
   };
 
   return (
@@ -189,11 +182,7 @@ function AnalyticsContent() {
               <div className="text-4xl font-bold text-slate-900 mb-2">
                 {riskChange} pts
               </div>
-              <div className="text-slate-600 mb-3">Risk Change Rate</div>
-              <div className="flex items-center gap-1 text-sm text-teal-600 font-medium">
-                <TrendingUp className="w-4 h-4" />
-                <span>+ 0.5% since last month</span>
-              </div>
+              <div className="text-slate-600">Current Risk Level</div>
             </div>
             <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
               <TrendingUp className="w-6 h-6 text-teal-500" />
@@ -208,11 +197,7 @@ function AnalyticsContent() {
               <div className="text-4xl font-bold text-slate-900 mb-2">
                 {dataCoverage}%
               </div>
-              <div className="text-slate-600 mb-3">Data Coverage</div>
-              <div className="flex items-center gap-1 text-sm text-teal-600 font-medium">
-                <TrendingUp className="w-4 h-4" />
-                <span>+ 0.5% since last month</span>
-              </div>
+              <div className="text-slate-600">Data Coverage</div>
             </div>
             <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
               <Target className="w-6 h-6 text-teal-500" />
@@ -227,11 +212,7 @@ function AnalyticsContent() {
               <div className="text-4xl font-bold text-slate-900 mb-2">
                 {readinessScore}/100
               </div>
-              <div className="text-slate-600 mb-3">Readiness Score</div>
-              <div className="flex items-center gap-1 text-sm text-teal-600 font-medium">
-                <TrendingUp className="w-4 h-4" />
-                <span>+ 0.5% since last month</span>
-              </div>
+              <div className="text-slate-600">Readiness Score</div>
             </div>
             <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
               <Shield className="w-6 h-6 text-teal-500" />
@@ -279,24 +260,30 @@ function AnalyticsContent() {
             </div>
           </div>
 
-          {/* Simple visual representation */}
+          {/* Visual representation using real simulation data */}
           <div className="h-48 flex items-end justify-between gap-2">
-            {[...Array(15)].map((_, idx) => {
-              const incidentHeight = 30 + Math.random() * 70;
-              const complianceHeight = 20 + Math.random() * 60;
-              return (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-1">
-                  <div
-                    className="w-full rounded-full bg-teal-400"
-                    style={{ height: `${incidentHeight}%` }}
-                  />
-                  <div
-                    className="w-full rounded-full bg-orange-400"
-                    style={{ height: `${complianceHeight}%` }}
-                  />
-                </div>
-              );
-            })}
+            {simulationStats?.simulations && simulationStats.simulations.length > 0 ? (
+              simulationStats.simulations.slice(0, 15).map((sim: any, idx: number) => {
+                const incidentRate = sim.total_targets > 0 ? (sim.clicked_count / sim.total_targets) * 100 : 0;
+                const complianceRate = sim.total_targets > 0 ? (sim.reported_count / sim.total_targets) * 100 : 0;
+                return (
+                  <div key={idx} className="flex-1 flex flex-col items-center gap-1">
+                    <div
+                      className="w-full rounded-full bg-teal-400"
+                      style={{ height: `${Math.max(incidentRate, 10)}%` }}
+                    />
+                    <div
+                      className="w-full rounded-full bg-orange-400"
+                      style={{ height: `${Math.max(complianceRate, 10)}%` }}
+                    />
+                  </div>
+                );
+              })
+            ) : (
+              <div className="w-full flex items-center justify-center text-slate-400 text-sm">
+                No simulation data available
+              </div>
+            )}
           </div>
         </Card>
 
@@ -310,13 +297,13 @@ function AnalyticsContent() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-700">{dept.department}</span>
                   <span className="text-sm font-bold text-slate-900">
-                    {dept.changePercent > 0 ? '+' : ''}{dept.changePercent}%
+                    {dept.avgRisk}%
                   </span>
                 </div>
                 <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all ${getDepartmentBarColor(dept.changePercent)}`}
-                    style={{ width: `${Math.min(Math.abs(dept.changePercent) * 5, 100)}%` }}
+                    className={`h-full rounded-full transition-all ${getDepartmentBarColor(dept.avgRisk)}`}
+                    style={{ width: `${Math.min(dept.avgRisk, 100)}%` }}
                   />
                 </div>
               </div>
