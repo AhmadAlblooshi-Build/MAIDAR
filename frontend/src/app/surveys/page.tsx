@@ -11,6 +11,7 @@ import TenantAdminGuard from '@/components/guards/TenantAdminGuard';
 import TenantAdminLayout from '@/components/tenant-admin/TenantAdminLayout';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import assessmentAPI from '@/lib/api/assessment';
 import { FileText, ChevronRight, Plus, CheckSquare, Search } from 'lucide-react';
 
 export default function RiskAssessmentPage() {
@@ -35,14 +36,11 @@ function RiskAssessmentContent() {
   const loadAssessments = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with real API call to fetch assessments
-      // const response = await assessmentAPI.search({ page: 1, page_size: 50 });
-      // setAssessments(response.assessments || []);
-
-      // For now, showing empty state (no mock data)
-      setAssessments([]);
+      const response = await assessmentAPI.list({ page: 1, page_size: 50 });
+      setAssessments(response.assessments || []);
     } catch (error) {
       console.error('Failed to load assessments:', error);
+      setAssessments([]);
     } finally {
       setLoading(false);
     }
@@ -99,7 +97,7 @@ function RiskAssessmentContent() {
                         <Badge variant="info" className="bg-teal-50 text-teal-700 border-teal-200">
                           {assessment.status}
                         </Badge>
-                        <span className="text-slate-500">{assessment.participants} Participants</span>
+                        <span className="text-slate-500">{assessment.participant_count || 0} Participants</span>
                       </div>
                     </div>
                   </div>
@@ -107,8 +105,8 @@ function RiskAssessmentContent() {
                   {/* Right Side - Stats & Arrow */}
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-slate-900">{assessment.avgTime} avg</div>
-                      <div className="text-sm text-slate-500">Efficiency</div>
+                      <div className="text-2xl font-bold text-slate-900">{assessment.question_count || 0}</div>
+                      <div className="text-sm text-slate-500">Questions</div>
                     </div>
                     <ChevronRight className="w-6 h-6 text-slate-400 group-hover:text-teal-600 transition-colors" />
                   </div>

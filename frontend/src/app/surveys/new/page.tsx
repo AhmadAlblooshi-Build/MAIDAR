@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import TenantAdminGuard from '@/components/guards/TenantAdminGuard';
 import TenantAdminLayout from '@/components/tenant-admin/TenantAdminLayout';
 import Button from '@/components/ui/Button';
+import assessmentAPI, { Question, QuestionResponse } from '@/lib/api/assessment';
 import {
   Check,
   ChevronRight,
@@ -36,6 +37,7 @@ export default function NewAssessmentPage() {
 function AssessmentWizard() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
+  const [loading, setLoading] = useState(false);
   const [assessment, setAssessment] = useState({
     // Step 1 - Identity
     title: '',
@@ -72,10 +74,60 @@ function AssessmentWizard() {
     }
   };
 
-  const handleDeploy = () => {
-    console.log('Deploying assessment:', assessment);
-    alert('Assessment deployment API not yet implemented. Assessment data ready for backend integration.');
-    router.push('/surveys');
+  const handleDeploy = async () => {
+    try {
+      setLoading(true);
+
+      // Validate basic fields
+      if (!assessment.title.trim()) {
+        alert('Please provide a title for the assessment');
+        setCurrentStep(1);
+        return;
+      }
+
+      if (assessment.questions.length === 0) {
+        alert('Please add at least one question to the assessment');
+        setCurrentStep(3);
+        return;
+      }
+
+      // Transform questions to API format
+      const questions: Question[] = assessment.questions.map((q, index) => ({
+        question_text: q.text,
+        question_type: q.type || 'multiple_choice',
+        order_index: index,
+        responses: q.responses.map((r: any, rIndex: number): QuestionResponse => ({
+          response_text: r.text,
+          is_correct: r.isCorrect,
+          order_index: rIndex,
+        })),
+      }));
+
+      // Create assessment
+      const created = await assessmentAPI.create({
+        title: assessment.title,
+        category: assessment.category || undefined,
+        priority: assessment.priority || undefined,
+        description: assessment.description || undefined,
+        target_audience: assessment.targetAudience as 'global' | 'departmental' | 'risk' | 'newhires',
+        time_limit: assessment.timeLimit || undefined,
+        randomize_questions: assessment.randomizeQuestions,
+        allow_pause_resume: assessment.allowPauseResume,
+        anonymous_responses: assessment.anonymousResponses,
+        questions,
+      });
+
+      // Deploy the assessment (make it active)
+      await assessmentAPI.deploy(created.id);
+
+      alert('Assessment deployed successfully!');
+      router.push('/surveys');
+    } catch (error: any) {
+      console.error('Failed to deploy assessment:', error);
+      alert(`Failed to deploy assessment: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

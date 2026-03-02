@@ -13,7 +13,7 @@ from fastapi.exceptions import RequestValidationError
 from app.config.settings import settings
 from app.core.security_middleware import SecurityHeadersMiddleware, RateLimitMiddleware
 from app.core.monitoring import init_monitoring
-from app.api import auth, risk, employees, analytics, scenarios, simulations, tenants, admin_users, audit_logs, rbac, email_tracking, notifications, mfa, sessions, health
+from app.api import auth, risk, employees, analytics, scenarios, simulations, tenants, admin_users, audit_logs, rbac, email_tracking, notifications, mfa, sessions, health, assessments
 from app.api import settings as settings_api
 
 # Configure logging
@@ -251,6 +251,12 @@ app.include_router(
     settings_api.router,
     prefix=f"{settings.API_V1_PREFIX}/settings",
     tags=["Settings"]
+)
+
+app.include_router(
+    assessments.router,
+    prefix=f"{settings.API_V1_PREFIX}/assessments",
+    tags=["Assessments"]
 )
 
 
