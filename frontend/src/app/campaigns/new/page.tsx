@@ -88,11 +88,8 @@ function CampaignWizardContent() {
 
   const loadWizardData = async () => {
     try {
-      let apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-      // Force HTTPS for Railway production URLs
-      if (apiUrl.includes('railway.app') && apiUrl.startsWith('http://')) {
-        apiUrl = apiUrl.replace('http://', 'https://');
-      }
+      // Hardcode HTTPS Railway URL to avoid mixed content issues
+      const apiUrl = 'https://maidar-production-3ee1.up.railway.app';
 
       // Load employees, scenarios in parallel
       const [employeesRes, scenariosRes] = await Promise.all([
@@ -143,11 +140,8 @@ function CampaignWizardContent() {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      let apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-      // Force HTTPS for Railway production URLs
-      if (apiUrl.includes('railway.app') && apiUrl.startsWith('http://')) {
-        apiUrl = apiUrl.replace('http://', 'https://');
-      }
+      // Hardcode HTTPS Railway URL to avoid mixed content issues
+      const apiUrl = 'https://maidar-production-3ee1.up.railway.app';
 
       // Build target employees list
       let targetEmployees = [...campaignData.targetEmployees];
