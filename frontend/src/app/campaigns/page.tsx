@@ -67,8 +67,17 @@ function CampaignsContent() {
       }, 0) / simulations.length)
     : 0;
 
-  // Calculate risk delta (mock for now - would need historical data)
-  const riskDelta = -18.4;
+  // Calculate risk delta from completed simulations
+  // Positive values = risk increased, Negative values = risk decreased (improvement)
+  const riskDelta = completedCount > 0
+    ? (simulations
+        .filter(s => s.status === 'completed')
+        .reduce((sum, s) => {
+          // Calculate risk change: higher click rates = higher risk
+          const clickRate = s.total_targets > 0 ? (s.clicked_count / s.total_targets * 100) : 0;
+          return sum + clickRate;
+        }, 0) / completedCount) - 50 // Compare against 50% baseline
+    : 0;
 
   // Filter simulations based on search query
   const filteredSimulations = simulations.filter(sim =>
@@ -106,14 +115,9 @@ function CampaignsContent() {
           <div className="mb-4">
             <div className="text-4xl font-bold text-slate-900">{activeCount}</div>
           </div>
-          <p className="text-xs text-slate-500 mb-3">
+          <p className="text-xs text-slate-500">
             Number of security simulations currently running in the organization.
           </p>
-          <div className="flex items-center space-x-1 text-green-600 text-sm">
-            <TrendingUp className="w-4 h-4" />
-            <span className="font-semibold">1.20%</span>
-            <span className="text-slate-500">since last year</span>
-          </div>
         </Card>
 
         {/* Avg Resilience Card */}
@@ -123,16 +127,11 @@ function CampaignsContent() {
             <Info className="w-4 h-4 text-slate-400" />
           </div>
           <div className="mb-4">
-            <div className="text-4xl font-bold text-slate-900">{avgResilience.toFixed(0)}</div>
+            <div className="text-4xl font-bold text-slate-900">{avgResilience.toFixed(0)}%</div>
           </div>
-          <p className="text-xs text-slate-500 mb-3">
+          <p className="text-xs text-slate-500">
             The average percentage of employees who successfully identified and reported simulation threats.
           </p>
-          <div className="flex items-center space-x-1 text-green-600 text-sm">
-            <TrendingUp className="w-4 h-4" />
-            <span className="font-semibold">1.20%</span>
-            <span className="text-slate-500">since last year</span>
-          </div>
         </Card>
 
         {/* Risk Delta Card */}
@@ -142,16 +141,13 @@ function CampaignsContent() {
             <Info className="w-4 h-4 text-slate-400" />
           </div>
           <div className="mb-4">
-            <div className="text-4xl font-bold text-slate-900">{riskDelta}%</div>
+            <div className={`text-4xl font-bold ${riskDelta < 0 ? 'text-green-600' : 'text-orange-600'}`}>
+              {riskDelta > 0 ? '+' : ''}{riskDelta.toFixed(1)}%
+            </div>
           </div>
-          <p className="text-xs text-slate-500 mb-3">
-            The change in overall risk score since the launch of these simulations.
+          <p className="text-xs text-slate-500">
+            The change in overall risk score since the launch of these simulations. Negative values indicate improvement.
           </p>
-          <div className="flex items-center space-x-1 text-green-600 text-sm">
-            <TrendingUp className="w-4 h-4" />
-            <span className="font-semibold">1.20%</span>
-            <span className="text-slate-500">since last year</span>
-          </div>
         </Card>
       </div>
 
