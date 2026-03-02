@@ -96,13 +96,21 @@ function DashboardContent() {
           breakdownMap.set(value, item);
         });
 
-        return Array.from(breakdownMap.entries())
-          .map(([name, data]) => ({
-            name: name,
-            avgRisk: data.count > 0 ? (data.totalRisk / data.count) : 0,
-            percentage: data.count > 0 ? ((data.totalRisk / data.count) * 10) : 0
-          }))
+        const result = Array.from(breakdownMap.entries())
+          .map(([name, data]) => {
+            const avgRisk = data.count > 0 ? (data.totalRisk / data.count) : 0;
+            const percentage = (avgRisk * 10); // Convert 0-10 scale to 0-100%
+            console.log(`${field} - ${name}: avgRisk=${avgRisk.toFixed(2)}, percentage=${percentage.toFixed(1)}%, count=${data.count}`);
+            return {
+              name: name,
+              avgRisk: avgRisk,
+              percentage: percentage,
+              count: data.count
+            };
+          })
           .sort((a, b) => b.avgRisk - a.avgRisk);
+
+        return result;
       };
 
       const riskBreakdowns = {
@@ -416,13 +424,16 @@ function DashboardContent() {
               currentBreakdown.map((item: any, idx: number) => (
                 <div key={idx}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-slate-700 capitalize">{item.name}</span>
+                    <div>
+                      <span className="text-sm font-medium text-slate-700 capitalize">{item.name}</span>
+                      <span className="text-xs text-slate-500 ml-2">({item.count} employees)</span>
+                    </div>
                     <span className="text-sm font-bold text-slate-900">{item.percentage.toFixed(0)}%</span>
                   </div>
                   <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full transition-all duration-500"
-                      style={{ width: `${item.percentage}%` }}
+                      style={{ width: `${Math.min(item.percentage, 100)}%` }}
                     />
                   </div>
                 </div>
