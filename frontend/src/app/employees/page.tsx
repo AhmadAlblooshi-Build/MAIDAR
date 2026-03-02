@@ -18,7 +18,7 @@ import Badge from '@/components/ui/Badge';
 import Spinner from '@/components/ui/Spinner';
 import Table, { Pagination } from '@/components/ui/Table';
 import Modal from '@/components/ui/Modal';
-import { Search, Upload, UserPlus, Download, Filter } from 'lucide-react';
+import { Search, Upload, UserPlus, MoreHorizontal } from 'lucide-react';
 
 export default function EmployeesPage() {
   return (
@@ -36,38 +36,30 @@ function EmployeesContent() {
   const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState<any[]>([]);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
-  const [filterRisk, setFilterRisk] = useState(searchParams.get('filter') === 'high-risk' ? 'high-risk' : 'all');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [statistics, setStatistics] = useState<any>(null);
 
   useEffect(() => {
     loadEmployees();
-    loadStatistics();
-  }, [currentPage, searchTerm, filterRole, filterRisk]);
+  }, [currentPage, searchTerm, filterRole]);
 
   const loadEmployees = async () => {
     try {
       setLoading(true);
       const searchParams: any = {
         page: currentPage,
-        page_size: 10,
+        page_size: 12,
         search: searchTerm || undefined,
         role: filterRole !== 'all' ? filterRole : undefined,
       };
 
-      // Apply high-risk filter if set
-      if (filterRisk === 'high-risk') {
-        searchParams.sort_by = 'risk_score';
-        searchParams.sort_order = 'desc';
-        searchParams.min_risk_score = 6; // High risk threshold
-      }
-
       const response = await employeeAPI.search(searchParams);
       setEmployees(response.employees || []);
       setTotalPages(response.total_pages || 1);
+      setTotalCount(response.total_count || 0);
     } catch (error) {
       console.error('Failed to load employees:', error);
     } finally {
@@ -75,214 +67,214 @@ function EmployeesContent() {
     }
   };
 
-  const loadStatistics = async () => {
-    try {
-      const stats = await employeeAPI.statistics();
-      setStatistics(stats);
-    } catch (error) {
-      console.error('Failed to load statistics:', error);
-    }
-  };
-
   const getRiskBadge = (score: number) => {
-    if (score >= 8) return { variant: 'danger' as const, label: 'Critical', color: 'text-red-600' };
-    if (score >= 6) return { variant: 'warning' as const, label: 'High', color: 'text-orange-600' };
-    if (score >= 4) return { variant: 'warning' as const, label: 'Medium', color: 'text-yellow-600' };
-    return { variant: 'success' as const, label: 'Low', color: 'text-green-600' };
-  };
+    // Convert 0-10 scale to 0-100 for display
+    const displayScore = Math.round(score * 10);
 
-  const getRiskColor = (score: number) => {
-    if (score >= 8) return 'bg-red-500';
-    if (score >= 6) return 'bg-orange-500';
-    if (score >= 4) return 'bg-yellow-500';
-    return 'bg-green-500';
+    if (score >= 7) return {
+      label: 'High',
+      displayScore,
+      bgColor: 'bg-red-50',
+      textColor: 'text-red-600',
+      borderColor: 'border-red-200'
+    };
+    if (score >= 4) return {
+      label: 'Medium',
+      displayScore,
+      bgColor: 'bg-orange-50',
+      textColor: 'text-orange-600',
+      borderColor: 'border-orange-200'
+    };
+    return {
+      label: 'Low',
+      displayScore,
+      bgColor: 'bg-teal-50',
+      textColor: 'text-teal-600',
+      borderColor: 'border-teal-200'
+    };
   };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 data-testid="page-title" className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+          <h1 data-testid="page-title" className="text-3xl font-bold text-slate-900">
             Employees
           </h1>
           <p className="text-slate-500 mt-1">
-            Directory and Human Risk profiles for {statistics?.total_count?.toLocaleString() || '...'} managed people
+            Directory and Human Risk profiles for {totalCount.toLocaleString()} managed people.
           </p>
         </div>
-        <div className="flex items-center space-x-3">
-          <Button
-            variant="secondary"
-            icon={<Upload className="w-4 h-4" />}
+        <div className="flex items-center gap-3">
+          <button
             onClick={() => alert('Bulk import functionality coming soon')}
+            className="px-6 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-700 font-medium hover:bg-slate-50 transition-colors"
           >
             Bulk Import
-          </Button>
-          <Button
-            variant="primary"
-            icon={<UserPlus className="w-4 h-4" />}
+          </button>
+          <button
             onClick={() => setShowAddModal(true)}
+            className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-teal-500 to-cyan-500 text-white font-medium hover:shadow-lg transition-all"
           >
             Add Employee
-          </Button>
+          </button>
         </div>
       </div>
 
-      {/* High-Risk Filter Indicator */}
-      {filterRisk === 'high-risk' && (
-        <div className="flex items-center justify-between p-4 rounded-lg bg-red-50 border-2 border-red-200">
-          <div className="flex items-center space-x-3">
-            <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
-            <span className="text-sm font-semibold text-red-900">
-              Showing: High-Risk Employees Only (Risk Score ≥ 6.0)
-            </span>
-          </div>
-          <button
-            onClick={() => {
-              setFilterRisk('all');
-              router.push('/employees');
-            }}
-            className="px-3 py-1 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors"
-          >
-            Clear Filter
-          </button>
-        </div>
-      )}
-
-      {statistics && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-4">
-            <div className="text-sm text-slate-600 mb-1">Total Employees</div>
-            <div className="text-2xl font-bold text-slate-900">{statistics.total_count}</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-sm text-slate-600 mb-1">Average Risk Score</div>
-            <div className="text-2xl font-bold text-orange-600">{statistics.avg_risk_score?.toFixed(1)}</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-sm text-slate-600 mb-1">High Risk</div>
-            <div className="text-2xl font-bold text-red-600">{statistics.high_risk_count}</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-sm text-slate-600 mb-1">Tech Literacy</div>
-            <div className="text-2xl font-bold text-teal-600">{statistics.avg_technical_literacy?.toFixed(1)}/10</div>
-          </Card>
-        </div>
-      )}
-
-      <Card>
-        <div className="flex items-center space-x-4">
-          <div className="flex-1">
-            <Input
-              placeholder="Search employees..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              icon={<Search className="w-4 h-4" />}
-            />
-          </div>
-          <Select
-            value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
-            options={[
-              { value: 'all', label: 'All Roles' },
-              { value: 'Engineer', label: 'Engineer' },
-              { value: 'Manager', label: 'Manager' },
-              { value: 'Executive', label: 'Executive' },
-              { value: 'Analyst', label: 'Analyst' },
-            ]}
+      {/* Search and Filter Bar */}
+      <div className="flex items-center gap-4">
+        <div className="flex-1 relative">
+          <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search Users"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
           />
-          <Button variant="secondary" icon={<Filter className="w-4 h-4" />}>
-            Filters
-          </Button>
-          <Button variant="secondary" icon={<Download className="w-4 h-4" />}>
-            Export
-          </Button>
         </div>
-      </Card>
+        <select
+          value={filterRole}
+          onChange={(e) => setFilterRole(e.target.value)}
+          className="px-4 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500"
+        >
+          <option value="all">All Roles</option>
+          <option value="LEAD DEV">Lead Dev</option>
+          <option value="DESIGNER">Designer</option>
+          <option value="MANAGER">Manager</option>
+          <option value="EXECUTIVE">Executive</option>
+        </select>
+      </div>
 
-      <Card>
+      {/* Table */}
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         {loading ? (
-          <Spinner />
+          <div className="flex items-center justify-center py-16">
+            <Spinner />
+          </div>
         ) : (
           <>
-            <Table
-              columns={[
-                {
-                  key: 'full_name',
-                  label: 'Employee',
-                  render: (value: string, row: any) => (
-                    <div>
-                      <div className="font-semibold text-slate-900">{value}</div>
-                      <div className="text-sm text-slate-500">{row.email}</div>
-                    </div>
-                  ),
-                },
-                {
-                  key: 'department',
-                  label: 'Dept & Role',
-                  render: (value: string, row: any) => (
-                    <div>
-                      <div className="text-sm font-medium text-slate-900">{value}</div>
-                      <div className="text-xs text-slate-500">{row.job_title}</div>
-                    </div>
-                  ),
-                },
-                {
-                  key: 'risk_score',
-                  label: 'Risk Index',
-                  render: (value: number) => {
-                    // Handle undefined/null risk scores gracefully
-                    if (value === null || value === undefined) {
-                      return <span className="text-sm text-slate-400 italic">Calculating...</span>;
-                    }
-                    const badge = getRiskBadge(value);
-                    return (
-                      <div className="flex items-center space-x-3">
-                        <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden max-w-[80px]">
-                          <div
-                            className={`h-full ${getRiskColor(value)} rounded-full transition-all duration-500`}
-                            style={{ width: `${(value / 10) * 100}%` }}
-                          />
-                        </div>
-                        <span className={`text-sm font-bold ${badge.color} min-w-[30px]`}>
-                          {value.toFixed(1)}
-                        </span>
-                      </div>
-                    );
-                  },
-                },
-                {
-                  key: 'status',
-                  label: 'Status',
-                  render: () => <Badge variant="success" dot>Active</Badge>,
-                },
-                {
-                  key: 'action',
-                  label: 'Action',
-                  render: (_, row: any) => (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/employees/${row.id}`);
-                      }}
+            <table className="w-full">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Employee
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Dept & Role
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Risk Index
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Action
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {employees.map((employee) => {
+                  const riskBadge = getRiskBadge(employee.risk_score || 0);
+                  return (
+                    <tr
+                      key={employee.id}
+                      className="hover:bg-slate-50 cursor-pointer transition-colors"
+                      onClick={() => router.push(`/employees/${employee.id}`)}
                     >
-                      View
-                    </Button>
-                  ),
-                },
-              ]}
-              data={employees}
-              onRowClick={(row) => router.push(`/employees/${row.id}`)}
-            />
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
+                      {/* Employee */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-slate-900">{employee.full_name}</div>
+                        <div className="text-sm text-slate-500">{employee.email}</div>
+                      </td>
+
+                      {/* Dept & Role */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-slate-900">{employee.department}</div>
+                        <div className="text-xs text-slate-500 uppercase">{employee.job_title}</div>
+                      </td>
+
+                      {/* Risk Index */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-md text-sm font-medium ${riskBadge.bgColor} ${riskBadge.textColor} border ${riskBadge.borderColor}`}
+                        >
+                          {riskBadge.label} {riskBadge.displayScore}
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-teal-500"></div>
+                          <span className="text-sm text-slate-700">Active</span>
+                        </div>
+                      </td>
+
+                      {/* Action */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // TODO: Add action menu
+                          }}
+                          className="p-1 rounded hover:bg-slate-200 transition-colors"
+                        >
+                          <MoreHorizontal className="w-5 h-5 text-slate-400" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {/* Pagination */}
+            <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+              <div className="text-sm text-slate-600">
+                {employees.length > 0
+                  ? `1 of ${totalPages} Users shows`
+                  : 'No employees found'}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 rounded text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+                {[...Array(Math.min(5, totalPages))].map((_, idx) => {
+                  const page = idx + 1;
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-8 h-8 rounded text-sm font-medium transition-colors ${
+                        currentPage === page
+                          ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white'
+                          : 'text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+                {totalPages > 5 && <span className="text-slate-400">...</span>}
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 rounded text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </>
         )}
-      </Card>
+      </div>
 
       <AddEmployeeModal
         isOpen={showAddModal}
