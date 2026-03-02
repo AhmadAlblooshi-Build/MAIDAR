@@ -389,7 +389,7 @@ function DashboardContent() {
             />
           </div>
           <div className="space-y-4">
-            {filteredDepartments.map((dept, idx) => (
+            {filteredDepartments.map((dept: any, idx: number) => (
               <div key={idx}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-slate-700">{dept.department}</span>
