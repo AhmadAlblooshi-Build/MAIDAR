@@ -77,7 +77,8 @@
       "Bash(awk:*)",
       "Bash(npx vercel --prod)",
       "Bash(tr:*)",
-      "Bash(timeout 30 bash -c 'while true; do hash=$\\(curl -s https://maidar.vercel.app/surveys/new | grep -o \"\"surveys/new/page-[a-f0-9]*.js\"\" | head -1\\); if [ \"\"$hash\"\" != \"\"surveys/new/page-4fc8cadb86fa07ce.js\"\" ]; then echo \"\"New deployment detected: $hash\"\"; exit 0; fi; echo \"\"Still old deployment, waiting...\"\"; sleep 5; done')"
+      "Bash(timeout 30 bash -c 'while true; do hash=$\\(curl -s https://maidar.vercel.app/surveys/new | grep -o \"\"surveys/new/page-[a-f0-9]*.js\"\" | head -1\\); if [ \"\"$hash\"\" != \"\"surveys/new/page-4fc8cadb86fa07ce.js\"\" ]; then echo \"\"New deployment detected: $hash\"\"; exit 0; fi; echo \"\"Still old deployment, waiting...\"\"; sleep 5; done')",
+      "Bash(timeout 40 bash -c 'prev_hash=\"\"surveys/new/page-69c772c851ef3512.js\"\"; while true; do hash=$\\(curl -s https://maidar.vercel.app/surveys/new | grep -o \"\"surveys/new/page-[a-f0-9]*.js\"\" | head -1\\); if [ \"\"$hash\"\" != \"\"$prev_hash\"\" ]; then echo \"\"New deployment detected: $hash\"\"; exit 0; fi; echo \"\"Waiting for deployment...\"\"; sleep 5; done')"
     ]
   }
 }

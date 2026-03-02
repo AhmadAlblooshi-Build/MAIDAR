@@ -417,14 +417,27 @@ function Step2Audience({ assessment, setAssessment, totalEmployees }: any) {
       const { employeeAPI } = await import('@/lib/api');
       const response = await employeeAPI.search({ page: 1, page_size: 10000 });
 
-      // Extract unique departments
-      const uniqueDepts = Array.from(new Set(
-        response.employees.map((emp: any) => emp.department).filter(Boolean)
-      )).sort();
+      console.log('Employee API response:', response);
+      console.log('Total employees:', response.employees?.length || 0);
 
+      // Log first few employees to see structure
+      if (response.employees && response.employees.length > 0) {
+        console.log('First 3 employees:', response.employees.slice(0, 3));
+      }
+
+      // Extract unique departments
+      const allDepts = response.employees?.map((emp: any) => {
+        console.log(`Employee ${emp.full_name}: department="${emp.department}"`);
+        return emp.department;
+      }).filter(Boolean) || [];
+
+      const uniqueDepts = Array.from(new Set(allDepts)).sort();
+
+      console.log('Unique departments found:', uniqueDepts);
       setDepartments(uniqueDepts as string[]);
     } catch (error) {
       console.error('Failed to load departments:', error);
+      console.error('Error details:', error);
     } finally {
       setLoadingDepartments(false);
     }
