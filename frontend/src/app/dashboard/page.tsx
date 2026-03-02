@@ -61,6 +61,11 @@ function DashboardContent() {
             page: 1,
             page_size: 1000
           })
+        }).then(async res => {
+          if (!res.ok) {
+            console.error('Employee search failed:', res.status, await res.text());
+          }
+          return res;
         }),
         fetch(`${apiUrl}/api/v1/simulations/search`, {
           method: 'POST',
@@ -76,6 +81,12 @@ function DashboardContent() {
       const employeeStats = await employeeStatsRes.json();
       const allEmployees = await employeesRes.json();
       const simulations = await simulationsRes.json();
+
+      console.log('=== API RESPONSES ===');
+      console.log('All employees response:', JSON.stringify(allEmployees, null, 2));
+      console.log('Employee stats response:', JSON.stringify(employeeStats, null, 2));
+      console.log('Employees array:', allEmployees.employees);
+      console.log('Is employees an array?', Array.isArray(allEmployees.employees));
 
       // Calculate risk breakdowns for different categories
       const employees = allEmployees.employees || [];
