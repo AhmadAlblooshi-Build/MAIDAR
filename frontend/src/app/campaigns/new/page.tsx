@@ -354,11 +354,19 @@ function CampaignWizardContent() {
       // Show success step
       setCurrentStep(5);
     } catch (err: any) {
-      console.error('Failed to launch campaign:', err);
+      console.error('============================================');
+      console.error('CAMPAIGN LAUNCH ERROR:');
+      console.error('Full error object:', err);
+      console.error('Error detail:', err.detail);
+      console.error('Error message:', err.message);
+      console.error('Error status:', err.status);
+      console.error('============================================');
 
       // Extract error message
       let errorMessage = 'Unknown error';
-      if (err.detail) {
+      if (err.status === 401) {
+        errorMessage = 'Session expired - please log out and log back in';
+      } else if (err.detail) {
         errorMessage = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
       } else if (err.message) {
         errorMessage = err.message;
