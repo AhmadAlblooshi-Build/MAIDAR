@@ -1419,26 +1419,13 @@ function AssignAssessmentModal({
 
     try {
       setLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'https://maidar-production-3ee1.up.railway.app'}/api/v1/employees/${employee.id}/assign-assessments`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-          body: JSON.stringify({
-            assessment_ids: selectedAssessments,
-            due_date: dueDate,
-            risk_priority: riskPriority,
-          }),
-        }
-      );
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Failed to assign assessments');
-      }
+      // Use employeeAPI instead of raw fetch for proper authentication
+      const response = await employeeAPI.assignAssessments(employee.id, {
+        assessment_ids: selectedAssessments,
+        due_date: dueDate,
+        risk_priority: riskPriority,
+      });
 
       alert(`Successfully assigned ${selectedAssessments.length} assessment(s) to ${employee.full_name}`);
       setSelectedAssessments([]);
@@ -1446,7 +1433,8 @@ function AssignAssessmentModal({
       onClose();
     } catch (error: any) {
       console.error('Failed to assign assessments:', error);
-      alert('Failed to assign assessments: ' + error.message);
+      const errorMessage = error.response?.data?.detail || error.message || 'Unknown error';
+      alert('Failed to assign assessments: ' + errorMessage);
     } finally {
       setLoading(false);
     }

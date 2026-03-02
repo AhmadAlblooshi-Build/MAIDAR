@@ -138,6 +138,8 @@ export const employeeAPI = {
   },
   statistics: () => apiCall<EmployeeStatistics>('GET', '/employees/statistics'),
   getJobTitles: () => apiCall<{ job_titles: string[] }>('GET', '/employees/job-titles/list'),
+  assignAssessments: (id: string, data: any) =>
+    apiCall('POST', `/employees/${id}/assign-assessments`, data),
 };
 
 // Scenario API
