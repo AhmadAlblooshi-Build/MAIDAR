@@ -3,6 +3,7 @@ MAIDAR - Human Risk Intelligence Platform
 Main FastAPI application
 """
 
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -14,8 +15,35 @@ from app.core.monitoring import init_monitoring
 from app.api import auth, risk, employees, analytics, scenarios, simulations, tenants, admin_users, audit_logs, rbac, email_tracking, notifications, mfa, sessions, health
 from app.api import settings as settings_api
 
+# Configure logging
+logger = logging.getLogger(__name__)
+
 # Initialize monitoring (Sentry)
 init_monitoring()
+
+
+def run_migrations():
+    """Run Alembic migrations on startup."""
+    try:
+        from alembic.config import Config
+        from alembic import command
+        import os
+
+        # Get the project root directory
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        alembic_cfg = Config(os.path.join(backend_dir, "alembic.ini"))
+
+        # Set the script location
+        alembic_cfg.set_main_option("script_location", os.path.join(backend_dir, "alembic"))
+
+        logger.info("🔄 Running database migrations...")
+        command.upgrade(alembic_cfg, "head")
+        logger.info("✅ Database migrations completed successfully")
+    except Exception as e:
+        logger.error(f"❌ Failed to run migrations: {e}")
+        # Don't crash the app, but log the error
+        # In production, you might want to raise the exception instead
+        logger.warning("⚠️  Continuing without migrations - database may be out of sync")
 
 # Create FastAPI app
 # Disable API docs in production for security
@@ -71,6 +99,14 @@ if not settings.DEBUG:
         TrustedHostMiddleware,
         allowed_hosts=settings.ALLOWED_HOSTS
     )
+
+
+# Startup event - Run migrations
+@app.on_event("startup")
+async def startup_event():
+    """Run on application startup."""
+    logger.info("🚀 Starting MAIDAR backend...")
+    run_migrations()
 
 
 # Root endpoint
