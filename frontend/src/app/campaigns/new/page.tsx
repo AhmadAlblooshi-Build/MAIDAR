@@ -596,7 +596,7 @@ function CampaignWizardContent() {
                             </label>
                             <div className="p-6 bg-slate-50 border border-slate-200 rounded-lg">
                               <div
-                                className="prose prose-sm max-w-none"
+                                className="prose prose-sm max-w-none text-slate-900 [&_*]:text-slate-900"
                                 dangerouslySetInnerHTML={{ __html: variants[selectedVariant].body || '' }}
                               />
                             </div>
