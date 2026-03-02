@@ -33,6 +33,7 @@ function DashboardContent() {
   const [error, setError] = useState('');
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [breakdownView, setBreakdownView] = useState('Department');
+  const [topEmployeesLimit, setTopEmployeesLimit] = useState('10');
 
   useEffect(() => {
     loadDashboardData();
@@ -117,17 +118,23 @@ function DashboardContent() {
         Language: calculateBreakdown('languages')
       };
 
-      // Get top 10 highest risk employees
-      const highRiskEmployees = employees
+      // Get all employees sorted by risk score
+      const sortedEmployees = employees
         .filter((emp: any) => emp.risk_score !== null && emp.risk_score !== undefined)
-        .sort((a: any, b: any) => (b.risk_score || 0) - (a.risk_score || 0))
-        .slice(0, 10);
+        .sort((a: any, b: any) => (b.risk_score || 0) - (a.risk_score || 0));
+
+      console.log('Dashboard Data Loaded:', {
+        totalEmployees: riskDistribution.total_employees,
+        sortedEmployeesCount: sortedEmployees.length,
+        breakdownsCount: Object.keys(riskBreakdowns).length,
+        simulationsCount: simulations.simulations?.length || 0
+      });
 
       setDashboardData({
         riskDistribution,
         employeeStats,
         riskBreakdowns,
-        highRiskEmployees,
+        sortedEmployees,
         simulations: simulations.simulations || []
       });
     } catch (err) {
@@ -195,7 +202,7 @@ function DashboardContent() {
 
   if (!dashboardData) return null;
 
-  const { riskDistribution, employeeStats, riskBreakdowns, highRiskEmployees, simulations } = dashboardData;
+  const { riskDistribution, employeeStats, riskBreakdowns, sortedEmployees = [], simulations } = dashboardData;
 
   // Calculate overall risk score (0-100 scale)
   const overallRiskScore = riskDistribution.mean_risk_score || 0;
@@ -476,10 +483,13 @@ function DashboardContent() {
             <h2 className="text-lg font-bold text-slate-900">Highest risk employees</h2>
             <p className="text-sm text-slate-500">Immediate intervention queue based on employee behavior.</p>
           </div>
-          <div className="w-48">
+          <div className="w-48 relative z-10">
             <Select
-              value="10"
-              onChange={() => {}}
+              value={topEmployeesLimit}
+              onChange={(e) => {
+                console.log('Changing limit from', topEmployeesLimit, 'to', e.target.value);
+                setTopEmployeesLimit(e.target.value);
+              }}
               options={[
                 { value: '10', label: 'Top 10 Employees' },
                 { value: '20', label: 'Top 20 Employees' },
@@ -501,8 +511,12 @@ function DashboardContent() {
               </tr>
             </thead>
             <tbody>
-              {highRiskEmployees.length > 0 ? (
-                highRiskEmployees.map((emp: any, idx: number) => {
+              {(() => {
+                const displayCount = parseInt(topEmployeesLimit);
+                const employeesToShow = sortedEmployees.slice(0, displayCount);
+                console.log(`Showing ${employeesToShow.length} employees (limit: ${topEmployeesLimit})`);
+                return sortedEmployees.length > 0 ? (
+                  employeesToShow.map((emp: any, idx: number) => {
                   const tier = getRiskTier(emp.risk_score);
                   return (
                     <tr key={emp.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
@@ -551,7 +565,8 @@ function DashboardContent() {
                     <p>No high-risk employees found</p>
                   </td>
                 </tr>
-              )}
+              );
+              })()}
             </tbody>
           </table>
         </div>

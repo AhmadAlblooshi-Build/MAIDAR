@@ -31,7 +31,7 @@ export default function Select({
       <div className="relative">
         <select
           className={`
-            w-full px-4 py-3 rounded-lg border appearance-none transition-all
+            w-full px-4 py-3 rounded-lg border appearance-none transition-all cursor-pointer
             text-slate-900 bg-white
             ${error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-slate-300 focus:border-teal-500 focus:ring-teal-500'}
             focus:outline-none focus:ring-2
