@@ -81,6 +81,12 @@ function DashboardContent() {
         adminUserAPI.search({ page: 1, page_size: 100 })
       ]);
 
+      console.log('Raw API responses:', {
+        tenantsData,
+        auditLogsData,
+        adminUsersData
+      });
+
       setTenants((tenantsData as any).tenants || []);
       setAuditLogs((auditLogsData as any).logs || []); // Backend returns "logs" not "audit_logs"
       setAdminUsers((adminUsersData as any).users || []);
@@ -90,6 +96,8 @@ function DashboardContent() {
         auditLogs: (auditLogsData as any).logs?.length || 0,
         adminUsers: (adminUsersData as any).users?.length || 0
       });
+
+      console.log('Audit logs array:', (auditLogsData as any).logs);
     } catch (error: any) {
       console.error('Failed to load dashboard:', error);
       console.error('Error details:', error.response?.data || error.message);
