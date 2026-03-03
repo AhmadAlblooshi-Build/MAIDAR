@@ -8,7 +8,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
-import { tenantAPI, adminUserAPI, auditLogAPI } from '@/lib/api';
+import { tenantAPI, adminUserAPI, auditLogAPI, employeeAPI } from '@/lib/api';
 import SuperAdminGuard from '@/components/guards/SuperAdminGuard';
 import SuperAdminLayout from '@/components/super-admin/SuperAdminLayout';
 import Card from '@/components/ui/Card';
@@ -26,7 +26,8 @@ import {
   UserPlus,
   Pause,
   Play,
-  Trash2
+  Trash2,
+  ChevronDown
 } from 'lucide-react';
 
 export default function SuperAdminDashboardPage() {
@@ -54,6 +55,15 @@ function DashboardContent() {
   const [licenseTier, setLicenseTier] = useState('');
   const [seatsTotal, setSeatsTotal] = useState('');
   const [savingLicense, setSavingLicense] = useState(false);
+
+  // Assign Admin modal state
+  const [assignAdminModal, setAssignAdminModal] = useState<any>(null);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
+  const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null);
+  const [assigningAdmin, setAssigningAdmin] = useState(false);
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -160,10 +170,82 @@ function DashboardContent() {
     setSeatsTotal('');
   };
 
-  const handleAssignAdmin = (tenant: any) => {
-    // TODO: Open assign admin modal
-    console.log('Assign admin for:', tenant.name);
+  const handleAssignAdmin = async (tenant: any) => {
     setOpenDropdown(null);
+    setAssignAdminModal(tenant);
+    setSelectedEmployee(null);
+    setEmployeeSearchTerm('');
+
+    // Fetch all employees for this tenant
+    try {
+      setLoadingEmployees(true);
+
+      // Use super admin endpoint to get employees for specific tenant
+      const response: any = await tenantAPI.getEmployees(tenant.id);
+
+      setEmployees(response.employees || []);
+    } catch (err: any) {
+      console.error('Failed to fetch employees:', err);
+      alert('Failed to load employees');
+    } finally {
+      setLoadingEmployees(false);
+    }
+  };
+
+  const handleConfirmAssignAdmin = async () => {
+    if (!assignAdminModal || !selectedEmployee) return;
+
+    try {
+      setAssigningAdmin(true);
+
+      console.log('Assigning admin:', {
+        tenantId: assignAdminModal.id,
+        employeeEmail: selectedEmployee.email,
+        employeeName: selectedEmployee.full_name
+      });
+
+      await tenantAPI.assignAdmin(assignAdminModal.id, selectedEmployee.email);
+
+      // Refresh dashboard data
+      await loadDashboardData();
+
+      // Close modal
+      setAssignAdminModal(null);
+      setSelectedEmployee(null);
+      setEmployees([]);
+      setEmployeeSearchTerm('');
+
+      alert(`Successfully assigned ${selectedEmployee.full_name} as admin`);
+    } catch (err: any) {
+      console.error('Failed to assign admin:', err);
+      console.error('Error response:', err.response?.data);
+
+      const errorDetail = err.response?.data?.detail;
+      let errorMessage = 'Failed to assign admin';
+
+      if (typeof errorDetail === 'string') {
+        errorMessage = errorDetail;
+
+        // Make error messages more user-friendly
+        if (errorDetail === 'User is already an admin') {
+          errorMessage = `${selectedEmployee.full_name} is already an admin for this organization.`;
+        }
+      } else if (Array.isArray(errorDetail)) {
+        errorMessage = errorDetail.map((e: any) => e.msg || e.message).join(', ');
+      }
+
+      alert(errorMessage);
+    } finally {
+      setAssigningAdmin(false);
+    }
+  };
+
+  const handleCloseAssignAdminModal = () => {
+    setAssignAdminModal(null);
+    setSelectedEmployee(null);
+    setEmployees([]);
+    setEmployeeSearchTerm('');
+    setShowEmployeeDropdown(false);
   };
 
   const handleSuspend = async (tenant: any) => {
@@ -290,6 +372,12 @@ function DashboardContent() {
     if (score >= 30) return 'bg-yellow-500';
     return 'bg-green-500';
   };
+
+  // Filter employees based on search term
+  const filteredEmployees = employees.filter(emp =>
+    emp.full_name?.toLowerCase().includes(employeeSearchTerm.toLowerCase()) ||
+    emp.email?.toLowerCase().includes(employeeSearchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -611,6 +699,134 @@ function DashboardContent() {
                 className="px-4 py-2 text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 rounded-lg transition-colors disabled:opacity-50"
               >
                 {savingLicense ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Admin Modal */}
+      {assignAdminModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-900">Assign Admin</h2>
+              <p className="text-sm text-slate-600 mt-1">{assignAdminModal.name}</p>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 py-4 space-y-4">
+              {/* Select Admin - Searchable Dropdown */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Select Admin
+                </label>
+                <div className="relative">
+                  <div
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white cursor-pointer flex items-center justify-between"
+                    onClick={() => setShowEmployeeDropdown(!showEmployeeDropdown)}
+                  >
+                    {selectedEmployee ? (
+                      <div>
+                        <div className="font-medium text-slate-900">{selectedEmployee.full_name}</div>
+                        <div className="text-xs text-slate-500">{selectedEmployee.email}</div>
+                      </div>
+                    ) : (
+                      <span className="text-slate-400">Select an employee</span>
+                    )}
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  </div>
+
+                  {/* Dropdown */}
+                  {showEmployeeDropdown && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-80 overflow-hidden">
+                      {/* Search Input */}
+                      <div className="p-2 border-b border-slate-200">
+                        <input
+                          type="text"
+                          placeholder="Search employees..."
+                          value={employeeSearchTerm}
+                          onChange={(e) => setEmployeeSearchTerm(e.target.value)}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+
+                      {/* Employee List */}
+                      <div className="max-h-60 overflow-y-auto">
+                        {loadingEmployees ? (
+                          <div className="p-4 text-center text-slate-500">Loading employees...</div>
+                        ) : filteredEmployees.length === 0 ? (
+                          <div className="p-4 text-center text-slate-500">No employees found</div>
+                        ) : (
+                          filteredEmployees.map((employee) => (
+                            <button
+                              key={employee.id}
+                              onClick={() => {
+                                if (employee.is_admin) {
+                                  alert(`${employee.full_name} is already an admin for this organization.`);
+                                  return;
+                                }
+                                setSelectedEmployee(employee);
+                                setShowEmployeeDropdown(false);
+                                setEmployeeSearchTerm('');
+                              }}
+                              className={`w-full px-4 py-3 text-left transition-colors border-b border-slate-100 last:border-b-0 ${
+                                employee.is_admin
+                                  ? 'bg-slate-50 cursor-not-allowed opacity-60'
+                                  : 'hover:bg-slate-50'
+                              }`}
+                              disabled={employee.is_admin}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <div className="font-medium text-slate-900">{employee.full_name}</div>
+                                  <div className="text-sm text-slate-500">{employee.email}</div>
+                                  {employee.department && (
+                                    <div className="text-xs text-slate-400 mt-1">{employee.department}</div>
+                                  )}
+                                </div>
+                                {employee.is_admin && (
+                                  <span className="ml-2 px-2 py-1 bg-teal-50 text-teal-700 text-xs font-medium rounded-full">
+                                    Already Admin
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Currently Assigned Info */}
+              {assignAdminModal.admin_count > 0 && (
+                <div className="bg-slate-50 rounded-lg p-3">
+                  <div className="text-sm text-slate-600">
+                    <strong>Currently Assigned:</strong> {assignAdminModal.admin_count} admin{assignAdminModal.admin_count !== 1 ? 's' : ''}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-slate-200 flex justify-end space-x-3">
+              <button
+                onClick={handleCloseAssignAdminModal}
+                disabled={assigningAdmin}
+                className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmAssignAdmin}
+                disabled={assigningAdmin || !selectedEmployee}
+                className="px-4 py-2 text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {assigningAdmin ? 'Assigning...' : 'Confirm'}
               </button>
             </div>
           </div>
