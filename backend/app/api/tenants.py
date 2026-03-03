@@ -487,6 +487,14 @@ async def get_tenant_employees(
         Employee.deleted_at == None
     ).order_by(Employee.full_name).all()
 
+    # Get list of emails that are already admins
+    admin_emails = set(
+        email[0] for email in db.query(User.email).filter(
+            User.tenant_id == tenant_id,
+            User.role == UserRole.TENANT_ADMIN
+        ).all()
+    )
+
     # Convert to response format
     employee_list = []
     for emp in employees:
@@ -497,7 +505,8 @@ async def get_tenant_employees(
             "full_name": emp.full_name,
             "department": emp.department,
             "job_title": emp.job_title,
-            "seniority": emp.seniority
+            "seniority": emp.seniority,
+            "is_admin": emp.email in admin_emails
         })
 
     return {"employees": employee_list, "total": len(employee_list)}

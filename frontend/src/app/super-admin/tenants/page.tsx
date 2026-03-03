@@ -259,6 +259,11 @@ function TenantsContent() {
 
       if (typeof errorDetail === 'string') {
         errorMessage = errorDetail;
+
+        // Make error messages more user-friendly
+        if (errorDetail === 'User is already an admin') {
+          errorMessage = `${selectedEmployee.full_name} is already an admin for this organization.`;
+        }
       } else if (Array.isArray(errorDetail)) {
         errorMessage = errorDetail.map((e: any) => e.msg || e.message).join(', ');
       }
@@ -935,17 +940,35 @@ Type "${tenant.name}" to confirm deletion:`;
                             <button
                               key={employee.id}
                               onClick={() => {
+                                if (employee.is_admin) {
+                                  alert(`${employee.full_name} is already an admin for this organization.`);
+                                  return;
+                                }
                                 setSelectedEmployee(employee);
                                 setShowEmployeeDropdown(false);
                                 setEmployeeSearchTerm('');
                               }}
-                              className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-b-0"
+                              className={`w-full px-4 py-3 text-left transition-colors border-b border-slate-100 last:border-b-0 ${
+                                employee.is_admin
+                                  ? 'bg-slate-50 cursor-not-allowed opacity-60'
+                                  : 'hover:bg-slate-50'
+                              }`}
+                              disabled={employee.is_admin}
                             >
-                              <div className="font-medium text-slate-900">{employee.full_name}</div>
-                              <div className="text-sm text-slate-500">{employee.email}</div>
-                              {employee.department && (
-                                <div className="text-xs text-slate-400 mt-1">{employee.department}</div>
-                              )}
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <div className="font-medium text-slate-900">{employee.full_name}</div>
+                                  <div className="text-sm text-slate-500">{employee.email}</div>
+                                  {employee.department && (
+                                    <div className="text-xs text-slate-400 mt-1">{employee.department}</div>
+                                  )}
+                                </div>
+                                {employee.is_admin && (
+                                  <span className="ml-2 px-2 py-1 bg-teal-50 text-teal-700 text-xs font-medium rounded-full">
+                                    Already Admin
+                                  </span>
+                                )}
+                              </div>
                             </button>
                           ))
                         )}
