@@ -195,15 +195,21 @@ Type "${tenant.name}" to confirm deletion:`;
     try {
       setCreating(true);
 
-      await tenantAPI.create({
+      const payload = {
         name: formData.organizationName,
         subdomain: formData.domain.toLowerCase().replace(/[^a-z0-9-]/g, ''),
-        domain: `${formData.domain}.com`,
+        domain: formData.domain,
         license_tier: formData.licenseType,
         seats_total: parseInt(formData.maxUsers),
         admin_email: formData.contactEmail,
-        admin_name: formData.organizationName + ' Admin'
-      });
+        admin_name: formData.organizationName + ' Admin',
+        country_code: 'UAE',
+        data_residency_region: 'UAE'
+      };
+
+      console.log('Creating tenant with payload:', payload);
+
+      await tenantAPI.create(payload);
 
       // Reset form and close modal
       setFormData({
@@ -221,7 +227,19 @@ Type "${tenant.name}" to confirm deletion:`;
       alert('Tenant created successfully!');
     } catch (err: any) {
       console.error('Failed to create tenant:', err);
-      alert(err.response?.data?.detail || 'Failed to create tenant');
+      console.error('Error response:', err.response?.data);
+
+      // Show detailed error message
+      const errorDetail = err.response?.data?.detail;
+      let errorMessage = 'Failed to create tenant';
+
+      if (typeof errorDetail === 'string') {
+        errorMessage = errorDetail;
+      } else if (Array.isArray(errorDetail)) {
+        errorMessage = errorDetail.map((e: any) => e.msg || e.message).join(', ');
+      }
+
+      alert(errorMessage);
     } finally {
       setCreating(false);
     }
