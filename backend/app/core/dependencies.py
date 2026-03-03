@@ -64,8 +64,9 @@ def get_current_user(
             detail="User account is inactive"
         )
 
-    # Check if user's tenant is suspended (if user belongs to a tenant)
-    if user.tenant_id:
+    # Check if user's tenant is suspended (SKIP for Super Admins!)
+    # Super Admins can always access the platform even if their tenant is suspended
+    if user.tenant_id and user.role not in [UserRole.PLATFORM_SUPER_ADMIN, UserRole.SUPER_ADMIN]:
         from app.models.tenant import Tenant
         tenant = db.query(Tenant).filter(Tenant.id == user.tenant_id).first()
         if tenant and not tenant.is_active:
