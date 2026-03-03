@@ -9,7 +9,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import SuperAdminGuard from '@/components/guards/SuperAdminGuard';
 import SuperAdminLayout from '@/components/super-admin/SuperAdminLayout';
-import { Search, MoreHorizontal, Play, Pause, Edit, UserPlus } from 'lucide-react';
+import { Search, MoreHorizontal, Play, Pause, Edit, UserPlus, Trash2 } from 'lucide-react';
 import { tenantAPI } from '@/lib/api';
 
 interface Tenant {
@@ -150,6 +150,39 @@ function TenantsContent() {
     setOpenDropdown(null);
     // TODO: Open assign admin modal
     alert('Assign Admin functionality - Coming soon');
+  };
+
+  const handleTerminate = async (tenant: Tenant) => {
+    setOpenDropdown(null);
+
+    const confirmMessage = `⚠️ WARNING: This will permanently delete ${tenant.name} and all associated data including:
+
+• ${tenant.admin_count} administrator(s)
+• All employees and their data
+• All risk scores and simulations
+• All audit logs
+
+This action CANNOT be undone.
+
+Type "${tenant.name}" to confirm deletion:`;
+
+    const confirmation = prompt(confirmMessage);
+
+    if (confirmation !== tenant.name) {
+      if (confirmation !== null) {
+        alert('Deletion cancelled. Tenant name did not match.');
+      }
+      return;
+    }
+
+    try {
+      await tenantAPI.delete(tenant.id);
+      await fetchTenants();
+      alert('Tenant terminated successfully');
+    } catch (err: any) {
+      console.error('Failed to terminate tenant:', err);
+      alert(err.response?.data?.detail || 'Failed to terminate tenant');
+    }
   };
 
   const handleCreateTenant = async () => {
@@ -384,6 +417,18 @@ function TenantsContent() {
                             <span>Unsuspend</span>
                           </button>
                         )}
+
+                        {/* Divider */}
+                        <div className="border-t border-slate-200 my-1" />
+
+                        {/* Terminate */}
+                        <button
+                          onClick={() => handleTerminate(tenant)}
+                          className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          <span>Terminate</span>
+                        </button>
                       </div>
                     )}
                   </div>
