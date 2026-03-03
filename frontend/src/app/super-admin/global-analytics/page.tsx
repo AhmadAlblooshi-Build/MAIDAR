@@ -54,9 +54,15 @@ function GlobalIntelligenceContent() {
         globalAnalyticsAPI.getRegionalIntegrity(),
       ]);
 
+      console.log('Industry Response:', industryResponse);
+      console.log('Regional Response:', regionalResponse);
+
       setIndustryRisk((industryResponse as any).departments || []);
       setRegionalData((regionalResponse as any).regions || []);
       setClusterUptime((regionalResponse as any).cluster_uptime || 100);
+
+      console.log('Industry Risk State:', (industryResponse as any).departments);
+      console.log('Regional Data State:', (regionalResponse as any).regions);
     } catch (err: any) {
       console.error('Failed to fetch global analytics:', err);
     } finally {
