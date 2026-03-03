@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { tenantAPI, adminUserAPI, auditLogAPI } from '@/lib/api';
@@ -21,7 +21,11 @@ import {
   Users,
   AlertCircle,
   CheckCircle,
-  MoreHorizontal
+  MoreHorizontal,
+  Edit,
+  UserPlus,
+  Pause,
+  Trash2
 } from 'lucide-react';
 
 export default function SuperAdminDashboardPage() {
@@ -41,9 +45,23 @@ function DashboardContent() {
   const [tenants, setTenants] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadDashboardData();
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpenDropdown(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const loadDashboardData = async () => {
@@ -64,6 +82,47 @@ function DashboardContent() {
       console.error('Error details:', error.response?.data || error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEditLicense = (tenant: any) => {
+    // TODO: Open edit license modal
+    console.log('Edit license for:', tenant.name);
+    setOpenDropdown(null);
+  };
+
+  const handleAssignAdmin = (tenant: any) => {
+    // TODO: Open assign admin modal
+    console.log('Assign admin for:', tenant.name);
+    setOpenDropdown(null);
+  };
+
+  const handleSuspend = async (tenant: any) => {
+    try {
+      if (confirm(`Are you sure you want to suspend ${tenant.name}?`)) {
+        await tenantAPI.suspend(tenant.id);
+        await loadDashboardData(); // Reload data
+        setOpenDropdown(null);
+      }
+    } catch (error) {
+      console.error('Failed to suspend tenant:', error);
+      alert('Failed to suspend tenant');
+    }
+  };
+
+  const handleTerminate = async (tenant: any) => {
+    try {
+      const confirmed = confirm(
+        `⚠️ WARNING: This will permanently delete ${tenant.name} and ALL associated data.\n\nThis action CANNOT be undone.\n\nType the tenant name to confirm deletion:`
+      );
+      if (confirmed) {
+        await tenantAPI.delete(tenant.id);
+        await loadDashboardData(); // Reload data
+        setOpenDropdown(null);
+      }
+    } catch (error) {
+      console.error('Failed to terminate tenant:', error);
+      alert('Failed to terminate tenant');
     }
   };
 
@@ -300,10 +359,59 @@ function DashboardContent() {
                       {tenant.is_active ? 'Active' : 'Suspended'}
                     </Badge>
                   </td>
-                  <td className="py-4 px-4">
-                    <button className="text-slate-400 hover:text-slate-600 transition-colors">
-                      <MoreHorizontal className="w-5 h-5" />
-                    </button>
+                  <td className="py-4 px-4 relative">
+                    <div ref={openDropdown === tenant.id ? dropdownRef : null}>
+                      <button
+                        onClick={() => setOpenDropdown(openDropdown === tenant.id ? null : tenant.id)}
+                        className="text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        <MoreHorizontal className="w-5 h-5" />
+                      </button>
+
+                      {/* Dropdown Menu */}
+                      {openDropdown === tenant.id && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                          {/* Edit License */}
+                          <button
+                            onClick={() => handleEditLicense(tenant)}
+                            className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                          >
+                            <Edit className="w-4 h-4" />
+                            <span>Edit License</span>
+                          </button>
+
+                          {/* Assign Admin */}
+                          <button
+                            onClick={() => handleAssignAdmin(tenant)}
+                            className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                          >
+                            <UserPlus className="w-4 h-4" />
+                            <span>Assign Admin</span>
+                          </button>
+
+                          {/* Divider */}
+                          <div className="border-t border-slate-200 my-1" />
+
+                          {/* Suspend */}
+                          <button
+                            onClick={() => handleSuspend(tenant)}
+                            className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-orange-600 hover:bg-orange-50 transition-colors"
+                          >
+                            <Pause className="w-4 h-4" />
+                            <span>Suspend</span>
+                          </button>
+
+                          {/* Terminate */}
+                          <button
+                            onClick={() => handleTerminate(tenant)}
+                            className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span>Terminate</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
