@@ -429,7 +429,13 @@ function DashboardContent() {
                     <span className="text-sm font-medium text-slate-900">{tenant.name}</span>
                   </td>
                   <td className="py-4 px-4">
-                    <span className="text-sm text-slate-500">N/A</span>
+                    {tenant.avg_risk_score !== undefined && tenant.avg_risk_score !== null ? (
+                      <span className={`text-sm font-semibold ${getRiskColor(tenant.avg_risk_score)}`}>
+                        {(tenant.avg_risk_score * 10).toFixed(0)}%
+                      </span>
+                    ) : (
+                      <span className="text-sm text-slate-400">-</span>
+                    )}
                   </td>
                   <td className="py-4 px-4">
                     <span className="text-sm text-slate-700">
