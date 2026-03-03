@@ -18,11 +18,8 @@ import {
   Shield,
   Clock,
   Users,
-  TrendingDown,
-  TrendingUp,
   AlertCircle,
   CheckCircle,
-  Settings,
   MoreHorizontal
 } from 'lucide-react';
 
@@ -115,17 +112,24 @@ function DashboardContent() {
   const suspendedTenants = tenants.filter(t => !t.is_active).length;
   const totalAdmins = adminUsers.length;
 
-  // Calculate department risk distribution (aggregate across all tenants)
-  const departmentRiskMap = new Map<string, { count: number; totalRisk: number }>();
+  // Calculate activity distribution from audit logs
+  const activityDistribution = auditLogs.reduce((acc: any, log: any) => {
+    const action = log.action || 'Unknown';
+    if (!acc[action]) {
+      acc[action] = 0;
+    }
+    acc[action]++;
+    return acc;
+  }, {});
 
-  // This would need employee data across tenants - for now show static structure
-  const globalRiskDistribution = [
-    { department: 'Sales', riskPercent: 64 },
-    { department: 'Eng', riskPercent: 34 },
-    { department: 'HR', riskPercent: 72 },
-    { department: 'Finance', riskPercent: 88 },
-    { department: 'Legal', riskPercent: 88 },
-  ];
+  const activityStats = Object.entries(activityDistribution)
+    .map(([action, count]) => ({
+      action,
+      count: count as number,
+      percentage: Math.round(((count as number) / auditLogs.length) * 100)
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
 
   // Format audit logs for Platform Intelligence
   const recentActivities = auditLogs.slice(0, 4).map((log) => {
@@ -192,11 +196,7 @@ function DashboardContent() {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="text-4xl font-bold text-slate-900 mb-2">{totalTenants}</div>
-              <div className="text-slate-600 mb-3">Total Tenants</div>
-              <div className="flex items-center gap-1 text-sm text-teal-600 font-medium">
-                <TrendingDown className="w-4 h-4" />
-                <span>- 0.5% since last month</span>
-              </div>
+              <div className="text-slate-600">Total Tenants</div>
             </div>
             <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
               <Globe className="w-6 h-6 text-teal-500" />
@@ -209,11 +209,7 @@ function DashboardContent() {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="text-4xl font-bold text-slate-900 mb-2">{activeTenants}</div>
-              <div className="text-slate-600 mb-3">Active</div>
-              <div className="flex items-center gap-1 text-sm text-teal-600 font-medium">
-                <TrendingDown className="w-4 h-4" />
-                <span>- 0.5% since last month</span>
-              </div>
+              <div className="text-slate-600">Active</div>
             </div>
             <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
               <Shield className="w-6 h-6 text-teal-500" />
@@ -226,11 +222,7 @@ function DashboardContent() {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="text-4xl font-bold text-slate-900 mb-2">{suspendedTenants}</div>
-              <div className="text-slate-600 mb-3">Suspended</div>
-              <div className="flex items-center gap-1 text-sm text-teal-600 font-medium">
-                <TrendingUp className="w-4 h-4" />
-                <span>+ 0.5% since last month</span>
-              </div>
+              <div className="text-slate-600">Suspended</div>
             </div>
             <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
               <Clock className="w-6 h-6 text-teal-500" />
@@ -243,11 +235,7 @@ function DashboardContent() {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="text-4xl font-bold text-slate-900 mb-2">{totalAdmins}</div>
-              <div className="text-slate-600 mb-3">Tenant Admins</div>
-              <div className="flex items-center gap-1 text-sm text-teal-600 font-medium">
-                <TrendingDown className="w-4 h-4" />
-                <span>- 0.5% since last month</span>
-              </div>
+              <div className="text-slate-600">Tenant Admins</div>
             </div>
             <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
               <Users className="w-6 h-6 text-teal-500" />
@@ -258,25 +246,29 @@ function DashboardContent() {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Global Risk Distribution */}
+        {/* Platform Activity Distribution */}
         <Card className="p-6">
-          <h2 className="text-lg font-bold text-slate-900 mb-6">Global Risk Distribution</h2>
+          <h2 className="text-lg font-bold text-slate-900 mb-6">Platform Activity Distribution</h2>
 
           <div className="space-y-4">
-            {globalRiskDistribution.map((item, idx) => (
-              <div key={idx} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-slate-700">{item.department}</span>
-                  <span className="text-sm font-bold text-slate-900">{item.riskPercent}%</span>
+            {activityStats.length > 0 ? (
+              activityStats.map((item, idx) => (
+                <div key={idx} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-700">{item.action}</span>
+                    <span className="text-sm font-bold text-slate-900">{item.percentage}%</span>
+                  </div>
+                  <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-teal-500 rounded-full transition-all"
+                      style={{ width: `${item.percentage}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-teal-500 rounded-full transition-all"
-                    style={{ width: `${item.riskPercent}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-center text-slate-500 py-8">No activity data available</p>
+            )}
           </div>
         </Card>
 
@@ -321,44 +313,31 @@ function DashboardContent() {
               </tr>
             </thead>
             <tbody>
-              {tenants.map((tenant) => {
-                // Calculate risk score (mock - would need real employee data)
-                const riskScore = Math.floor(Math.random() * 100);
-
-                return (
-                  <tr key={tenant.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                    <td className="py-4 px-4">
-                      <span className="text-sm font-medium text-slate-900">{tenant.name}</span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden max-w-[100px]">
-                          <div
-                            className={`h-full rounded-full ${getRiskColor(riskScore)}`}
-                            style={{ width: `${riskScore}%` }}
-                          />
-                        </div>
-                        <span className="text-sm font-medium text-slate-900">{riskScore}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="text-sm text-slate-700">
-                        {tenant.max_users || 0}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <Badge variant={tenant.is_active ? 'success' : 'error'}>
-                        {tenant.is_active ? 'Active' : 'Suspended'}
-                      </Badge>
-                    </td>
-                    <td className="py-4 px-4">
-                      <button className="text-slate-400 hover:text-slate-600 transition-colors">
-                        <MoreHorizontal className="w-5 h-5" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+              {tenants.map((tenant) => (
+                <tr key={tenant.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                  <td className="py-4 px-4">
+                    <span className="text-sm font-medium text-slate-900">{tenant.name}</span>
+                  </td>
+                  <td className="py-4 px-4">
+                    <span className="text-sm text-slate-500">N/A</span>
+                  </td>
+                  <td className="py-4 px-4">
+                    <span className="text-sm text-slate-700">
+                      {tenant.max_users || 0}
+                    </span>
+                  </td>
+                  <td className="py-4 px-4">
+                    <Badge variant={tenant.is_active ? 'success' : 'error'}>
+                      {tenant.is_active ? 'Active' : 'Suspended'}
+                    </Badge>
+                  </td>
+                  <td className="py-4 px-4">
+                    <button className="text-slate-400 hover:text-slate-600 transition-colors">
+                      <MoreHorizontal className="w-5 h-5" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
 
