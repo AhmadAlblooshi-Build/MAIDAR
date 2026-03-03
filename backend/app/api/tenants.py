@@ -50,12 +50,12 @@ class TenantResponse(BaseModel):
     name: str
     domain: str
     subdomain: str
-    license_tier: str
+    license_tier: Optional[str] = None
     seats_total: int
     seats_used: int
     provisioned_date: datetime
-    country_code: str
-    data_residency_region: str
+    country_code: Optional[str] = None
+    data_residency_region: Optional[str] = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
