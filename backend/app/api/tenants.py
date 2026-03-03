@@ -48,15 +48,15 @@ class TenantUpdate(BaseModel):
 class TenantResponse(BaseModel):
     id: str
     name: str
-    domain: str
-    subdomain: str
+    domain: Optional[str] = None
+    subdomain: Optional[str] = None
     license_tier: Optional[str] = None
-    seats_total: int
-    seats_used: int
-    provisioned_date: datetime
+    seats_total: int = 0
+    seats_used: int = 0
+    provisioned_date: Optional[datetime] = None
     country_code: Optional[str] = None
     data_residency_region: Optional[str] = None
-    is_active: bool
+    is_active: bool = True
     created_at: datetime
     updated_at: datetime
     admin_count: int = 0
