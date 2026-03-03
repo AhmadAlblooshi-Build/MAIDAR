@@ -52,13 +52,22 @@ api.interceptors.request.use(
 // Response interceptor - Handle errors
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
+  (error: AxiosError<any>) => {
     if (error.response?.status === 401) {
       // Unauthorized - clear token and redirect to login
       localStorage.removeItem('access_token');
       localStorage.removeItem('user');
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
+      }
+    } else if (error.response?.status === 403) {
+      // Check if it's a tenant suspension error
+      const errorMessage = error.response?.data?.detail || '';
+      if (errorMessage.includes('suspended') || errorMessage.includes('organization has been suspended')) {
+        // Tenant suspended - redirect to suspension page
+        if (typeof window !== 'undefined') {
+          window.location.href = '/suspended';
+        }
       }
     }
     return Promise.reject(error);
