@@ -127,11 +127,11 @@ function GlobalIntelligenceContent() {
               </div>
 
               {/* Chart area */}
-              <div className="absolute left-10 right-0 top-0 bottom-10 flex items-end justify-around">
+              <div className="absolute left-10 right-0 top-0 bottom-12 flex items-end justify-around gap-4 px-4">
                 {topDepartments.map((dept) => {
-                  const heightPercent = (dept.risk_score / maxRisk) * 100;
+                  const heightPercent = Math.max((dept.risk_score / maxRisk) * 100, 5); // Minimum 5% height
                   return (
-                    <div key={dept.department} className="flex flex-col items-center flex-1 mx-2 group relative">
+                    <div key={dept.department} className="flex flex-col items-center group relative" style={{ width: '80px' }}>
                       {/* Tooltip on hover */}
                       <div className="absolute bottom-full mb-2 hidden group-hover:block bg-slate-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap z-10">
                         <div className="font-semibold">{dept.department}</div>
@@ -142,11 +142,11 @@ function GlobalIntelligenceContent() {
                       {/* Bar */}
                       <div
                         className="w-full bg-teal-500 hover:bg-teal-600 transition-colors rounded-t cursor-pointer"
-                        style={{ height: `${heightPercent}%` }}
+                        style={{ height: `${heightPercent}%`, minHeight: '20px' }}
                       ></div>
 
                       {/* Label */}
-                      <div className="mt-2 text-xs text-slate-600 text-center w-full truncate">
+                      <div className="absolute -bottom-8 left-0 right-0 text-xs text-slate-600 text-center truncate">
                         {dept.department}
                       </div>
                     </div>
