@@ -9,7 +9,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import SuperAdminGuard from '@/components/guards/SuperAdminGuard';
 import SuperAdminLayout from '@/components/super-admin/SuperAdminLayout';
-import { Search, MoreHorizontal, Play, Pause } from 'lucide-react';
+import { Search, MoreHorizontal, Play, Pause, Edit, UserPlus } from 'lucide-react';
 import { tenantAPI } from '@/lib/api';
 
 interface Tenant {
@@ -138,6 +138,18 @@ function TenantsContent() {
       console.error('Failed to unsuspend tenant:', err);
       alert('Failed to unsuspend tenant');
     }
+  };
+
+  const handleEditLicense = (tenant: Tenant) => {
+    setOpenDropdown(null);
+    // TODO: Open edit license modal
+    alert('Edit License functionality - Coming soon');
+  };
+
+  const handleAssignAdmin = (tenant: Tenant) => {
+    setOpenDropdown(null);
+    // TODO: Open assign admin modal
+    alert('Assign Admin functionality - Coming soon');
   };
 
   const handleCreateTenant = async () => {
@@ -333,6 +345,28 @@ function TenantsContent() {
 
                     {openDropdown === tenant.id && (
                       <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                        {/* Edit License */}
+                        <button
+                          onClick={() => handleEditLicense(tenant)}
+                          className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                        >
+                          <Edit className="w-4 h-4" />
+                          <span>Edit License</span>
+                        </button>
+
+                        {/* Assign Admin */}
+                        <button
+                          onClick={() => handleAssignAdmin(tenant)}
+                          className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                        >
+                          <UserPlus className="w-4 h-4" />
+                          <span>Assign Admin</span>
+                        </button>
+
+                        {/* Divider */}
+                        <div className="border-t border-slate-200 my-1" />
+
+                        {/* Suspend or Unsuspend */}
                         {tenant.is_active ? (
                           <button
                             onClick={() => handleSuspend(tenant)}
