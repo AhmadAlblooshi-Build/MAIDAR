@@ -67,6 +67,12 @@ function TenantsContent() {
   });
   const [creating, setCreating] = useState(false);
 
+  // Edit License modal state
+  const [editLicenseModal, setEditLicenseModal] = useState<Tenant | null>(null);
+  const [licenseTier, setLicenseTier] = useState('');
+  const [seatsTotal, setSeatsTotal] = useState('');
+  const [savingLicense, setSavingLicense] = useState(false);
+
   // Handle license type change and auto-fill max users
   const handleLicenseTypeChange = (tierName: string) => {
     const selectedTier = licenseTiers.find(tier => tier.name === tierName);
@@ -141,15 +147,58 @@ function TenantsContent() {
   };
 
   const handleEditLicense = (tenant: Tenant) => {
+    setEditLicenseModal(tenant);
+    setLicenseTier(tenant.license_tier || '');
+    setSeatsTotal(tenant.seats_total?.toString() || '');
     setOpenDropdown(null);
-    // TODO: Open edit license modal
-    alert('Edit License functionality - Coming soon');
   };
 
   const handleAssignAdmin = (tenant: Tenant) => {
     setOpenDropdown(null);
     // TODO: Open assign admin modal
     alert('Assign Admin functionality - Coming soon');
+  };
+
+  const handleEditLicenseTierChange = (tier: string) => {
+    setLicenseTier(tier);
+    const selectedTier = licenseTiers.find(t => t.name === tier);
+    if (selectedTier) {
+      setSeatsTotal(selectedTier.maxUsers.toString());
+    }
+  };
+
+  const handleSaveLicense = async () => {
+    if (!editLicenseModal) return;
+
+    try {
+      setSavingLicense(true);
+
+      await tenantAPI.update(editLicenseModal.id, {
+        license_tier: licenseTier || null,
+        seats_total: seatsTotal ? parseInt(seatsTotal) : null,
+      });
+
+      // Refresh tenant list
+      await fetchTenants();
+
+      // Close modal
+      setEditLicenseModal(null);
+      setLicenseTier('');
+      setSeatsTotal('');
+
+      alert('License updated successfully');
+    } catch (err: any) {
+      console.error('Failed to update license:', err);
+      alert(err.response?.data?.detail || 'Failed to update license');
+    } finally {
+      setSavingLicense(false);
+    }
+  };
+
+  const handleCloseLicenseModal = () => {
+    setEditLicenseModal(null);
+    setLicenseTier('');
+    setSeatsTotal('');
   };
 
   const handleTerminate = async (tenant: Tenant) => {
@@ -610,6 +659,111 @@ Type "${tenant.name}" to confirm deletion:`;
                 className="px-4 py-2 text-sm font-medium bg-teal-500 hover:bg-teal-600 text-white rounded-lg transition-colors disabled:opacity-50"
               >
                 {creating ? 'Creating...' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit License Modal */}
+      {editLicenseModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Edit License</h2>
+                <p className="text-sm text-slate-500 mt-1">Update license tier and seat allocation</p>
+              </div>
+              <button
+                onClick={handleCloseLicenseModal}
+                disabled={savingLicense}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              {/* Tenant Name (Read-only) */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Organization
+                </label>
+                <input
+                  type="text"
+                  value={editLicenseModal.name}
+                  readOnly
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-600 cursor-not-allowed"
+                />
+              </div>
+
+              {/* License Tier */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  License Tier
+                </label>
+                <select
+                  value={licenseTier}
+                  onChange={(e) => handleEditLicenseTierChange(e.target.value)}
+                  disabled={savingLicense}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white disabled:opacity-50"
+                >
+                  <option value="">Select License Tier</option>
+                  {licenseTiers.map((tier) => (
+                    <option key={tier.name} value={tier.name}>
+                      {tier.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Seats Total */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Total Seats
+                </label>
+                <input
+                  type="number"
+                  value={seatsTotal}
+                  onChange={(e) => setSeatsTotal(e.target.value)}
+                  disabled={savingLicense}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:opacity-50"
+                  placeholder="Enter number of seats"
+                />
+              </div>
+
+              {/* Current Usage Info */}
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                <div className="text-sm text-slate-600">
+                  <strong>Current Usage:</strong> {editLicenseModal.seats_used} / {editLicenseModal.seats_total} seats
+                </div>
+                {seatsTotal && parseInt(seatsTotal) < editLicenseModal.seats_used && (
+                  <div className="text-sm text-red-600 mt-1">
+                    ⚠️ Warning: New seat count is less than current usage
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-200">
+              <button
+                onClick={handleCloseLicenseModal}
+                disabled={savingLicense}
+                className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveLicense}
+                disabled={savingLicense || !licenseTier || !seatsTotal}
+                className="px-4 py-2 text-sm font-medium bg-teal-500 hover:bg-teal-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {savingLicense ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </div>
