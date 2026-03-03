@@ -232,6 +232,12 @@ function TenantsContent() {
     try {
       setAssigningAdmin(true);
 
+      console.log('Assigning admin:', {
+        tenantId: assignAdminModal.id,
+        employeeEmail: selectedEmployee.email,
+        employeeName: selectedEmployee.full_name
+      });
+
       await tenantAPI.assignAdmin(assignAdminModal.id, selectedEmployee.email);
 
       // Refresh tenant list
