@@ -429,10 +429,25 @@ function DashboardContent() {
                     <span className="text-sm font-medium text-slate-900">{tenant.name}</span>
                   </td>
                   <td className="py-4 px-4">
-                    {tenant.avg_risk_score !== undefined && tenant.avg_risk_score !== null ? (
-                      <span className={`text-sm font-semibold ${getRiskColor(tenant.avg_risk_score)}`}>
-                        {(tenant.avg_risk_score * 10).toFixed(0)}%
-                      </span>
+                    {tenant.avg_risk_score !== undefined && tenant.avg_risk_score !== null && tenant.avg_risk_score > 0 ? (
+                      <div className="space-y-1">
+                        <div className="text-xs text-slate-500">Risk Score</div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden max-w-[80px]">
+                            <div
+                              className={`h-full rounded-full transition-all ${
+                                tenant.avg_risk_score >= 7 ? 'bg-red-500' :
+                                tenant.avg_risk_score >= 4 ? 'bg-orange-500' :
+                                'bg-teal-500'
+                              }`}
+                              style={{ width: `${(tenant.avg_risk_score / 10) * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-semibold text-slate-700">
+                            {(tenant.avg_risk_score * 10).toFixed(0)}
+                          </span>
+                        </div>
+                      </div>
                     ) : (
                       <span className="text-sm text-slate-400">-</span>
                     )}
