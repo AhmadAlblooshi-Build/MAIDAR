@@ -241,7 +241,7 @@ Type "${tenant.name}" to confirm deletion:`;
   }
 
   return (
-    <div className="space-y-6 pb-64">
+    <div className="space-y-6 pb-96 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -280,7 +280,7 @@ Type "${tenant.name}" to confirm deletion:`;
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-visible min-h-[800px]">
         <table className="w-full">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
