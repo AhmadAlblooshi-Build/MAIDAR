@@ -394,8 +394,8 @@ function DashboardContent() {
                       {tenant.is_active ? 'Active' : 'Suspended'}
                     </Badge>
                   </td>
-                  <td className="py-4 px-4 relative">
-                    <div ref={openDropdown === tenant.id ? dropdownRef : null}>
+                  <td className="py-4 px-4">
+                    <div className="relative inline-block" ref={openDropdown === tenant.id ? dropdownRef : null}>
                       <button
                         onClick={() => setOpenDropdown(openDropdown === tenant.id ? null : tenant.id)}
                         className="text-slate-400 hover:text-slate-600 transition-colors"
@@ -405,7 +405,7 @@ function DashboardContent() {
 
                       {/* Dropdown Menu */}
                       {openDropdown === tenant.id && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                        <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
                           {/* Edit License */}
                           <button
                             onClick={() => handleEditLicense(tenant)}
