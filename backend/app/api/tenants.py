@@ -466,3 +466,38 @@ async def assign_admin_to_tenant(
     )
 
     return {"message": f"Admin user created for {request.employee_email}", "user_id": str(admin_user.id)}
+
+
+@router.get("/{tenant_id}/employees")
+async def get_tenant_employees(
+    tenant_id: UUID,
+    current_user: User = Depends(require_super_admin),
+    db: Session = Depends(get_db)
+):
+    """Get all employees for a specific tenant (Super Admin only)."""
+
+    # Verify tenant exists
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not tenant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found")
+
+    # Fetch all employees for this tenant
+    employees = db.query(Employee).filter(
+        Employee.tenant_id == tenant_id,
+        Employee.deleted_at == None
+    ).order_by(Employee.full_name).all()
+
+    # Convert to response format
+    employee_list = []
+    for emp in employees:
+        employee_list.append({
+            "id": str(emp.id),
+            "employee_id": emp.employee_id,
+            "email": emp.email,
+            "full_name": emp.full_name,
+            "department": emp.department,
+            "job_title": emp.job_title,
+            "seniority": emp.seniority
+        })
+
+    return {"employees": employee_list, "total": len(employee_list)}

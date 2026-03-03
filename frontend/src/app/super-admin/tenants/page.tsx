@@ -171,16 +171,9 @@ function TenantsContent() {
     // Fetch all employees for this tenant
     try {
       setLoadingEmployees(true);
-      const token = localStorage.getItem('access_token');
-      if (!token) return;
 
-      // Fetch employees for the tenant - need to use super admin endpoint
-      // Since we're super admin, we need to fetch employees across tenant boundary
-      const response: any = await employeeAPI.search({
-        page: 1,
-        page_size: 1000, // Get all employees
-        tenant_id: tenant.id // Filter by tenant
-      });
+      // Use super admin endpoint to get employees for specific tenant
+      const response: any = await tenantAPI.getEmployees(tenant.id);
 
       setEmployees(response.employees || []);
     } catch (err: any) {

@@ -221,6 +221,7 @@ export const tenantAPI = {
   activate: (id: string) => apiCall('POST', `/tenants/${id}/activate`),
   assignAdmin: (id: string, employeeEmail: string) =>
     apiCall('POST', `/tenants/${id}/assign-admin`, { employee_email: employeeEmail }),
+  getEmployees: (id: string) => apiCall('GET', `/tenants/${id}/employees`),
 
   // Branding
   getBranding: () => apiCall('GET', '/settings/tenant/branding'),
