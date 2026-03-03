@@ -51,8 +51,8 @@ class TenantResponse(BaseModel):
     domain: Optional[str] = None
     subdomain: Optional[str] = None
     license_tier: Optional[str] = None
-    seats_total: int = 0
-    seats_used: int = 0
+    seats_total: Optional[int] = None  # License capacity
+    seats_used: Optional[int] = None  # Current usage
     provisioned_date: Optional[datetime] = None
     country_code: Optional[str] = None
     data_residency_region: Optional[str] = None
