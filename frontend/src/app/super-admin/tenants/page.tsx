@@ -377,7 +377,7 @@ Type "${tenant.name}" to confirm deletion:`;
                     </button>
 
                     {openDropdown === tenant.id && (
-                      <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                      <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50 max-h-96 overflow-y-auto">
                         {/* Edit License */}
                         <button
                           onClick={() => handleEditLicense(tenant)}
