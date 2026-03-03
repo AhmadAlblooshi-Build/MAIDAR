@@ -5,7 +5,7 @@ Global Analytics API - Cross-tenant platform intelligence
 from typing import Dict, List, Any
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, Integer, case
 
 from app.config.database import get_db
 from app.models.employee import Employee
@@ -60,8 +60,7 @@ async def get_regional_integrity(
     # Query tenant count by region
     regional_data = db.query(
         Tenant.data_residency_region,
-        func.count(Tenant.id).label('tenant_count'),
-        func.sum(func.cast(Tenant.is_active, db.Integer)).label('active_count')
+        func.count(Tenant.id).label('tenant_count')
     ).filter(
         Tenant.deleted_at == None,
         Tenant.data_residency_region.isnot(None)
@@ -71,7 +70,14 @@ async def get_regional_integrity(
 
     # Format response with status determination
     regions = []
-    for region, total, active in regional_data:
+    for region, total in regional_data:
+        # Count active tenants for this region separately
+        active = db.query(func.count(Tenant.id)).filter(
+            Tenant.deleted_at == None,
+            Tenant.data_residency_region == region,
+            Tenant.is_active == True
+        ).scalar() or 0
+
         active_pct = (active / total * 100) if total > 0 else 0
 
         # Determine status based on active percentage
