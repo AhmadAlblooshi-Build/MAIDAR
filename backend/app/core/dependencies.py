@@ -64,6 +64,16 @@ def get_current_user(
             detail="User account is inactive"
         )
 
+    # Check if user's tenant is suspended (if user belongs to a tenant)
+    if user.tenant_id:
+        from app.models.tenant import Tenant
+        tenant = db.query(Tenant).filter(Tenant.id == user.tenant_id).first()
+        if tenant and not tenant.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your organization has been suspended. Please contact support."
+            )
+
     return user
 
 
