@@ -9,8 +9,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import SuperAdminGuard from '@/components/guards/SuperAdminGuard';
 import SuperAdminLayout from '@/components/super-admin/SuperAdminLayout';
-import { Search, MoreHorizontal, Play, Pause, Edit, UserPlus, Trash2 } from 'lucide-react';
-import { tenantAPI } from '@/lib/api';
+import { Search, MoreHorizontal, Play, Pause, Edit, UserPlus, Trash2, ChevronDown } from 'lucide-react';
+import { tenantAPI, employeeAPI } from '@/lib/api';
 
 interface Tenant {
   id: string;
@@ -72,6 +72,15 @@ function TenantsContent() {
   const [licenseTier, setLicenseTier] = useState('');
   const [seatsTotal, setSeatsTotal] = useState('');
   const [savingLicense, setSavingLicense] = useState(false);
+
+  // Assign Admin modal state
+  const [assignAdminModal, setAssignAdminModal] = useState<Tenant | null>(null);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
+  const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null);
+  const [assigningAdmin, setAssigningAdmin] = useState(false);
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
 
   // Handle license type change and auto-fill max users
   const handleLicenseTypeChange = (tierName: string) => {
@@ -153,10 +162,33 @@ function TenantsContent() {
     setOpenDropdown(null);
   };
 
-  const handleAssignAdmin = (tenant: Tenant) => {
+  const handleAssignAdmin = async (tenant: Tenant) => {
     setOpenDropdown(null);
-    // TODO: Open assign admin modal
-    alert('Assign Admin functionality - Coming soon');
+    setAssignAdminModal(tenant);
+    setSelectedEmployee(null);
+    setEmployeeSearchTerm('');
+
+    // Fetch all employees for this tenant
+    try {
+      setLoadingEmployees(true);
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      // Fetch employees for the tenant - need to use super admin endpoint
+      // Since we're super admin, we need to fetch employees across tenant boundary
+      const response: any = await employeeAPI.search({
+        page: 1,
+        page_size: 1000, // Get all employees
+        tenant_id: tenant.id // Filter by tenant
+      });
+
+      setEmployees(response.employees || []);
+    } catch (err: any) {
+      console.error('Failed to fetch employees:', err);
+      alert('Failed to load employees');
+    } finally {
+      setLoadingEmployees(false);
+    }
   };
 
   const handleEditLicenseTierChange = (tier: string) => {
@@ -200,6 +232,46 @@ function TenantsContent() {
     setLicenseTier('');
     setSeatsTotal('');
   };
+
+  const handleConfirmAssignAdmin = async () => {
+    if (!assignAdminModal || !selectedEmployee) return;
+
+    try {
+      setAssigningAdmin(true);
+
+      await tenantAPI.assignAdmin(assignAdminModal.id, selectedEmployee.email);
+
+      // Refresh tenant list
+      await fetchTenants();
+
+      // Close modal
+      setAssignAdminModal(null);
+      setSelectedEmployee(null);
+      setEmployees([]);
+      setEmployeeSearchTerm('');
+
+      alert(`Successfully assigned ${selectedEmployee.full_name} as admin`);
+    } catch (err: any) {
+      console.error('Failed to assign admin:', err);
+      alert(err.response?.data?.detail || 'Failed to assign admin');
+    } finally {
+      setAssigningAdmin(false);
+    }
+  };
+
+  const handleCloseAssignAdminModal = () => {
+    setAssignAdminModal(null);
+    setSelectedEmployee(null);
+    setEmployees([]);
+    setEmployeeSearchTerm('');
+    setShowEmployeeDropdown(false);
+  };
+
+  // Filter employees based on search term
+  const filteredEmployees = employees.filter(emp =>
+    emp.full_name?.toLowerCase().includes(employeeSearchTerm.toLowerCase()) ||
+    emp.email?.toLowerCase().includes(employeeSearchTerm.toLowerCase())
+  );
 
   const handleTerminate = async (tenant: Tenant) => {
     setOpenDropdown(null);
@@ -764,6 +836,140 @@ Type "${tenant.name}" to confirm deletion:`;
                 className="px-4 py-2 text-sm font-medium bg-teal-500 hover:bg-teal-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {savingLicense ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Admin Modal */}
+      {assignAdminModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Assign Admin</h2>
+                <p className="text-sm text-slate-500 mt-1">Grant administrative access to employees</p>
+              </div>
+              <button
+                onClick={handleCloseAssignAdminModal}
+                disabled={assigningAdmin}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              {/* Tenant Name (Read-only) */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Organization
+                </label>
+                <input
+                  type="text"
+                  value={assignAdminModal.name}
+                  readOnly
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-600 cursor-not-allowed"
+                />
+              </div>
+
+              {/* Select Admin - Searchable Dropdown */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Select Admin
+                </label>
+                <div className="relative">
+                  <div
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white cursor-pointer flex items-center justify-between"
+                    onClick={() => setShowEmployeeDropdown(!showEmployeeDropdown)}
+                  >
+                    {selectedEmployee ? (
+                      <div>
+                        <div className="font-medium text-slate-900">{selectedEmployee.full_name}</div>
+                        <div className="text-xs text-slate-500">{selectedEmployee.email}</div>
+                      </div>
+                    ) : (
+                      <span className="text-slate-400">Select an employee</span>
+                    )}
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  </div>
+
+                  {/* Dropdown */}
+                  {showEmployeeDropdown && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-80 overflow-hidden">
+                      {/* Search Input */}
+                      <div className="p-2 border-b border-slate-200">
+                        <input
+                          type="text"
+                          placeholder="Search employees..."
+                          value={employeeSearchTerm}
+                          onChange={(e) => setEmployeeSearchTerm(e.target.value)}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+
+                      {/* Employee List */}
+                      <div className="max-h-60 overflow-y-auto">
+                        {loadingEmployees ? (
+                          <div className="p-4 text-center text-slate-500">Loading employees...</div>
+                        ) : filteredEmployees.length === 0 ? (
+                          <div className="p-4 text-center text-slate-500">No employees found</div>
+                        ) : (
+                          filteredEmployees.map((employee) => (
+                            <button
+                              key={employee.id}
+                              onClick={() => {
+                                setSelectedEmployee(employee);
+                                setShowEmployeeDropdown(false);
+                                setEmployeeSearchTerm('');
+                              }}
+                              className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-b-0"
+                            >
+                              <div className="font-medium text-slate-900">{employee.full_name}</div>
+                              <div className="text-sm text-slate-500">{employee.email}</div>
+                              {employee.department && (
+                                <div className="text-xs text-slate-400 mt-1">{employee.department}</div>
+                              )}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Currently Assigned Info */}
+              {assignAdminModal.admin_count > 0 && (
+                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                  <div className="text-sm text-slate-600">
+                    <strong>Currently Assigned:</strong> {assignAdminModal.admin_count} admin{assignAdminModal.admin_count !== 1 ? 's' : ''}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-200">
+              <button
+                onClick={handleCloseAssignAdminModal}
+                disabled={assigningAdmin}
+                className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmAssignAdmin}
+                disabled={assigningAdmin || !selectedEmployee}
+                className="px-4 py-2 text-sm font-medium bg-teal-500 hover:bg-teal-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {assigningAdmin ? 'Assigning...' : 'Confirm'}
               </button>
             </div>
           </div>

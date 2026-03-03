@@ -566,9 +566,22 @@ def search_employees(
 ):
     """
     Search and filter employees with pagination.
+
+    Super admins can search across tenants by providing tenant_id in request.
     """
+    # Determine which tenant to query
+    from app.models.user import UserRole
+    from uuid import UUID
+
+    if search_request.tenant_id and current_user.role in [UserRole.PLATFORM_SUPER_ADMIN, UserRole.SUPER_ADMIN]:
+        # Super admin searching specific tenant
+        target_tenant_id = UUID(search_request.tenant_id)
+    else:
+        # Regular user or no tenant_id specified - use current user's tenant
+        target_tenant_id = current_user.tenant_id
+
     query = db.query(Employee).filter(
-        Employee.tenant_id == current_user.tenant_id,
+        Employee.tenant_id == target_tenant_id,
         Employee.deleted_at == None
     )
 

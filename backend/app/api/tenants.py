@@ -369,3 +369,100 @@ async def activate_tenant(
     )
 
     return build_tenant_response(tenant, db)
+
+
+class AssignAdminRequest(BaseModel):
+    employee_email: str = Field(..., min_length=1)
+
+
+@router.post("/{tenant_id}/assign-admin", status_code=status.HTTP_201_CREATED)
+async def assign_admin_to_tenant(
+    tenant_id: UUID,
+    request: AssignAdminRequest,
+    current_user: User = Depends(require_super_admin),
+    db: Session = Depends(get_db)
+):
+    """Assign an employee as admin for a tenant."""
+
+    # Verify tenant exists
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not tenant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found")
+
+    # Check if employee exists in tenant
+    employee = db.query(Employee).filter(
+        Employee.tenant_id == tenant_id,
+        Employee.email == request.employee_email
+    ).first()
+
+    if not employee:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Employee with email '{request.employee_email}' not found in this tenant"
+        )
+
+    # Check if user already exists
+    existing_user = db.query(User).filter(User.email == request.employee_email).first()
+    if existing_user:
+        # If user exists but not as admin, update their role
+        if existing_user.role != UserRole.TENANT_ADMIN:
+            existing_user.role = UserRole.TENANT_ADMIN
+            db.commit()
+
+            audit_logger.log_event(
+                db=db,
+                action="ADMIN_PROMOTED",
+                user_id=current_user.id,
+                tenant_id=None,
+                resource_type="user",
+                resource_id=existing_user.id,
+                details={
+                    "email": request.employee_email,
+                    "tenant_name": tenant.name,
+                    "full_name": employee.full_name
+                },
+                status="success"
+            )
+
+            return {"message": f"User {request.employee_email} promoted to admin", "user_id": str(existing_user.id)}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User is already an admin"
+            )
+
+    # Create new admin user
+    from app.core.security import get_password_hash as hash_password
+
+    admin_user = User(
+        tenant_id=tenant_id,
+        email=request.employee_email,
+        password_hash=hash_password("ChangeMe123!"),  # Temporary password
+        full_name=employee.full_name,
+        role=UserRole.TENANT_ADMIN,
+        is_active=True,
+        email_verified=False
+    )
+
+    db.add(admin_user)
+    db.commit()
+    db.refresh(admin_user)
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="ADMIN_ASSIGNED",
+        user_id=current_user.id,
+        tenant_id=None,
+        resource_type="user",
+        resource_id=admin_user.id,
+        details={
+            "email": request.employee_email,
+            "tenant_name": tenant.name,
+            "tenant_id": str(tenant_id),
+            "full_name": employee.full_name
+        },
+        status="success"
+    )
+
+    return {"message": f"Admin user created for {request.employee_email}", "user_id": str(admin_user.id)}

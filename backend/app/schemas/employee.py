@@ -162,6 +162,7 @@ class EmployeeBulkImportResponse(BaseModel):
 class EmployeeSearchRequest(BaseModel):
     """Schema for employee search/filter request."""
     query: Optional[str] = Field(None, description="Search query (name, email, department)")
+    tenant_id: Optional[str] = Field(None, description="Tenant ID (Super Admin only)")
     age_range: Optional[str] = None
     gender: Optional[str] = None
     seniority: Optional[str] = None
