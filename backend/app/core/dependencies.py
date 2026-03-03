@@ -105,7 +105,7 @@ def get_current_admin_user(
     Raises:
         HTTPException: If user is not an admin
     """
-    if current_user.role not in [UserRole.TENANT_ADMIN, UserRole.PLATFORM_SUPER_ADMIN]:
+    if current_user.role not in [UserRole.TENANT_ADMIN, UserRole.PLATFORM_SUPER_ADMIN, UserRole.SUPER_ADMIN]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
@@ -128,7 +128,7 @@ def get_current_super_admin(
     Raises:
         HTTPException: If user is not a super admin
     """
-    if current_user.role != UserRole.PLATFORM_SUPER_ADMIN:
+    if current_user.role not in [UserRole.PLATFORM_SUPER_ADMIN, UserRole.SUPER_ADMIN]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Super admin access required"

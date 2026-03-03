@@ -12,6 +12,7 @@ from .base import Base, UUIDMixin, TimestampMixin
 class UserRole(str, Enum):
     """User roles for RBAC."""
     PLATFORM_SUPER_ADMIN = "PLATFORM_SUPER_ADMIN"  # Global admin
+    SUPER_ADMIN = "SUPER_ADMIN"  # Alias for PLATFORM_SUPER_ADMIN (legacy)
     TENANT_ADMIN = "TENANT_ADMIN"  # Organization admin
     ANALYST = "ANALYST"  # Read-only analyst
 
