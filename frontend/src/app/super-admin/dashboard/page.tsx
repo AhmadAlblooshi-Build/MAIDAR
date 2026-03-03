@@ -59,8 +59,9 @@ function DashboardContent() {
       setTenants((tenantsData as any).tenants || []);
       setAuditLogs((auditLogsData as any).audit_logs || []);
       setAdminUsers((adminUsersData as any).users || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load dashboard:', error);
+      console.error('Error details:', error.response?.data || error.message);
     } finally {
       setLoading(false);
     }
