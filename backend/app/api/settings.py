@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.config.database import get_db
 from app.core.dependencies import get_current_active_user, get_current_admin_user
+from app.core.audit_logger import audit_logger
 from app.models.user import User
 from app.models.tenant import Tenant
 from app.schemas.settings import (
@@ -59,6 +60,21 @@ def update_notification_preferences(
     # For now, accept the preferences but don't persist them
     # In production, add a metadata JSONB column to users table or create separate preferences table
     logger.warning(f"Notification preferences received but not persisted for user {current_user.email} - metadata field not implemented")
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="NOTIFICATION_PREFERENCES_UPDATED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="user",
+        resource_id=current_user.id,
+        details={
+            "email": current_user.email,
+            "preferences": preferences.model_dump()
+        },
+        status="success"
+    )
 
     return NotificationPreferencesResponse(
         user_id=str(current_user.id),
@@ -137,6 +153,24 @@ def update_tenant_branding(
 
     logger.warning(f"Branding update received for tenant {tenant.name} but only company_name persisted - metadata field not implemented")
 
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="TENANT_BRANDING_UPDATED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="tenant",
+        resource_id=tenant.id,
+        details={
+            "tenant_name": tenant.name,
+            "logo_url": branding.logo_url,
+            "primary_color": branding.primary_color,
+            "secondary_color": branding.secondary_color,
+            "company_name": branding.company_name
+        },
+        status="success"
+    )
+
     return TenantBrandingResponse(
         tenant_id=str(tenant.id),
         logo_url=branding.logo_url,  # Return what was sent, but not persisted
@@ -184,6 +218,23 @@ async def upload_tenant_logo(
     logo_url = f"/uploads/logos/{current_user.tenant_id}/{file.filename}"
 
     logger.info(f"Logo uploaded for tenant {current_user.tenant_id}: {file.filename}")
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="TENANT_LOGO_UPLOADED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="tenant",
+        resource_id=current_user.tenant_id,
+        details={
+            "filename": file.filename,
+            "content_type": file.content_type,
+            "file_size": len(contents),
+            "logo_url": logo_url
+        },
+        status="success"
+    )
 
     return {
         "message": "Logo uploaded successfully",

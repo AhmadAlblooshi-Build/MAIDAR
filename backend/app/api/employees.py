@@ -17,6 +17,7 @@ from sqlalchemy import or_, and_, func
 from app.config.database import get_db
 from app.core.dependencies import get_current_user, get_current_admin_user, check_tenant_access
 from app.core.risk_engine import AgeRange, Gender, Seniority
+from app.core.audit_logger import audit_logger
 from app.models.user import User
 from app.models.employee import Employee
 from app.schemas.employee import (
@@ -101,6 +102,23 @@ def create_employee(
         db.commit()  # Commit transaction
         logger.info("🔃 Refreshing employee data...")
         db.refresh(employee)  # Refresh to get latest DB state
+
+        # Create audit log
+        audit_logger.log_event(
+            db=db,
+            action="EMPLOYEE_CREATED",
+            user_id=current_user.id,
+            tenant_id=current_user.tenant_id,
+            resource_type="employee",
+            resource_id=employee.id,
+            details={
+                "employee_id": employee.employee_id,
+                "email": employee.email,
+                "full_name": employee.full_name,
+                "department": employee.department
+            },
+            status="success"
+        )
 
         logger.info(f"✅ Employee created successfully: {employee.employee_id}")
 
@@ -380,6 +398,22 @@ def update_employee(
     db.commit()
     db.refresh(employee)
 
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="EMPLOYEE_UPDATED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="employee",
+        resource_id=employee.id,
+        details={
+            "employee_id": employee.employee_id,
+            "email": employee.email,
+            "updated_fields": list(update_data.keys())
+        },
+        status="success"
+    )
+
     logger.info(f"Employee updated: {employee.employee_id} by user {current_user.email}")
 
     return EmployeeResponse(
@@ -415,6 +449,22 @@ def cleanup_test_employees(
     ).delete(synchronize_session=False)
 
     db.commit()
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="EMPLOYEES_CLEANUP_TEST",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="employee",
+        resource_id=None,
+        details={
+            "deleted_count": deleted,
+            "prefix": "TEST"
+        },
+        status="success"
+    )
+
     return {"message": f"Deleted {deleted} test employees"}
 
 @router.delete("/cleanup-by-prefix/{prefix}", status_code=status.HTTP_200_OK)
@@ -430,6 +480,22 @@ def cleanup_employees_by_prefix(
     ).delete(synchronize_session=False)
 
     db.commit()
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="EMPLOYEES_CLEANUP_BY_PREFIX",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="employee",
+        resource_id=None,
+        details={
+            "deleted_count": deleted,
+            "prefix": prefix
+        },
+        status="success"
+    )
+
     return {"message": f"Deleted {deleted} employees with prefix '{prefix}'"}
 
 @router.delete("/{employee_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -470,6 +536,22 @@ def delete_employee(
     # Soft delete
     employee.soft_delete()
     db.commit()
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="EMPLOYEE_DELETED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="employee",
+        resource_id=employee.id,
+        details={
+            "employee_id": employee.employee_id,
+            "email": employee.email,
+            "full_name": employee.full_name
+        },
+        status="success"
+    )
 
     logger.info(f"Employee deleted: {employee.employee_id} by user {current_user.email}")
 
@@ -676,6 +758,22 @@ def bulk_import_employees(
     if successful > 0:
         db.commit()
 
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="EMPLOYEES_BULK_IMPORT",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="employee",
+        resource_id=None,
+        details={
+            "total_processed": len(import_data.employees),
+            "successful": successful,
+            "failed": failed
+        },
+        status="success" if failed == 0 else "partial_success"
+    )
+
     logger.info(f"Bulk import: {successful} successful, {failed} failed by user {current_user.email}")
 
     return EmployeeBulkImportResponse(
@@ -848,6 +946,23 @@ async def upload_csv(
     if successful > 0:
         db.commit()
 
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="EMPLOYEES_CSV_UPLOAD",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="employee",
+        resource_id=None,
+        details={
+            "filename": file.filename,
+            "total_processed": successful + failed,
+            "successful": successful,
+            "failed": failed
+        },
+        status="success" if failed == 0 else "partial_success"
+    )
+
     logger.info(f"CSV import: {successful} successful, {failed} failed by user {current_user.email}")
 
     return EmployeeBulkImportResponse(
@@ -939,6 +1054,23 @@ def assign_assessments_to_employee(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to assign assessments: {str(e)}"
         )
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="EMPLOYEE_ASSESSMENTS_ASSIGNED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="employee",
+        resource_id=employee.id,
+        details={
+            "employee_id": str(employee_id),
+            "employee_name": employee.full_name,
+            "assigned_count": created_count,
+            "assessment_ids": [str(aid) for aid in assessment_ids]
+        },
+        status="success"
+    )
 
     logger.info(f"Assigned {created_count} assessments to employee {employee.full_name} by user {current_user.email}")
 

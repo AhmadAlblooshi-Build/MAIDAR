@@ -16,6 +16,7 @@ from app.models.user import User, UserRole
 from app.models.tenant import Tenant
 from app.core.dependencies import get_current_super_admin as require_super_admin
 from app.core.security import get_password_hash as hash_password
+from app.core.audit_logger import audit_logger
 
 router = APIRouter()
 
@@ -115,6 +116,24 @@ async def create_admin_user(
     db.commit()
     db.refresh(user)
 
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="ADMIN_USER_CREATED",
+        user_id=current_user.id,
+        tenant_id=None,  # Super admin action
+        resource_type="user",
+        resource_id=user.id,
+        details={
+            "email": user.email,
+            "full_name": user.full_name,
+            "tenant_id": str(user_data.tenant_id),
+            "tenant_name": tenant.name,
+            "role": user.role
+        },
+        status="success"
+    )
+
     # Build response
     response = AdminUserResponse(
         id=str(user.id),
@@ -187,6 +206,21 @@ async def update_admin_user(
 
     db.commit()
     db.refresh(user)
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="ADMIN_USER_UPDATED",
+        user_id=current_user.id,
+        tenant_id=None,  # Super admin action
+        resource_type="user",
+        resource_id=user.id,
+        details={
+            "email": user.email,
+            "updated_fields": list(update_data.keys())
+        },
+        status="success"
+    )
 
     # Get tenant name
     tenant_name = None
@@ -303,6 +337,21 @@ async def suspend_admin_user(
     db.commit()
     db.refresh(user)
 
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="ADMIN_USER_SUSPENDED",
+        user_id=current_user.id,
+        tenant_id=None,  # Super admin action
+        resource_type="user",
+        resource_id=user.id,
+        details={
+            "email": user.email,
+            "full_name": user.full_name
+        },
+        status="success"
+    )
+
     # Get tenant name
     tenant_name = None
     if user.tenant_id:
@@ -341,6 +390,21 @@ async def activate_admin_user(
     user.is_active = True
     db.commit()
     db.refresh(user)
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="ADMIN_USER_ACTIVATED",
+        user_id=current_user.id,
+        tenant_id=None,  # Super admin action
+        resource_type="user",
+        resource_id=user.id,
+        details={
+            "email": user.email,
+            "full_name": user.full_name
+        },
+        status="success"
+    )
 
     # Get tenant name
     tenant_name = None
@@ -386,9 +450,27 @@ async def reassign_tenant(
             detail="Tenant not found"
         )
 
+    old_tenant_id = user.tenant_id
     user.tenant_id = new_tenant_id
     db.commit()
     db.refresh(user)
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="ADMIN_USER_TENANT_REASSIGNED",
+        user_id=current_user.id,
+        tenant_id=None,  # Super admin action
+        resource_type="user",
+        resource_id=user.id,
+        details={
+            "email": user.email,
+            "old_tenant_id": str(old_tenant_id) if old_tenant_id else None,
+            "new_tenant_id": str(new_tenant_id),
+            "new_tenant_name": tenant.name
+        },
+        status="success"
+    )
 
     # Construct response with tenant_name included
     response = AdminUserResponse(

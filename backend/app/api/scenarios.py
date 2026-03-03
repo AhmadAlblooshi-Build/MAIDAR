@@ -15,6 +15,7 @@ from sqlalchemy import or_, func
 from app.config.database import get_db
 from app.core.dependencies import get_current_user, get_current_admin_user, check_tenant_access
 from app.core.risk_engine import ScenarioCategory
+from app.core.audit_logger import audit_logger
 from app.models.user import User
 from app.models.scenario import Scenario
 from app.schemas.scenario import (
@@ -72,6 +73,23 @@ def create_scenario(
     db.add(scenario)
     db.commit()
     db.refresh(scenario)
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="SCENARIO_CREATED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="scenario",
+        resource_id=scenario.id,
+        details={
+            "scenario_name": scenario.name,
+            "category": scenario.category,
+            "language": scenario.language,
+            "difficulty": scenario.difficulty
+        },
+        status="success"
+    )
 
     logger.info(f"Scenario created: {scenario.name} by user {current_user.email}")
 
@@ -227,6 +245,26 @@ Make it realistic, appropriate for UAE business culture, and educationally valua
             db.add(scenario)
             db.commit()
             db.refresh(scenario)
+
+            # Create audit log
+            audit_logger.log_event(
+                db=db,
+                action="SCENARIO_GENERATED_AI",
+                user_id=current_user.id,
+                tenant_id=current_user.tenant_id,
+                resource_type="scenario",
+                resource_id=scenario.id,
+                details={
+                    "scenario_name": scenario.name,
+                    "context_type": context_type,
+                    "target_segment": target_segment,
+                    "personalization_level": personalization_level,
+                    "tone": tone,
+                    "language": language,
+                    "ai_generated": AI_AVAILABLE
+                },
+                status="success"
+            )
 
             return ScenarioResponse(
                 id=str(scenario.id),
@@ -608,6 +646,21 @@ def update_scenario(
     db.commit()
     db.refresh(scenario)
 
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="SCENARIO_UPDATED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="scenario",
+        resource_id=scenario.id,
+        details={
+            "scenario_name": scenario.name,
+            "updated_fields": list(update_data.keys())
+        },
+        status="success"
+    )
+
     logger.info(f"Scenario updated: {scenario.name} by user {current_user.email}")
 
     return ScenarioResponse(
@@ -676,10 +729,26 @@ def delete_scenario(
         )
 
     # Hard delete
+    scenario_name = scenario.name
+    scenario_uuid = scenario.id
     db.delete(scenario)
     db.commit()
 
-    logger.info(f"Scenario deleted: {scenario.name} by user {current_user.email}")
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="SCENARIO_DELETED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="scenario",
+        resource_id=scenario_uuid,
+        details={
+            "scenario_name": scenario_name
+        },
+        status="success"
+    )
+
+    logger.info(f"Scenario deleted: {scenario_name} by user {current_user.email}")
 
     return None
 

@@ -26,6 +26,7 @@ from app.core.security import (
     verify_token,
     generate_verification_code
 )
+from app.core.audit_logger import audit_logger
 from app.models.user import User, UserRole
 from app.models.tenant import Tenant
 from app.schemas.auth import (
@@ -146,6 +147,23 @@ def register(
     db.commit()
     db.refresh(user)
 
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="USER_REGISTERED",
+        user_id=user.id,
+        tenant_id=user.tenant_id,
+        resource_type="user",
+        resource_id=user.id,
+        details={
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role,
+            "organization_created": tenant is not None and user_role == UserRole.TENANT_ADMIN
+        },
+        status="success"
+    )
+
     # Send verification email asynchronously (non-blocking)
     try:
         from app.tasks.email_tasks import send_welcome_email
@@ -226,6 +244,21 @@ def login(
     user.last_login = datetime.utcnow()
     db.commit()
 
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="USER_LOGIN",
+        user_id=user.id,
+        tenant_id=user.tenant_id,
+        resource_type="user",
+        resource_id=user.id,
+        details={
+            "email": user.email,
+            "role": user.role
+        },
+        status="success"
+    )
+
     # Create access token
     access_token = create_access_token(data={"sub": user.email})
 
@@ -303,6 +336,21 @@ def verify_email(
     user.verification_code_expires_at = None
     db.commit()
 
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="EMAIL_VERIFIED",
+        user_id=user.id,
+        tenant_id=user.tenant_id,
+        resource_type="user",
+        resource_id=user.id,
+        details={
+            "email": user.email,
+            "verification_method": "code" if verification_data.code else "token"
+        },
+        status="success"
+    )
+
     # Send welcome email
     try:
         email_service.send_welcome_email(
@@ -343,6 +391,20 @@ def resend_verification(
     user.verification_code = verification_code
     user.verification_code_expires_at = verification_expires
     db.commit()
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="VERIFICATION_RESENT",
+        user_id=user.id,
+        tenant_id=user.tenant_id,
+        resource_type="user",
+        resource_id=user.id,
+        details={
+            "email": user.email
+        },
+        status="success"
+    )
 
     # Send verification email
     try:
@@ -401,6 +463,20 @@ def forgot_password(
     except Exception as e:
         logger.error(f"Failed to queue password reset email for {user.email}: {str(e)}")
 
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="PASSWORD_RESET_REQUESTED",
+        user_id=user.id,
+        tenant_id=user.tenant_id,
+        resource_type="user",
+        resource_id=user.id,
+        details={
+            "email": user.email
+        },
+        status="success"
+    )
+
     return {"message": "If the email exists, a password reset link has been sent"}
 
 
@@ -431,6 +507,20 @@ def reset_password(
     # Update password
     user.password_hash = get_password_hash(reset_data.new_password)
     db.commit()
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="PASSWORD_RESET",
+        user_id=user.id,
+        tenant_id=user.tenant_id,
+        resource_type="user",
+        resource_id=user.id,
+        details={
+            "email": user.email
+        },
+        status="success"
+    )
 
     logger.info(f"Password reset successfully for user: {user.email}")
 
@@ -482,6 +572,27 @@ def update_user_profile(
     db.commit()
     db.refresh(current_user)
 
+    # Create audit log
+    updated_fields = []
+    if profile_data.email and profile_data.email != current_user.email:
+        updated_fields.append("email")
+    if profile_data.full_name:
+        updated_fields.append("full_name")
+
+    audit_logger.log_event(
+        db=db,
+        action="PROFILE_UPDATED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="user",
+        resource_id=current_user.id,
+        details={
+            "email": current_user.email,
+            "updated_fields": updated_fields
+        },
+        status="success"
+    )
+
     logger.info(f"Profile updated for user: {current_user.email}")
 
     return UserResponse(
@@ -520,6 +631,20 @@ def change_password(
     # Update password
     current_user.password_hash = get_password_hash(password_data.new_password)
     db.commit()
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="PASSWORD_CHANGED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="user",
+        resource_id=current_user.id,
+        details={
+            "email": current_user.email
+        },
+        status="success"
+    )
 
     logger.info(f"Password changed for user: {current_user.email}")
 

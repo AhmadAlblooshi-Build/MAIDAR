@@ -19,6 +19,7 @@ from app.tasks.simulation_tasks import launch_simulation_emails
 
 from app.config.database import get_db
 from app.core.dependencies import get_current_user, get_current_admin_user, check_tenant_access
+from app.core.audit_logger import audit_logger
 from app.models.user import User
 from app.models.simulation import Simulation, SimulationStatus, SimulationResult
 from app.models.scenario import Scenario
@@ -141,6 +142,24 @@ def create_simulation(
 
     db.commit()
     db.refresh(simulation)
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="SIMULATION_CREATED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="simulation",
+        resource_id=simulation.id,
+        details={
+            "simulation_name": simulation.name,
+            "scenario_id": str(scenario_uuid),
+            "total_targets": len(employee_uuids),
+            "send_immediately": simulation_data.send_immediately,
+            "status": status_value
+        },
+        status="success"
+    )
 
     logger.info(f"Simulation created: {simulation.name} by user {current_user.email} with {len(employee_uuids)} targets")
 
@@ -274,6 +293,21 @@ def update_simulation(
     db.commit()
     db.refresh(simulation)
 
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="SIMULATION_UPDATED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="simulation",
+        resource_id=simulation.id,
+        details={
+            "simulation_name": simulation.name,
+            "updated_fields": list(update_data.keys())
+        },
+        status="success"
+    )
+
     # Get scenario name
     scenario = db.query(Scenario).filter(Scenario.id == simulation.scenario_id).first()
 
@@ -329,16 +363,37 @@ def delete_simulation(
 
     check_tenant_access(str(simulation.tenant_id), current_user)
 
+    simulation_name = simulation.name
+    simulation_uuid = simulation.id
+    action_taken = ""
+
     if simulation.status == SimulationStatus.DRAFT:
         # Hard delete draft simulations
         db.delete(simulation)
-        logger.info(f"Simulation deleted: {simulation.name} by user {current_user.email}")
+        action_taken = "deleted"
+        logger.info(f"Simulation deleted: {simulation_name} by user {current_user.email}")
     else:
         # Cancel other simulations
         simulation.status = SimulationStatus.CANCELLED
-        logger.info(f"Simulation cancelled: {simulation.name} by user {current_user.email}")
+        action_taken = "cancelled"
+        logger.info(f"Simulation cancelled: {simulation_name} by user {current_user.email}")
 
     db.commit()
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action=f"SIMULATION_{action_taken.upper()}",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="simulation",
+        resource_id=simulation_uuid,
+        details={
+            "simulation_name": simulation_name,
+            "action": action_taken
+        },
+        status="success"
+    )
 
     return None
 
@@ -496,6 +551,23 @@ def launch_simulation(
 
     db.commit()
 
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="SIMULATION_LAUNCHED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="simulation",
+        resource_id=simulation.id,
+        details={
+            "simulation_name": simulation.name,
+            "send_immediately": launch_request.send_immediately,
+            "scheduled_at": str(launch_request.scheduled_at) if launch_request.scheduled_at else None,
+            "total_targets": len(simulation.target_employee_ids)
+        },
+        status="success"
+    )
+
     logger.info(f"Simulation launched: {simulation.name} by user {current_user.email}")
 
     return LaunchSimulationResponse(
@@ -541,19 +613,43 @@ def track_email_event(
     # Update result based on event type using the interactions system
     from app.models.simulation import InteractionType
 
+    event_logged = False
+
     if tracking_event.event_type == "open" and not result.email_opened:
         result.add_interaction(InteractionType.EMAIL_OPENED)
         logger.info(f"Email opened: simulation {simulation_id}, employee {tracking_event.employee_id}")
+        event_logged = True
 
     elif tracking_event.event_type == "click" and not result.link_clicked:
         result.add_interaction(InteractionType.LINK_CLICKED)
         logger.info(f"Link clicked: simulation {simulation_id}, employee {tracking_event.employee_id}")
+        event_logged = True
 
     elif tracking_event.event_type == "submit" and not result.credentials_submitted:
         result.add_interaction(InteractionType.CREDENTIALS_ENTERED)
         logger.warning(f"Credentials submitted: simulation {simulation_id}, employee {tracking_event.employee_id}")
+        event_logged = True
 
     db.commit()
+
+    # Create audit log for tracking events (public endpoint, no user_id)
+    if event_logged:
+        audit_logger.log_event(
+            db=db,
+            action=f"SIMULATION_TRACKED_{tracking_event.event_type.upper()}",
+            user_id=None,  # Public endpoint
+            tenant_id=result.tenant_id,
+            resource_type="simulation_result",
+            resource_id=result.id,
+            details={
+                "simulation_id": simulation_id,
+                "employee_id": tracking_event.employee_id,
+                "event_type": tracking_event.event_type,
+                "ip_address": client_ip,
+                "user_agent": user_agent
+            },
+            status="success"
+        )
 
     return None
 
