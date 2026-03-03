@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { tenantAPI, adminUserAPI, auditLogAPI } from '@/lib/api';
 import SuperAdminGuard from '@/components/guards/SuperAdminGuard';
 import SuperAdminLayout from '@/components/super-admin/SuperAdminLayout';
 import Card from '@/components/ui/Card';
@@ -48,49 +49,16 @@ function DashboardContent() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
-      const [tenantsRes, auditLogsRes, adminUsersRes] = await Promise.all([
-        fetch(`${apiUrl}/api/v1/tenants/search`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ page: 1, page_size: 100 })
-        }),
-        fetch(`${apiUrl}/api/v1/audit-logs/search`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ page: 1, page_size: 10 })
-        }),
-        fetch(`${apiUrl}/api/v1/admin-users/search`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ page: 1, page_size: 100 })
-        })
+      const [tenantsData, auditLogsData, adminUsersData] = await Promise.all([
+        tenantAPI.search({ page: 1, page_size: 100 }),
+        auditLogAPI.search({ page: 1, page_size: 10 }),
+        adminUserAPI.search({ page: 1, page_size: 100 })
       ]);
 
-      if (tenantsRes.ok) {
-        const data = await tenantsRes.json();
-        setTenants(data.tenants || []);
-      }
-
-      if (auditLogsRes.ok) {
-        const data = await auditLogsRes.json();
-        setAuditLogs(data.audit_logs || []);
-      }
-
-      if (adminUsersRes.ok) {
-        const data = await adminUsersRes.json();
-        setAdminUsers(data.users || []);
-      }
+      setTenants(tenantsData.tenants || []);
+      setAuditLogs(auditLogsData.audit_logs || []);
+      setAdminUsers(adminUsersData.users || []);
     } catch (error) {
       console.error('Failed to load dashboard:', error);
     } finally {
