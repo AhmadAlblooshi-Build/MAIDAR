@@ -83,6 +83,12 @@ function DashboardContent() {
       setTenants((tenantsData as any).tenants || []);
       setAuditLogs((auditLogsData as any).audit_logs || []);
       setAdminUsers((adminUsersData as any).users || []);
+
+      console.log('Dashboard Data:', {
+        tenants: (tenantsData as any).tenants?.length || 0,
+        auditLogs: (auditLogsData as any).audit_logs?.length || 0,
+        adminUsers: (adminUsersData as any).users?.length || 0
+      });
     } catch (error: any) {
       console.error('Failed to load dashboard:', error);
       console.error('Error details:', error.response?.data || error.message);
