@@ -46,8 +46,19 @@ function TenantsContent() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pageSize = 10;
+
+  // Form state for creating tenant
+  const [formData, setFormData] = useState({
+    organizationName: '',
+    domain: '',
+    contactEmail: '',
+    licenseType: '',
+    maxUsers: ''
+  });
+  const [creating, setCreating] = useState(false);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -112,6 +123,48 @@ function TenantsContent() {
     }
   };
 
+  const handleCreateTenant = async () => {
+    // Validation
+    if (!formData.organizationName || !formData.domain || !formData.contactEmail || !formData.licenseType || !formData.maxUsers) {
+      alert('Please fill in all fields');
+      return;
+    }
+
+    try {
+      setCreating(true);
+
+      await tenantAPI.create({
+        name: formData.organizationName,
+        subdomain: formData.domain.toLowerCase().replace(/[^a-z0-9-]/g, ''),
+        domain: `${formData.domain}.com`,
+        license_tier: formData.licenseType,
+        seats_total: parseInt(formData.maxUsers),
+        admin_email: formData.contactEmail,
+        admin_name: formData.organizationName + ' Admin'
+      });
+
+      // Reset form and close modal
+      setFormData({
+        organizationName: '',
+        domain: '',
+        contactEmail: '',
+        licenseType: '',
+        maxUsers: ''
+      });
+      setShowCreateModal(false);
+
+      // Refresh tenant list
+      await fetchTenants();
+
+      alert('Tenant created successfully!');
+    } catch (err: any) {
+      console.error('Failed to create tenant:', err);
+      alert(err.response?.data?.detail || 'Failed to create tenant');
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
@@ -134,7 +187,7 @@ function TenantsContent() {
           <p className="text-slate-500 text-sm mt-1">Create and manage platform tenants</p>
         </div>
         <button
-          onClick={() => {/* TODO: Add tenant creation modal */}}
+          onClick={() => setShowCreateModal(true)}
           className="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-lg transition-colors"
         >
           Add New Tenant
@@ -329,6 +382,120 @@ function TenantsContent() {
           </div>
         </div>
       </div>
+
+      {/* Create Tenant Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Create New Tenant</h2>
+                <p className="text-sm text-slate-500 mt-1">Add a new organization to the platform</p>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              {/* Organization Name */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Organization Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter Company Name"
+                  value={formData.organizationName}
+                  onChange={(e) => setFormData({ ...formData, organizationName: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Domain */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Domain
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter Primary Domain"
+                  value={formData.domain}
+                  onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Contact Email & License Type (side by side) */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Contact Email
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="Enter Contact Email"
+                    value={formData.contactEmail}
+                    onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    License Type
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter License Type"
+                    value={formData.licenseType}
+                    onChange={(e) => setFormData({ ...formData, licenseType: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Max Users */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Max Users
+                </label>
+                <input
+                  type="number"
+                  placeholder="Enter Max Users"
+                  value={formData.maxUsers}
+                  onChange={(e) => setFormData({ ...formData, maxUsers: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-200">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                disabled={creating}
+                className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateTenant}
+                disabled={creating}
+                className="px-4 py-2 text-sm font-medium bg-teal-500 hover:bg-teal-600 text-white rounded-lg transition-colors disabled:opacity-50"
+              >
+                {creating ? 'Creating...' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
