@@ -56,7 +56,7 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
     { name: 'Admin Users', href: '/super-admin/admin-users', icon: Users },
     { name: 'Access Controls', href: '/super-admin/access-controls', icon: Shield },
     { name: 'Global Analytics', href: '/super-admin/global-analytics', icon: TrendingUp },
-    { name: 'Audit Log', href: '/super-admin/audit-log', icon: FileText },
+    { name: 'Audit Log', href: '/super-admin/audit-logs', icon: FileText },
   ];
 
   const isActive = (href: string) => pathname === href;
