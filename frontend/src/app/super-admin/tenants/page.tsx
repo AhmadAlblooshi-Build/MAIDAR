@@ -246,7 +246,18 @@ function TenantsContent() {
       alert(`Successfully assigned ${selectedEmployee.full_name} as admin`);
     } catch (err: any) {
       console.error('Failed to assign admin:', err);
-      alert(err.response?.data?.detail || 'Failed to assign admin');
+      console.error('Error response:', err.response?.data);
+
+      const errorDetail = err.response?.data?.detail;
+      let errorMessage = 'Failed to assign admin';
+
+      if (typeof errorDetail === 'string') {
+        errorMessage = errorDetail;
+      } else if (Array.isArray(errorDetail)) {
+        errorMessage = errorDetail.map((e: any) => e.msg || e.message).join(', ');
+      }
+
+      alert(errorMessage);
     } finally {
       setAssigningAdmin(false);
     }
