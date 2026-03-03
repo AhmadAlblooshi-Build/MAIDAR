@@ -50,6 +50,13 @@ function TenantsContent() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pageSize = 10;
 
+  // License tiers with default user limits
+  const licenseTiers = [
+    { name: 'Starter', maxUsers: 10 },
+    { name: 'Business', maxUsers: 50 },
+    { name: 'Enterprise', maxUsers: 500 }
+  ];
+
   // Form state for creating tenant
   const [formData, setFormData] = useState({
     organizationName: '',
@@ -59,6 +66,16 @@ function TenantsContent() {
     maxUsers: ''
   });
   const [creating, setCreating] = useState(false);
+
+  // Handle license type change and auto-fill max users
+  const handleLicenseTypeChange = (tierName: string) => {
+    const selectedTier = licenseTiers.find(tier => tier.name === tierName);
+    setFormData({
+      ...formData,
+      licenseType: tierName,
+      maxUsers: selectedTier ? selectedTier.maxUsers.toString() : ''
+    });
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -451,27 +468,32 @@ function TenantsContent() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">
                     License Type
                   </label>
-                  <input
-                    type="text"
-                    placeholder="Enter License Type"
+                  <select
                     value={formData.licenseType}
-                    onChange={(e) => setFormData({ ...formData, licenseType: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  />
+                    onChange={(e) => handleLicenseTypeChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white"
+                  >
+                    <option value="">Select License Type</option>
+                    {licenseTiers.map((tier) => (
+                      <option key={tier.name} value={tier.name}>
+                        {tier.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
-              {/* Max Users */}
+              {/* Max Users (Read-only, auto-filled) */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Max Users
                 </label>
                 <input
-                  type="number"
-                  placeholder="Enter Max Users"
-                  value={formData.maxUsers}
-                  onChange={(e) => setFormData({ ...formData, maxUsers: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  type="text"
+                  placeholder="Auto-filled based on license type"
+                  value={formData.maxUsers ? `${formData.maxUsers} users` : ''}
+                  readOnly
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-600 cursor-not-allowed"
                 />
               </div>
             </div>
