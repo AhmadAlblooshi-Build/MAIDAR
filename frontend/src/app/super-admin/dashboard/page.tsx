@@ -56,9 +56,9 @@ function DashboardContent() {
         adminUserAPI.search({ page: 1, page_size: 100 })
       ]);
 
-      setTenants(tenantsData.tenants || []);
-      setAuditLogs(auditLogsData.audit_logs || []);
-      setAdminUsers(adminUsersData.users || []);
+      setTenants((tenantsData as any).tenants || []);
+      setAuditLogs((auditLogsData as any).audit_logs || []);
+      setAdminUsers((adminUsersData as any).users || []);
     } catch (error) {
       console.error('Failed to load dashboard:', error);
     } finally {
