@@ -25,6 +25,7 @@ import {
   Edit,
   UserPlus,
   Pause,
+  Play,
   Trash2
 } from 'lucide-react';
 
@@ -167,6 +168,19 @@ function DashboardContent() {
     } catch (error) {
       console.error('Failed to suspend tenant:', error);
       alert('Failed to suspend tenant');
+    }
+  };
+
+  const handleUnsuspend = async (tenant: any) => {
+    try {
+      if (confirm(`Are you sure you want to unsuspend ${tenant.name}?`)) {
+        await tenantAPI.activate(tenant.id);
+        await loadDashboardData(); // Reload data
+        setOpenDropdown(null);
+      }
+    } catch (error) {
+      console.error('Failed to unsuspend tenant:', error);
+      alert('Failed to unsuspend tenant');
     }
   };
 
@@ -452,14 +466,24 @@ function DashboardContent() {
                           {/* Divider */}
                           <div className="border-t border-slate-200 my-1" />
 
-                          {/* Suspend */}
-                          <button
-                            onClick={() => handleSuspend(tenant)}
-                            className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-orange-600 hover:bg-orange-50 transition-colors"
-                          >
-                            <Pause className="w-4 h-4" />
-                            <span>Suspend</span>
-                          </button>
+                          {/* Suspend or Unsuspend based on tenant status */}
+                          {tenant.is_active ? (
+                            <button
+                              onClick={() => handleSuspend(tenant)}
+                              className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-orange-600 hover:bg-orange-50 transition-colors"
+                            >
+                              <Pause className="w-4 h-4" />
+                              <span>Suspend</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleUnsuspend(tenant)}
+                              className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-green-600 hover:bg-green-50 transition-colors"
+                            >
+                              <Play className="w-4 h-4" />
+                              <span>Unsuspend</span>
+                            </button>
+                          )}
 
                           {/* Terminate */}
                           <button
