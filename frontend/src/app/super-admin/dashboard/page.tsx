@@ -82,12 +82,12 @@ function DashboardContent() {
       ]);
 
       setTenants((tenantsData as any).tenants || []);
-      setAuditLogs((auditLogsData as any).audit_logs || []);
+      setAuditLogs((auditLogsData as any).logs || []); // Backend returns "logs" not "audit_logs"
       setAdminUsers((adminUsersData as any).users || []);
 
       console.log('Dashboard Data:', {
         tenants: (tenantsData as any).tenants?.length || 0,
-        auditLogs: (auditLogsData as any).audit_logs?.length || 0,
+        auditLogs: (auditLogsData as any).logs?.length || 0,
         adminUsers: (adminUsersData as any).users?.length || 0
       });
     } catch (error: any) {
@@ -256,8 +256,8 @@ function DashboardContent() {
     return {
       title: log.action || 'System Activity',
       category,
-      description: log.entity_type || 'Platform',
-      timestamp: log.created_at,
+      description: log.resource_type || 'Platform',
+      timestamp: log.timestamp,
       icon,
       iconBg
     };
