@@ -91,8 +91,10 @@ def build_tenant_response(tenant: Tenant, db: Session) -> TenantResponse:
         User.role == UserRole.TENANT_ADMIN
     ).count()
     employee_count = db.query(Employee).filter(Employee.tenant_id == tenant.id).count()
-    avg_risk = db.query(func.avg(RiskScore.risk_score)).filter(
-        RiskScore.tenant_id == tenant.id
+    # Calculate average risk score from employees (risk_score is on Employee table, not RiskScore table)
+    avg_risk = db.query(func.avg(Employee.risk_score)).filter(
+        Employee.tenant_id == tenant.id,
+        Employee.risk_score.isnot(None)
     ).scalar()
 
     return TenantResponse(
