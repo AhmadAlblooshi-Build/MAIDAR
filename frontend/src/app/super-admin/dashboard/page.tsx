@@ -98,6 +98,25 @@ function DashboardContent() {
     setOpenDropdown(null);
   };
 
+  const handleLicenseTierChange = (tier: string) => {
+    setLicenseTier(tier);
+
+    // Auto-set seats based on tier
+    switch (tier) {
+      case 'BASIC':
+        setSeatsTotal('100');
+        break;
+      case 'PROFESSIONAL':
+        setSeatsTotal('500');
+        break;
+      case 'ENTERPRISE':
+        setSeatsTotal('1000');
+        break;
+      default:
+        setSeatsTotal('');
+    }
+  };
+
   const handleSaveLicense = async () => {
     if (!editLicenseModal) return;
 
@@ -480,14 +499,13 @@ function DashboardContent() {
                 </label>
                 <select
                   value={licenseTier}
-                  onChange={(e) => setLicenseTier(e.target.value)}
+                  onChange={(e) => handleLicenseTierChange(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                 >
                   <option value="">Select Tier</option>
-                  <option value="BASIC">Basic</option>
-                  <option value="PROFESSIONAL">Professional</option>
-                  <option value="ENTERPRISE">Enterprise</option>
-                  <option value="CUSTOM">Custom</option>
+                  <option value="BASIC">Basic (100 seats)</option>
+                  <option value="PROFESSIONAL">Professional (500 seats)</option>
+                  <option value="ENTERPRISE">Enterprise (1000 seats)</option>
                 </select>
               </div>
 
@@ -500,12 +518,11 @@ function DashboardContent() {
                   type="number"
                   min="0"
                   value={seatsTotal}
-                  onChange={(e) => setSeatsTotal(e.target.value)}
-                  placeholder="e.g., 100"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  disabled
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-100 text-slate-600 cursor-not-allowed"
                 />
                 <p className="text-xs text-slate-500 mt-1">
-                  Maximum number of users/employees this tenant can have
+                  Seats are automatically set based on the selected tier
                 </p>
               </div>
 
