@@ -295,4 +295,10 @@ export const settingsAPI = {
   }) => apiCall('PUT', '/settings/notification-preferences', { preferences }),
 };
 
+// Global Analytics API (Super Admin)
+export const globalAnalyticsAPI = {
+  getIndustryRisk: () => apiCall('GET', '/global-analytics/industry-risk'),
+  getRegionalIntegrity: () => apiCall('GET', '/global-analytics/regional-integrity'),
+};
+
 export default api;
