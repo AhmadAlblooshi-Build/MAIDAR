@@ -17,6 +17,7 @@ from app.models.user import User, UserRole
 from app.models.employee import Employee
 from app.models.risk_score import RiskScore
 from app.core.dependencies import get_current_super_admin as require_super_admin
+from app.core.audit_logger import audit_logger
 
 router = APIRouter()
 
@@ -213,6 +214,22 @@ async def update_tenant(
     db.commit()
     db.refresh(tenant)
 
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="TENANT_UPDATED",
+        user_id=current_user.id,
+        tenant_id=None,
+        resource_type="tenant",
+        resource_id=tenant.id,
+        details={
+            "tenant_name": tenant.name,
+            "tenant_subdomain": tenant.subdomain,
+            "updated_fields": list(update_data.keys())
+        },
+        status="success"
+    )
+
     # Add computed fields
     return build_tenant_response(tenant, db)
 
@@ -231,6 +248,18 @@ async def delete_tenant(
     # Soft delete
     tenant.deleted_at = datetime.utcnow()
     db.commit()
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="TENANT_DELETED",
+        user_id=current_user.id,
+        tenant_id=None,
+        resource_type="tenant",
+        resource_id=tenant.id,
+        details={"tenant_name": tenant.name, "tenant_subdomain": tenant.subdomain},
+        status="success"
+    )
 
 
 @router.post("/search", response_model=TenantSearchResponse)
@@ -295,6 +324,18 @@ async def suspend_tenant(
     db.commit()
     db.refresh(tenant)
 
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="TENANT_SUSPENDED",
+        user_id=current_user.id,
+        tenant_id=None,  # Super admin action, no specific tenant context
+        resource_type="tenant",
+        resource_id=tenant.id,
+        details={"tenant_name": tenant.name, "tenant_subdomain": tenant.subdomain},
+        status="success"
+    )
+
     return build_tenant_response(tenant, db)
 
 
@@ -312,5 +353,17 @@ async def activate_tenant(
     tenant.is_active = True
     db.commit()
     db.refresh(tenant)
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="TENANT_ACTIVATED",
+        user_id=current_user.id,
+        tenant_id=None,
+        resource_type="tenant",
+        resource_id=tenant.id,
+        details={"tenant_name": tenant.name, "tenant_subdomain": tenant.subdomain},
+        status="success"
+    )
 
     return build_tenant_response(tenant, db)
