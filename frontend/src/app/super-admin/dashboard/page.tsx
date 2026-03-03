@@ -405,7 +405,7 @@ function DashboardContent() {
                   </td>
                   <td className="py-4 px-4">
                     <span className="text-sm text-slate-700">
-                      {tenant.max_users || 0}
+                      {tenant.seats_total || 'Not set'}
                     </span>
                   </td>
                   <td className="py-4 px-4">
