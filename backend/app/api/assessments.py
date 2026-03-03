@@ -11,6 +11,7 @@ from sqlalchemy import func, and_, or_
 
 from app.config.database import get_db
 from app.core.dependencies import get_current_user
+from app.core.audit_logger import audit_logger
 from app.models.user import User
 from app.models.assessment import (
     Assessment,
@@ -93,6 +94,23 @@ def create_assessment(
 
     db.commit()
     db.refresh(assessment)
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="ASSESSMENT_CREATED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="assessment",
+        resource_id=assessment.id,
+        details={
+            "title": assessment.title,
+            "category": assessment.category,
+            "target_audience": assessment.target_audience,
+            "question_count": len(data.questions)
+        },
+        status="success"
+    )
 
     return assessment
 
@@ -245,6 +263,21 @@ def update_assessment(
     db.commit()
     db.refresh(assessment)
 
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="ASSESSMENT_UPDATED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="assessment",
+        resource_id=assessment.id,
+        details={
+            "title": assessment.title,
+            "updated_fields": list(update_data.keys())
+        },
+        status="success"
+    )
+
     return assessment
 
 
@@ -377,6 +410,23 @@ def deploy_assessment(
     # Log deployment info
     print(f"Assessment {assessment.id} deployed to {created_count} employees (audience: {assessment.target_audience})")
 
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="ASSESSMENT_DEPLOYED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="assessment",
+        resource_id=assessment.id,
+        details={
+            "title": assessment.title,
+            "target_audience": assessment.target_audience,
+            "employees_targeted": created_count,
+            "total_employees": len(targeted_employees)
+        },
+        status="success"
+    )
+
     return assessment
 
 
@@ -406,8 +456,25 @@ def delete_assessment(
             detail="Assessment not found",
         )
 
+    assessment_title = assessment.title
+    assessment_uuid = assessment.id
+
     db.delete(assessment)
     db.commit()
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="ASSESSMENT_DELETED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="assessment",
+        resource_id=assessment_uuid,
+        details={
+            "title": assessment_title
+        },
+        status="success"
+    )
 
     return None
 
@@ -471,6 +538,22 @@ def start_assessment(
     db.add(result)
     db.commit()
     db.refresh(result)
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="ASSESSMENT_STARTED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="assessment_result",
+        resource_id=result.id,
+        details={
+            "assessment_id": str(assessment_id),
+            "assessment_title": assessment.title,
+            "employee_id": str(current_user.employee_id)
+        },
+        status="success"
+    )
 
     return result
 

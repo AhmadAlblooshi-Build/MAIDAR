@@ -15,6 +15,7 @@ from app.models.user import User, UserRole
 from app.models.permission import Permission, Role
 from app.core.dependencies import get_current_admin_user
 from app.core.permissions import check_permission, get_user_permissions
+from app.core.audit_logger import audit_logger
 
 router = APIRouter(tags=["RBAC Management"])
 
@@ -238,6 +239,21 @@ async def create_role(
     db.commit()
     db.refresh(role)
 
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="ROLE_CREATED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="role",
+        resource_id=role.id,
+        details={
+            "role_name": role.name,
+            "permission_count": len(role.permissions)
+        },
+        status="success"
+    )
+
     return RoleResponse(
         id=str(role.id),
         tenant_id=str(role.tenant_id),
@@ -299,6 +315,31 @@ async def update_role(
     db.commit()
     db.refresh(role)
 
+    # Create audit log
+    updated_fields = []
+    if role_data.name:
+        updated_fields.append("name")
+    if role_data.description is not None:
+        updated_fields.append("description")
+    if role_data.is_active is not None:
+        updated_fields.append("is_active")
+    if role_data.permission_ids is not None:
+        updated_fields.append("permissions")
+
+    audit_logger.log_event(
+        db=db,
+        action="ROLE_UPDATED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="role",
+        resource_id=role.id,
+        details={
+            "role_name": role.name,
+            "updated_fields": updated_fields
+        },
+        status="success"
+    )
+
     return RoleResponse(
         id=str(role.id),
         tenant_id=str(role.tenant_id),
@@ -348,8 +389,25 @@ async def delete_role(
             detail=f"Cannot delete role: assigned to {len(role.users)} user(s)"
         )
 
+    role_name = role.name
+    role_uuid = role.id
     db.delete(role)
     db.commit()
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="ROLE_DELETED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="role",
+        resource_id=role_uuid,
+        details={
+            "role_name": role_name
+        },
+        status="success"
+    )
+
     return None
 
 
@@ -396,6 +454,22 @@ async def assign_role(
 
     db.commit()
 
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="ROLE_ASSIGNED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="role",
+        resource_id=role.id,
+        details={
+            "role_name": role.name,
+            "assigned_count": assigned_count,
+            "user_ids": request.user_ids
+        },
+        status="success"
+    )
+
     return {
         "message": f"Role '{role.name}' assigned to {assigned_count} user(s)",
         "assigned_count": assigned_count
@@ -430,6 +504,22 @@ async def unassign_role(
     if role in user.roles:
         user.roles.remove(role)
         db.commit()
+
+        # Create audit log
+        audit_logger.log_event(
+            db=db,
+            action="ROLE_UNASSIGNED",
+            user_id=current_user.id,
+            tenant_id=current_user.tenant_id,
+            resource_type="role",
+            resource_id=role.id,
+            details={
+                "role_name": role.name,
+                "unassigned_user_id": str(user_id),
+                "unassigned_user_email": user.email
+            },
+            status="success"
+        )
 
     return None
 

@@ -15,6 +15,7 @@ from app.models.user import User
 from app.models.notification import Notification
 from app.core.dependencies import get_current_user
 from app.core.notifications import notification_service
+from app.core.audit_logger import audit_logger
 
 router = APIRouter(tags=["Notifications"])
 
@@ -116,6 +117,22 @@ async def mark_notification_as_read(
 
     success = notification_service.mark_as_read(db, notification_id)
 
+    # Create audit log
+    if success:
+        audit_logger.log_event(
+            db=db,
+            action="NOTIFICATION_MARKED_READ",
+            user_id=current_user.id,
+            tenant_id=current_user.tenant_id,
+            resource_type="notification",
+            resource_id=notification.id,
+            details={
+                "notification_type": notification.type,
+                "notification_title": notification.title
+            },
+            status="success"
+        )
+
     return {"success": success}
 
 
@@ -126,6 +143,21 @@ async def mark_all_as_read(
 ):
     """Mark all notifications as read for current user."""
     count = notification_service.mark_all_as_read(db, current_user.id)
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="NOTIFICATIONS_MARKED_ALL_READ",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="notification",
+        resource_id=None,
+        details={
+            "marked_count": count
+        },
+        status="success"
+    )
+
     return {"marked_read": count}
 
 
@@ -147,6 +179,26 @@ async def delete_notification(
             detail="Notification not found"
         )
 
+    notification_type = notification.type
+    notification_title = notification.title
+    notification_uuid = notification.id
+
     db.delete(notification)
     db.commit()
+
+    # Create audit log
+    audit_logger.log_event(
+        db=db,
+        action="NOTIFICATION_DELETED",
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        resource_type="notification",
+        resource_id=notification_uuid,
+        details={
+            "notification_type": notification_type,
+            "notification_title": notification_title
+        },
+        status="success"
+    )
+
     return None
