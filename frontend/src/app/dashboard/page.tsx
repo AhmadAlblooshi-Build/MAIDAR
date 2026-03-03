@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import TenantAdminGuard from '@/components/guards/TenantAdminGuard';
 import TenantAdminLayout from '@/components/tenant-admin/TenantAdminLayout';
 import { useAuthStore } from '@/store/authStore';
-import { employeeAPI } from '@/lib/api';
+import { employeeAPI, analyticsAPI, simulationAPI } from '@/lib/api';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -64,41 +64,14 @@ function DashboardContent() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
-      // Fetch data in parallel
-      const [riskDistRes, employeeStatsRes, employeesRes, simulationsRes] = await Promise.all([
-        fetch(`${apiUrl}/api/v1/analytics/risk-distribution`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`${apiUrl}/api/v1/employees/statistics`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`${apiUrl}/api/v1/employees/search`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            page: 1,
-            page_size: 500
-          })
-        }),
-        fetch(`${apiUrl}/api/v1/simulations/search`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ page: 1, page_size: 5, sort_by: 'created_at', sort_order: 'desc' })
-        })
+      // Fetch data in parallel using API client (will catch 403 suspension errors)
+      const [riskDistribution, employeeStats, allEmployees, simulations] = await Promise.all([
+        analyticsAPI.getRiskDistribution(),
+        employeeAPI.statistics(),
+        employeeAPI.search({ page: 1, page_size: 500 }),
+        simulationAPI.search({ page: 1, page_size: 5, sort_by: 'created_at', sort_order: 'desc' })
       ]);
-
-      const riskDistribution = await riskDistRes.json();
-      const employeeStats = await employeeStatsRes.json();
-      const allEmployees = await employeesRes.json();
-      const simulations = await simulationsRes.json();
 
       // Calculate risk breakdowns for different categories
       const employees = allEmployees.employees || [];
@@ -198,22 +171,12 @@ function DashboardContent() {
 
     try {
       setDeletingEmployee(employeeId);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
-      const response = await fetch(`${apiUrl}/api/v1/employees/${employeeId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      // Use API client (will catch 403 suspension errors)
+      await employeeAPI.delete(employeeId);
 
-      if (response.ok) {
-        // Reload dashboard data to reflect the deletion
-        await loadDashboardData();
-      } else {
-        const error = await response.json();
-        alert(`Failed to delete employee: ${error.detail || 'Unknown error'}`);
-      }
+      // Reload dashboard data to reflect the deletion
+      await loadDashboardData();
     } catch (error) {
       console.error('Failed to delete employee:', error);
       alert('Failed to delete employee. Please try again.');
