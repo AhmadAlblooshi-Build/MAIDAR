@@ -52,9 +52,9 @@ function TenantsContent() {
 
   // License tiers with default user limits
   const licenseTiers = [
-    { name: 'Starter', maxUsers: 10 },
-    { name: 'Business', maxUsers: 50 },
-    { name: 'Enterprise', maxUsers: 500 }
+    { name: 'Basic', maxUsers: 100 },
+    { name: 'Professional', maxUsers: 500 },
+    { name: 'Enterprise', maxUsers: 1000 }
   ];
 
   // Form state for creating tenant
