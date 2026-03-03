@@ -48,6 +48,12 @@ function DashboardContent() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // License modal state
+  const [editLicenseModal, setEditLicenseModal] = useState<any>(null);
+  const [licenseTier, setLicenseTier] = useState('');
+  const [seatsTotal, setSeatsTotal] = useState('');
+  const [savingLicense, setSavingLicense] = useState(false);
+
   useEffect(() => {
     loadDashboardData();
   }, []);
@@ -86,9 +92,38 @@ function DashboardContent() {
   };
 
   const handleEditLicense = (tenant: any) => {
-    // TODO: Open edit license modal
-    console.log('Edit license for:', tenant.name);
+    setEditLicenseModal(tenant);
+    setLicenseTier(tenant.license_tier || '');
+    setSeatsTotal(tenant.seats_total?.toString() || '');
     setOpenDropdown(null);
+  };
+
+  const handleSaveLicense = async () => {
+    if (!editLicenseModal) return;
+
+    try {
+      setSavingLicense(true);
+      await tenantAPI.update(editLicenseModal.id, {
+        license_tier: licenseTier || null,
+        seats_total: seatsTotal ? parseInt(seatsTotal) : null,
+      });
+
+      await loadDashboardData(); // Reload data
+      setEditLicenseModal(null);
+      setLicenseTier('');
+      setSeatsTotal('');
+    } catch (error) {
+      console.error('Failed to update license:', error);
+      alert('Failed to update license');
+    } finally {
+      setSavingLicense(false);
+    }
+  };
+
+  const handleCloseLicenseModal = () => {
+    setEditLicenseModal(null);
+    setLicenseTier('');
+    setSeatsTotal('');
   };
 
   const handleAssignAdmin = (tenant: any) => {
@@ -425,6 +460,86 @@ function DashboardContent() {
           )}
         </div>
       </Card>
+
+      {/* Edit License Modal */}
+      {editLicenseModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-900">Edit License</h2>
+              <p className="text-sm text-slate-600 mt-1">{editLicenseModal.name}</p>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 py-4 space-y-4">
+              {/* License Tier */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  License Tier
+                </label>
+                <select
+                  value={licenseTier}
+                  onChange={(e) => setLicenseTier(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="">Select Tier</option>
+                  <option value="BASIC">Basic</option>
+                  <option value="PROFESSIONAL">Professional</option>
+                  <option value="ENTERPRISE">Enterprise</option>
+                  <option value="CUSTOM">Custom</option>
+                </select>
+              </div>
+
+              {/* Seats Total */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Total Seats (License Capacity)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={seatsTotal}
+                  onChange={(e) => setSeatsTotal(e.target.value)}
+                  placeholder="e.g., 100"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Maximum number of users/employees this tenant can have
+                </p>
+              </div>
+
+              {/* Current Usage Info */}
+              <div className="bg-slate-50 rounded-lg p-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600">Current Usage:</span>
+                  <span className="font-medium text-slate-900">
+                    {editLicenseModal.seats_used || 0} seats
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-slate-200 flex justify-end space-x-3">
+              <button
+                onClick={handleCloseLicenseModal}
+                disabled={savingLicense}
+                className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveLicense}
+                disabled={savingLicense}
+                className="px-4 py-2 text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {savingLicense ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
