@@ -5,8 +5,9 @@ Logs all security-relevant events for 7-year retention (UAE compliance).
 """
 
 import logging
+import hashlib
 from typing import Optional, Dict, Any
-from uuid import UUID
+from uuid import UUID, uuid4
 from datetime import datetime
 from sqlalchemy.orm import Session
 
@@ -50,7 +51,14 @@ class AuditLogger:
             # Import here to avoid circular dependency
             from app.models.audit_log import AuditLog
 
+            # Generate checksum for tamper detection (required by migration)
+            audit_id = uuid4()
+            timestamp = datetime.utcnow()
+            checksum_data = f"{audit_id}:{timestamp.isoformat()}:{action}:{user_id}:{resource_id}"
+            checksum = hashlib.sha256(checksum_data.encode()).hexdigest()
+
             audit_log = AuditLog(
+                id=audit_id,
                 tenant_id=tenant_id,
                 user_id=user_id,
                 action=action,
@@ -60,7 +68,9 @@ class AuditLogger:
                 ip_address=ip_address,
                 user_agent=user_agent,
                 status=status,
-                error_message=error_message
+                error_message=error_message,
+                checksum=checksum,
+                created_at=timestamp
             )
 
             db.add(audit_log)
