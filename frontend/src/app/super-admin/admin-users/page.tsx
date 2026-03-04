@@ -61,7 +61,7 @@ function AdminUsersContent() {
     full_name: '',
     email: '',
     tenant_id: '',
-    role: 'TENANT_ADMIN',
+    role: 'SUPER_ADMIN',
   });
   const [reassignTenantId, setReassignTenantId] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -154,11 +154,24 @@ function AdminUsersContent() {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate: Tenant Admin must have a tenant assigned
+    if (formData.role === 'TENANT_ADMIN' && !formData.tenant_id) {
+      alert('Please select a tenant for Tenant Admin');
+      return;
+    }
+
     try {
       setSubmitting(true);
-      await adminUserAPI.create(formData);
+
+      // Prepare payload - exclude tenant_id for Super Admins
+      const payload = formData.role === 'SUPER_ADMIN'
+        ? { full_name: formData.full_name, email: formData.email, role: formData.role }
+        : formData;
+
+      await adminUserAPI.create(payload);
       setShowCreateModal(false);
-      setFormData({ full_name: '', email: '', tenant_id: '', role: 'TENANT_ADMIN' });
+      setFormData({ full_name: '', email: '', tenant_id: '', role: 'SUPER_ADMIN' });
       await fetchUsers();
       alert('Admin user created successfully!');
     } catch (err: any) {
@@ -449,34 +462,45 @@ function AdminUsersContent() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tenant</label>
-                <select
-                  required
-                  value={formData.tenant_id}
-                  onChange={(e) => setFormData({ ...formData, tenant_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
-                >
-                  <option value="">Select Tenant</option>
-                  {tenants.map((tenant) => (
-                    <option key={tenant.id} value={tenant.id}>
-                      {tenant.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
                 <select
                   required
                   value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  onChange={(e) => {
+                    const newRole = e.target.value;
+                    setFormData({
+                      ...formData,
+                      role: newRole,
+                      // Clear tenant_id when switching to Super Admin
+                      tenant_id: newRole === 'SUPER_ADMIN' ? '' : formData.tenant_id
+                    });
+                  }}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
                 >
+                  <option value="SUPER_ADMIN">Super Admin</option>
                   <option value="TENANT_ADMIN">Tenant Admin</option>
-                  <option value="ANALYST">Analyst</option>
                 </select>
               </div>
+
+              {/* Only show Assign Tenant when Tenant Admin is selected */}
+              {formData.role === 'TENANT_ADMIN' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Assign Tenant</label>
+                  <select
+                    required
+                    value={formData.tenant_id}
+                    onChange={(e) => setFormData({ ...formData, tenant_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                  >
+                    <option value="">Select Tenant</option>
+                    {tenants.map((tenant) => (
+                      <option key={tenant.id} value={tenant.id}>
+                        {tenant.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="flex justify-end space-x-3 pt-4">
                 <button
