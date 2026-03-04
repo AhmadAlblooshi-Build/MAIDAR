@@ -13,8 +13,8 @@ from sqlalchemy import or_
 from app.config.database import get_db
 from app.models.user import User, UserRole
 from app.models.permission import Permission, Role
-from app.core.dependencies import get_current_admin_user
-from app.core.permissions import check_permission, get_user_permissions
+from app.core.dependencies import get_current_admin_user, get_current_super_admin
+from app.core.permissions import check_permission, get_user_permissions, DEFAULT_PERMISSIONS, DEFAULT_ROLES
 from app.core.audit_logger import audit_logger
 
 router = APIRouter(tags=["RBAC Management"])
@@ -567,3 +567,119 @@ async def get_user_permissions_endpoint(
             for r in user.roles if r.is_active
         ]
     )
+
+@router.post("/seed", response_model=dict)
+async def seed_rbac_data(
+    current_user: User = Depends(get_current_super_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Seed default RBAC permissions and roles into the database.
+
+    Super Admin only endpoint.
+    This should be called once when setting up the platform or when
+    adding new permissions/roles.
+    """
+    created_permissions = 0
+    updated_permissions = 0
+    created_roles = 0
+    updated_roles = 0
+
+    try:
+        # Seed permissions
+        for perm_data in DEFAULT_PERMISSIONS:
+            existing = db.query(Permission).filter(Permission.name == perm_data["name"]).first()
+
+            if existing:
+                # Update existing permission
+                existing.description = perm_data.get("description")
+                existing.resource = perm_data["resource"]
+                existing.action = perm_data["action"]
+                existing.is_super_admin_only = perm_data.get("is_super_admin_only", False)
+                updated_permissions += 1
+            else:
+                # Create new permission
+                permission = Permission(
+                    name=perm_data["name"],
+                    description=perm_data.get("description"),
+                    resource=perm_data["resource"],
+                    action=perm_data["action"],
+                    is_super_admin_only=perm_data.get("is_super_admin_only", False)
+                )
+                db.add(permission)
+                created_permissions += 1
+
+        db.commit()
+
+        # Seed system roles
+        for role_data in DEFAULT_ROLES:
+            existing = db.query(Role).filter(
+                Role.name == role_data["name"],
+                Role.is_system_role == True
+            ).first()
+
+            if existing:
+                # Update existing role
+                existing.description = role_data.get("description")
+                updated_roles += 1
+            else:
+                # Create new role
+                role = Role(
+                    name=role_data["name"],
+                    description=role_data.get("description"),
+                    is_system_role=True,
+                    is_active=True,
+                    tenant_id=None  # System roles are not tenant-specific
+                )
+                db.add(role)
+                db.flush()  # Get the role ID
+                created_roles += 1
+                existing = role
+
+            # Assign permissions to role
+            permission_names = role_data.get("permissions", [])
+            permissions = db.query(Permission).filter(
+                Permission.name.in_(permission_names)
+            ).all()
+            existing.permissions = permissions
+
+        db.commit()
+
+        # Create audit log
+        audit_logger.log_event(
+            db=db,
+            action="RBAC_DATA_SEEDED",
+            user_id=current_user.id,
+            tenant_id=None,
+            resource_type="system",
+            resource_id=None,
+            details={
+                "permissions_created": created_permissions,
+                "permissions_updated": updated_permissions,
+                "roles_created": created_roles,
+                "roles_updated": updated_roles
+            },
+            status="success"
+        )
+
+        return {
+            "success": True,
+            "message": "RBAC data seeded successfully",
+            "permissions": {
+                "created": created_permissions,
+                "updated": updated_permissions,
+                "total": created_permissions + updated_permissions
+            },
+            "roles": {
+                "created": created_roles,
+                "updated": updated_roles,
+                "total": created_roles + updated_roles
+            }
+        }
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to seed RBAC data: {str(e)}"
+        )
