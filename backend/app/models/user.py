@@ -72,14 +72,14 @@ class User(Base, UUIDMixin, TimestampMixin):
 
     def can_access_tenant(self, tenant_id: str) -> bool:
         """Check if user can access a specific tenant."""
-        if self.role == UserRole.PLATFORM_SUPER_ADMIN:
+        if self.role in (UserRole.PLATFORM_SUPER_ADMIN, UserRole.SUPER_ADMIN):
             return True
         return str(self.tenant_id) == str(tenant_id)
 
     def has_permission(self, permission_name: str) -> bool:
         """Check if user has a specific permission through their roles."""
         # Super admins have all permissions
-        if self.role == UserRole.PLATFORM_SUPER_ADMIN:
+        if self.role in (UserRole.PLATFORM_SUPER_ADMIN, UserRole.SUPER_ADMIN):
             return True
 
         # Check custom role permissions
@@ -91,7 +91,7 @@ class User(Base, UUIDMixin, TimestampMixin):
 
     def get_all_permissions(self) -> set:
         """Get all permissions for this user."""
-        if self.role == UserRole.PLATFORM_SUPER_ADMIN:
+        if self.role in (UserRole.PLATFORM_SUPER_ADMIN, UserRole.SUPER_ADMIN):
             return {"*"}  # All permissions
 
         permissions = set()

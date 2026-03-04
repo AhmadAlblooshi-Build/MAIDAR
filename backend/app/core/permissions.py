@@ -42,7 +42,7 @@ def require_permissions(*permission_names: str):
                 )
 
             # Super admins bypass permission checks
-            if current_user.role == UserRole.PLATFORM_SUPER_ADMIN:
+            if current_user.role in (UserRole.PLATFORM_SUPER_ADMIN, UserRole.SUPER_ADMIN):
                 return await func(*args, **kwargs)
 
             # Check if user has at least one of the required permissions
@@ -73,7 +73,7 @@ def check_permission(user: User, permission_name: str) -> bool:
     Returns:
         True if user has the permission, False otherwise
     """
-    if user.role == UserRole.PLATFORM_SUPER_ADMIN:
+    if user.role in (UserRole.PLATFORM_SUPER_ADMIN, UserRole.SUPER_ADMIN):
         return True
 
     return user.has_permission(permission_name)
@@ -90,7 +90,7 @@ def get_user_permissions(user: User, db: Session) -> List[str]:
     Returns:
         List of permission names
     """
-    if user.role == UserRole.PLATFORM_SUPER_ADMIN:
+    if user.role in (UserRole.PLATFORM_SUPER_ADMIN, UserRole.SUPER_ADMIN):
         # Return all available permissions
         from app.models.permission import Permission
         all_perms = db.query(Permission).all()

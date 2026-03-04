@@ -165,7 +165,7 @@ def check_tenant_access(
         HTTPException: If user doesn't have access
     """
     # Platform super admins have access to all tenants
-    if current_user.role == UserRole.PLATFORM_SUPER_ADMIN:
+    if current_user.role in (UserRole.PLATFORM_SUPER_ADMIN, UserRole.SUPER_ADMIN):
         return True
 
     # Regular users can only access their own tenant
