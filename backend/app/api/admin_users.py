@@ -271,6 +271,8 @@ async def search_admin_users(
     """Search admin users with filters and pagination."""
     query = db.query(User).filter(
         or_(
+            User.role == UserRole.PLATFORM_SUPER_ADMIN,
+            User.role == UserRole.SUPER_ADMIN,
             User.role == UserRole.TENANT_ADMIN,
             User.role == UserRole.ANALYST
         )
