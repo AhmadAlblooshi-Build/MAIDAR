@@ -226,7 +226,6 @@ function AdminUsersContent() {
       setSubmitting(true);
       await adminUserAPI.update(selectedUser.id, {
         full_name: formData.full_name,
-        role: formData.role,
       });
       setShowEditModal(false);
       await fetchUsers();
@@ -261,14 +260,21 @@ function AdminUsersContent() {
     e.preventDefault();
     if (!selectedUser) return;
 
-    // Validate role change
     const oldRole = selectedUser.role;
     const newRole = formData.role;
 
-    // If changing from Super Admin to Tenant Admin, must select tenant
+    // Validate: Cannot change Super Admin to Tenant Admin without using Assign Tenant first
     if ((oldRole === 'SUPER_ADMIN' || oldRole === 'PLATFORM_SUPER_ADMIN') &&
-        newRole === 'TENANT_ADMIN' && !formData.tenant_id) {
-      alert('Please select a tenant for Tenant Admin');
+        newRole === 'TENANT_ADMIN') {
+      alert('To change Super Admin to Tenant Admin, please use "Assign Tenant" action first to assign them to a tenant.');
+      return;
+    }
+
+    // Validate: Cannot change Tenant Admin to Super Admin (use Assign Tenant to remove tenant first)
+    if (oldRole === 'TENANT_ADMIN' &&
+        (newRole === 'SUPER_ADMIN' || newRole === 'PLATFORM_SUPER_ADMIN') &&
+        selectedUser.tenant_id) {
+      alert('To change Tenant Admin to Super Admin, they must not be assigned to any tenant. Please remove tenant assignment first.');
       return;
     }
 
@@ -276,11 +282,10 @@ function AdminUsersContent() {
       setSubmitting(true);
       await adminUserAPI.update(selectedUser.id, {
         role: formData.role,
-        tenant_id: formData.role === 'TENANT_ADMIN' ? formData.tenant_id : null,
       });
       setShowChangeRoleModal(false);
       await fetchUsers();
-      alert('Role changed successfully!');
+      alert('Role updated successfully!');
     } catch (err: any) {
       console.error('Failed to change role:', err);
       alert(err.response?.data?.detail || 'Failed to change role');
@@ -603,32 +608,30 @@ function AdminUsersContent() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="px-6 py-4 border-b border-slate-200">
               <h2 className="text-xl font-bold text-slate-900">Edit User</h2>
-              <p className="text-sm text-slate-600 mt-1">{selectedUser.email}</p>
+              <p className="text-sm text-slate-600 mt-1">Update user profile information</p>
             </div>
 
             <form onSubmit={handleUpdateUser} className="px-6 py-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Full Name *</label>
                 <input
                   type="text"
                   required
                   value={formData.full_name}
                   onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  placeholder="John Smith"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
-                <select
-                  required
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
-                >
-                  <option value="TENANT_ADMIN">Tenant Admin</option>
-                  <option value="ANALYST">Analyst</option>
-                </select>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Email *</label>
+                <input
+                  type="email"
+                  value={selectedUser.email}
+                  disabled
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-600 cursor-not-allowed"
+                />
               </div>
 
               <div className="flex justify-end space-x-3 pt-4">
@@ -645,7 +648,7 @@ function AdminUsersContent() {
                   disabled={submitting}
                   className="px-4 py-2 text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 rounded-lg transition-colors disabled:opacity-50"
                 >
-                  {submitting ? 'Saving...' : 'Save Changes'}
+                  {submitting ? 'Updating...' : 'Update'}
                 </button>
               </div>
             </form>
@@ -653,24 +656,18 @@ function AdminUsersContent() {
         </div>
       )}
 
-      {/* Reassign Tenant Modal */}
+      {/* Assign Tenant Modal */}
       {showReassignModal && selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="px-6 py-4 border-b border-slate-200">
-              <h2 className="text-xl font-bold text-slate-900">Reassign Tenant</h2>
-              <p className="text-sm text-slate-600 mt-1">{selectedUser.full_name}</p>
+              <h2 className="text-xl font-bold text-slate-900">Assign Tenant</h2>
+              <p className="text-sm text-slate-600 mt-1">Assign new role for tenant</p>
             </div>
 
             <form onSubmit={handleReassignSubmit} className="px-6 py-4 space-y-4">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                <p className="text-sm text-amber-800">
-                  Current tenant: <strong>{selectedUser.tenant_name}</strong>
-                </p>
-              </div>
-
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">New Tenant</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Select Tenant</label>
                 <select
                   required
                   value={reassignTenantId}
@@ -700,7 +697,7 @@ function AdminUsersContent() {
                   disabled={submitting}
                   className="px-4 py-2 text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 rounded-lg transition-colors disabled:opacity-50"
                 >
-                  {submitting ? 'Reassigning...' : 'Reassign'}
+                  {submitting ? 'Assigning...' : 'Assign'}
                 </button>
               </div>
             </form>
@@ -714,55 +711,23 @@ function AdminUsersContent() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="px-6 py-4 border-b border-slate-200">
               <h2 className="text-xl font-bold text-slate-900">Change Role</h2>
-              <p className="text-sm text-slate-600 mt-1">{selectedUser.full_name}</p>
+              <p className="text-sm text-slate-600 mt-1">Change role for {selectedUser.full_name}</p>
             </div>
 
             <form onSubmit={handleChangeRoleSubmit} className="px-6 py-4 space-y-4">
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                <p className="text-sm text-slate-800">
-                  Current role: <strong>{getRoleDisplay(selectedUser.role)}</strong>
-                </p>
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">New Role</label>
                 <select
                   required
                   value={formData.role}
-                  onChange={(e) => {
-                    const newRole = e.target.value;
-                    setFormData({
-                      ...formData,
-                      role: newRole,
-                      tenant_id: newRole === 'SUPER_ADMIN' ? '' : formData.tenant_id
-                    });
-                  }}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
                 >
+                  <option value="">Select Role</option>
                   <option value="SUPER_ADMIN">Super Admin</option>
                   <option value="TENANT_ADMIN">Tenant Admin</option>
                 </select>
               </div>
-
-              {/* Show tenant selector when changing to Tenant Admin */}
-              {formData.role === 'TENANT_ADMIN' && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Assign Tenant</label>
-                  <select
-                    required
-                    value={formData.tenant_id}
-                    onChange={(e) => setFormData({ ...formData, tenant_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
-                  >
-                    <option value="">Select Tenant</option>
-                    {tenants.map((tenant) => (
-                      <option key={tenant.id} value={tenant.id}>
-                        {tenant.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
 
               <div className="flex justify-end space-x-3 pt-4">
                 <button
@@ -778,7 +743,7 @@ function AdminUsersContent() {
                   disabled={submitting}
                   className="px-4 py-2 text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 rounded-lg transition-colors disabled:opacity-50"
                 >
-                  {submitting ? 'Changing...' : 'Change Role'}
+                  {submitting ? 'Updating...' : 'Update Role'}
                 </button>
               </div>
             </form>
