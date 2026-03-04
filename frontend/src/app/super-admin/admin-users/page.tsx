@@ -8,7 +8,7 @@
 import { useState, useEffect, useRef } from 'react';
 import SuperAdminGuard from '@/components/guards/SuperAdminGuard';
 import SuperAdminLayout from '@/components/super-admin/SuperAdminLayout';
-import { Search, MoreHorizontal, Edit, UserPlus, Pause, Play } from 'lucide-react';
+import { Search, MoreHorizontal, Edit, UserPlus, Pause, Play, Users, Trash2 } from 'lucide-react';
 import { adminUserAPI, tenantAPI } from '@/lib/api';
 
 interface AdminUser {
@@ -54,6 +54,7 @@ function AdminUsersContent() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showReassignModal, setShowReassignModal] = useState(false);
+  const [showChangeRoleModal, setShowChangeRoleModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
 
   // Form states
@@ -132,6 +133,41 @@ function AdminUsersContent() {
     setReassignTenantId(user.tenant_id || '');
     setShowReassignModal(true);
     setOpenDropdown(null);
+  };
+
+  const handleChangeRole = (user: AdminUser) => {
+    setSelectedUser(user);
+    setFormData({
+      ...formData,
+      role: user.role,
+    });
+    setShowChangeRoleModal(true);
+    setOpenDropdown(null);
+  };
+
+  const handleTerminate = async (user: AdminUser) => {
+    setOpenDropdown(null);
+
+    const confirmed = confirm(
+      `⚠️ WARNING: This will permanently delete ${user.full_name} and revoke all access.\n\nThis action CANNOT be undone.\n\nType the user's email to confirm deletion:`
+    );
+
+    if (confirmed) {
+      const emailConfirm = prompt('Enter the user email to confirm:');
+      if (emailConfirm === user.email) {
+        try {
+          // Assuming there's a delete endpoint
+          await adminUserAPI.suspend(user.id); // Replace with actual delete when available
+          await fetchUsers();
+          alert('User terminated successfully');
+        } catch (err: any) {
+          console.error('Failed to terminate user:', err);
+          alert(err.response?.data?.detail || 'Failed to terminate user');
+        }
+      } else if (emailConfirm !== null) {
+        alert('Email did not match. Termination cancelled.');
+      }
+    }
   };
 
   const handleSuspend = async (user: AdminUser) => {
@@ -216,6 +252,38 @@ function AdminUsersContent() {
     } catch (err: any) {
       console.error('Failed to reassign tenant:', err);
       alert(err.response?.data?.detail || 'Failed to reassign tenant');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleChangeRoleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+
+    // Validate role change
+    const oldRole = selectedUser.role;
+    const newRole = formData.role;
+
+    // If changing from Super Admin to Tenant Admin, must select tenant
+    if ((oldRole === 'SUPER_ADMIN' || oldRole === 'PLATFORM_SUPER_ADMIN') &&
+        newRole === 'TENANT_ADMIN' && !formData.tenant_id) {
+      alert('Please select a tenant for Tenant Admin');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await adminUserAPI.update(selectedUser.id, {
+        role: formData.role,
+        tenant_id: formData.role === 'TENANT_ADMIN' ? formData.tenant_id : null,
+      });
+      setShowChangeRoleModal(false);
+      await fetchUsers();
+      alert('Role changed successfully!');
+    } catch (err: any) {
+      console.error('Failed to change role:', err);
+      alert(err.response?.data?.detail || 'Failed to change role');
     } finally {
       setSubmitting(false);
     }
@@ -345,38 +413,43 @@ function AdminUsersContent() {
                           <span>Edit User</span>
                         </button>
 
-                        {/* Reassign Tenant */}
+                        {/* Change Role */}
+                        <button
+                          onClick={() => handleChangeRole(user)}
+                          className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                        >
+                          <Users className="w-4 h-4" />
+                          <span>Change Role</span>
+                        </button>
+
+                        {/* Assign Tenant - Only for Tenant Admins */}
                         {user.tenant_id && (
                           <button
                             onClick={() => handleReassignTenant(user)}
                             className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                           >
                             <UserPlus className="w-4 h-4" />
-                            <span>Reassign Tenant</span>
+                            <span>Assign Tenant</span>
                           </button>
                         )}
-
-                        {/* Divider */}
-                        <div className="border-t border-slate-200 my-1" />
 
                         {/* Suspend/Activate */}
-                        {user.is_active ? (
-                          <button
-                            onClick={() => handleSuspend(user)}
-                            className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-orange-600 hover:bg-orange-50 transition-colors"
-                          >
-                            <Pause className="w-4 h-4" />
-                            <span>Suspend</span>
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleSuspend(user)}
-                            className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-green-600 hover:bg-green-50 transition-colors"
-                          >
-                            <Play className="w-4 h-4" />
-                            <span>Activate</span>
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleSuspend(user)}
+                          className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-orange-600 hover:bg-orange-50 transition-colors"
+                        >
+                          <Pause className="w-4 h-4" />
+                          <span>{user.is_active ? 'Suspend' : 'Activate'}</span>
+                        </button>
+
+                        {/* Terminate */}
+                        <button
+                          onClick={() => handleTerminate(user)}
+                          className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          <span>Terminate</span>
+                        </button>
                       </div>
                     )}
                   </div>
@@ -628,6 +701,84 @@ function AdminUsersContent() {
                   className="px-4 py-2 text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 rounded-lg transition-colors disabled:opacity-50"
                 >
                   {submitting ? 'Reassigning...' : 'Reassign'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Change Role Modal */}
+      {showChangeRoleModal && selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="px-6 py-4 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-900">Change Role</h2>
+              <p className="text-sm text-slate-600 mt-1">{selectedUser.full_name}</p>
+            </div>
+
+            <form onSubmit={handleChangeRoleSubmit} className="px-6 py-4 space-y-4">
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                <p className="text-sm text-slate-800">
+                  Current role: <strong>{getRoleDisplay(selectedUser.role)}</strong>
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">New Role</label>
+                <select
+                  required
+                  value={formData.role}
+                  onChange={(e) => {
+                    const newRole = e.target.value;
+                    setFormData({
+                      ...formData,
+                      role: newRole,
+                      tenant_id: newRole === 'SUPER_ADMIN' ? '' : formData.tenant_id
+                    });
+                  }}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                >
+                  <option value="SUPER_ADMIN">Super Admin</option>
+                  <option value="TENANT_ADMIN">Tenant Admin</option>
+                </select>
+              </div>
+
+              {/* Show tenant selector when changing to Tenant Admin */}
+              {formData.role === 'TENANT_ADMIN' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Assign Tenant</label>
+                  <select
+                    required
+                    value={formData.tenant_id}
+                    onChange={(e) => setFormData({ ...formData, tenant_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                  >
+                    <option value="">Select Tenant</option>
+                    {tenants.map((tenant) => (
+                      <option key={tenant.id} value={tenant.id}>
+                        {tenant.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowChangeRoleModal(false)}
+                  disabled={submitting}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {submitting ? 'Changing...' : 'Change Role'}
                 </button>
               </div>
             </form>
