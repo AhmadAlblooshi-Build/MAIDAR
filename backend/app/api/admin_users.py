@@ -25,7 +25,7 @@ router = APIRouter()
 class AdminUserCreate(BaseModel):
     email: EmailStr
     full_name: str = Field(..., min_length=1, max_length=255)
-    tenant_id: UUID
+    tenant_id: Optional[UUID] = None  # Optional - only required for Tenant Admins
     role: UserRole = Field(default=UserRole.TENANT_ADMIN)
     require_mfa: bool = False
 
@@ -83,7 +83,7 @@ async def create_admin_user(
     current_user: User = Depends(require_super_admin),
     db: Session = Depends(get_db)
 ):
-    """Create a new admin user for a tenant."""
+    """Create a new admin user (Super Admin or Tenant Admin)."""
 
     # Check if email already exists
     existing = db.query(User).filter(User.email == user_data.email).first()
@@ -93,13 +93,29 @@ async def create_admin_user(
             detail=f"User with email '{user_data.email}' already exists"
         )
 
-    # Verify tenant exists
-    tenant = db.query(Tenant).filter(Tenant.id == user_data.tenant_id).first()
-    if not tenant:
+    # Validate: Tenant Admins must have a tenant assigned
+    if user_data.role == UserRole.TENANT_ADMIN and not user_data.tenant_id:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tenant not found"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tenant Admin must be assigned to a tenant"
         )
+
+    # Validate: Super Admins should NOT have a tenant
+    if user_data.role in [UserRole.PLATFORM_SUPER_ADMIN, UserRole.SUPER_ADMIN] and user_data.tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Super Admin cannot be assigned to a tenant"
+        )
+
+    # Verify tenant exists (if provided)
+    tenant = None
+    if user_data.tenant_id:
+        tenant = db.query(Tenant).filter(Tenant.id == user_data.tenant_id).first()
+        if not tenant:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Tenant not found"
+            )
 
     # Create user with temporary password
     user = User(
@@ -127,8 +143,8 @@ async def create_admin_user(
         details={
             "email": user.email,
             "full_name": user.full_name,
-            "tenant_id": str(user_data.tenant_id),
-            "tenant_name": tenant.name,
+            "tenant_id": str(user_data.tenant_id) if user_data.tenant_id else None,
+            "tenant_name": tenant.name if tenant else None,
             "role": user.role
         },
         status="success"
@@ -140,7 +156,7 @@ async def create_admin_user(
         email=user.email,
         full_name=user.full_name,
         tenant_id=str(user.tenant_id) if user.tenant_id else None,
-        tenant_name=tenant.name,
+        tenant_name=tenant.name if tenant else None,
         role=user.role,
         is_active=user.is_active,
         email_verified=user.email_verified,
