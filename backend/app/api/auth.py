@@ -41,6 +41,7 @@ from app.schemas.auth import (
     UserResponse
 )
 from app.services.email import email_service
+from app.core.email_validator import validate_email
 
 router = APIRouter(tags=["Authentication"])
 logger = logging.getLogger(__name__)
@@ -58,6 +59,14 @@ def register(
     - If organization_name is provided, creates new tenant and user becomes TENANT_ADMIN
     - First user without tenant_id becomes PLATFORM_SUPER_ADMIN
     """
+    # Validate email (check format and block disposable emails)
+    is_valid, error_message = validate_email(user_data.email)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_message
+        )
+
     # Check if email already exists
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
@@ -233,12 +242,12 @@ def login(
             detail="User account is inactive"
         )
 
-    # Check if email is verified (optional - can be enforced or not)
-    # if not user.email_verified:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Email not verified. Please verify your email before logging in."
-    #     )
+    # Check if email is verified
+    if not user.email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please verify your email before logging in. Check your inbox for the verification code."
+        )
 
     # Update last login time
     user.last_login = datetime.utcnow()

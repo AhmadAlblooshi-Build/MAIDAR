@@ -20,10 +20,12 @@ function LoginForm() {
     organization_name: ''
   });
 
-  // Check if user just registered
+  // Check for success messages
   useEffect(() => {
     if (searchParams.get('registered') === 'true') {
       setSuccess('Account created successfully! Please sign in to continue.');
+    } else if (searchParams.get('verified') === 'true') {
+      setSuccess('Email verified successfully! You can now sign in.');
     }
   }, [searchParams]);
 
@@ -67,6 +69,13 @@ function LoginForm() {
         }
       } else {
         const errorData = await response.json();
+
+        // Handle unverified email (403)
+        if (response.status === 403 && errorData.detail?.includes('verify')) {
+          router.push(`/verify-email?email=${encodeURIComponent(formData.email)}`);
+          return;
+        }
+
         // Handle Pydantic validation errors and string errors
         const errorMessage = typeof errorData.detail === 'string'
           ? errorData.detail

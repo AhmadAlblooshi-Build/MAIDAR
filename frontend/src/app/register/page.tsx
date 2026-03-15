@@ -60,7 +60,8 @@ export default function RegisterPage() {
       clearTimeout(timeoutId);
 
       if (response.ok) {
-        router.push('/login?registered=true');
+        // Redirect to email verification page
+        router.push(`/verify-email?email=${encodeURIComponent(formData.email)}`);
       } else {
         const data = await response.json();
         setError(data.detail || 'Registration failed');

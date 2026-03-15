@@ -14,6 +14,7 @@ celery_app = Celery(
     include=[
         "app.tasks.email_tasks",
         "app.tasks.simulation_tasks",
+        "app.tasks.cleanup_tasks",
     ]
 )
 
@@ -66,10 +67,23 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.email_tasks.cleanup_expired_sessions",
         "schedule": crontab(minute=0),  # Every hour
     },
+
+    # Cleanup unverified accounts daily at 3 AM UTC
+    "cleanup-unverified-accounts": {
+        "task": "cleanup_unverified_accounts",
+        "schedule": crontab(hour=3, minute=0),
+    },
+
+    # Cleanup expired tokens daily at 4 AM UTC
+    "cleanup-expired-tokens": {
+        "task": "cleanup_expired_tokens",
+        "schedule": crontab(hour=4, minute=0),
+    },
 }
 
 # Task routes (for queue organization)
 celery_app.conf.task_routes = {
     "app.tasks.email_tasks.*": {"queue": "emails"},
     "app.tasks.simulation_tasks.*": {"queue": "simulations"},
+    "app.tasks.cleanup_tasks.*": {"queue": "maintenance"},
 }
