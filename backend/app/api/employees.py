@@ -78,6 +78,27 @@ def create_employee(
                 detail=f"Employee with email '{employee_data.email}' already exists"
             )
 
+        # Calculate risk score using risk engine
+        logger.info("🎯 Calculating risk score...")
+        from app.core.risk_engine import RiskScoringEngine, EmployeeProfile, Scenario
+
+        risk_engine = RiskScoringEngine()
+        employee_profile = EmployeeProfile(
+            age_range=employee_data.age_range,
+            gender=employee_data.gender.upper() if employee_data.gender else "MALE",
+            languages=employee_data.languages or ["en"],
+            technical_literacy=int(employee_data.technical_literacy),
+            seniority=employee_data.seniority.upper(),
+            department=employee_data.department,
+            job_title=employee_data.job_title or ""
+        )
+        # Default generic phishing scenario for initial risk assessment
+        # Use employee's primary language or default to English
+        primary_language = employee_data.languages[0] if employee_data.languages else "en"
+        scenario = Scenario(category="CREDENTIALS", language=primary_language)
+        risk_result = risk_engine.calculate_risk(employee_profile, scenario, employee_data.employee_id)
+        logger.info(f"✅ Risk calculated: {risk_result.risk_score}/100 ({risk_result.risk_band})")
+
         # Create employee
         logger.info("📝 Creating Employee object...")
         employee = Employee(
@@ -91,7 +112,9 @@ def create_employee(
             technical_literacy=employee_data.technical_literacy,
             seniority=employee_data.seniority,
             department=employee_data.department,
-            job_title=employee_data.job_title
+            job_title=employee_data.job_title,
+            risk_score=float(risk_result.risk_score) / 10.0,  # Convert 0-100 scale to 0-10 scale
+            risk_band=risk_result.risk_band.value if hasattr(risk_result.risk_band, 'value') else str(risk_result.risk_band)
         )
         logger.info("✅ Employee object created")
 
