@@ -173,18 +173,18 @@ def register(
         status="success"
     )
 
-    # Send verification email asynchronously (non-blocking)
+    # Send verification email directly (synchronous)
     try:
-        from app.tasks.email_tasks import send_welcome_email
-        send_welcome_email.delay(
+        verification_link = f"{settings.FRONTEND_URL}/verify-email?token={create_verification_token(user.email)}&email={user.email}"
+        email_service.send_verification_email(
             to_email=user.email,
-            full_name=user.full_name,
-            verification_code=verification_code
+            verification_code=verification_code,
+            verification_link=verification_link
         )
-        logger.info(f"Verification email queued for {user.email}")
+        logger.info(f"✅ Verification email sent to {user.email} with code: {verification_code}")
     except Exception as e:
-        logger.error(f"Failed to queue verification email for {user.email}: {str(e)}")
-        # Don't fail registration if email fails
+        logger.error(f"❌ Failed to send verification email to {user.email}: {str(e)}")
+        # Don't fail registration if email fails - user can still verify manually
 
     logger.info(f"User registered successfully: {user.email} ({user.role})")
 
