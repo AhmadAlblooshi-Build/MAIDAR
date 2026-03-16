@@ -660,7 +660,7 @@ def change_password(
     return {"message": "Password changed successfully"}
 
 
-@router.post("/admin/verify-email-manual")
+@router.get("/admin/verify-email-manual")
 async def manually_verify_email(
     email: str,
     admin_key: str,
