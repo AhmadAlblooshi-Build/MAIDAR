@@ -59,13 +59,18 @@ class Settings(BaseSettings):
     # Risk Engine
     RISK_ENGINE_VERSION: str = "v1.0"
 
-    # Email (SMTP)
+    # Email (Amazon SES)
+    AWS_REGION: str = "us-east-1"  # SES region (use us-east-1 for global delivery)
+    AWS_ACCESS_KEY_ID: Optional[str] = None
+    AWS_SECRET_ACCESS_KEY: Optional[str] = None
+    FROM_EMAIL: str = "noreply@maidar.com"
+    FROM_NAME: str = "MAIDAR"
+
+    # Legacy SMTP (kept for backward compatibility, not used)
     SMTP_SERVER: Optional[str] = None
     SMTP_PORT: Optional[int] = None
     SMTP_USERNAME: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
-    FROM_EMAIL: str = "noreply@maidar.com"
-    FROM_NAME: str = "MAIDAR"
 
     # Claude AI API
     ANTHROPIC_API_KEY: Optional[str] = None

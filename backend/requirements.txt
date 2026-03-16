@@ -77,3 +77,5 @@ xlsxwriter==3.1.9  # Alternative Excel library
 
 # AI Integration
 anthropic==0.39.0  # Claude AI SDK for AI-powered features
+resend
+boto3

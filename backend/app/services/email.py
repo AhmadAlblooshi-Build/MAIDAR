@@ -1,12 +1,11 @@
 """
-Email service for sending authentication and notification emails.
+Email service using Amazon SES for sending authentication and notification emails.
 """
 
 import logging
 from typing import Optional
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import smtplib
+import boto3
+from botocore.exceptions import ClientError
 
 from app.config.settings import settings
 
@@ -14,16 +13,30 @@ logger = logging.getLogger(__name__)
 
 
 class EmailService:
-    """Service for sending emails."""
+    """Service for sending emails via Amazon SES."""
 
     def __init__(self):
         """Initialize email service."""
-        self.smtp_server = getattr(settings, 'SMTP_SERVER', 'smtp.gmail.com')
-        self.smtp_port = getattr(settings, 'SMTP_PORT', 587)
-        self.smtp_username = getattr(settings, 'SMTP_USERNAME', None)
-        self.smtp_password = getattr(settings, 'SMTP_PASSWORD', None)
+        self.aws_region = getattr(settings, 'AWS_REGION', 'us-east-1')
+        self.aws_access_key = getattr(settings, 'AWS_ACCESS_KEY_ID', None)
+        self.aws_secret_key = getattr(settings, 'AWS_SECRET_ACCESS_KEY', None)
         self.from_email = getattr(settings, 'FROM_EMAIL', 'noreply@maidar.com')
         self.from_name = getattr(settings, 'FROM_NAME', 'MAIDAR')
+
+        # Initialize SES client if credentials are provided
+        self.ses_client = None
+        if self.aws_access_key and self.aws_secret_key:
+            try:
+                self.ses_client = boto3.client(
+                    'ses',
+                    region_name=self.aws_region,
+                    aws_access_key_id=self.aws_access_key,
+                    aws_secret_access_key=self.aws_secret_key
+                )
+                logger.info(f"✅ Amazon SES initialized (region: {self.aws_region})")
+            except Exception as e:
+                logger.error(f"❌ Failed to initialize SES client: {str(e)}")
+                self.ses_client = None
 
     def send_email(
         self,
@@ -33,7 +46,7 @@ class EmailService:
         text_content: Optional[str] = None
     ) -> bool:
         """
-        Send an email.
+        Send an email via Amazon SES.
 
         Args:
             to_email: Recipient email address
@@ -44,45 +57,62 @@ class EmailService:
         Returns:
             True if email sent successfully, False otherwise
         """
-        try:
-            # If SMTP not configured, log the email (for development)
-            if not self.smtp_username or not self.smtp_password:
-                logger.info(f"""
-                ========== EMAIL (Development Mode) ==========
-                To: {to_email}
-                Subject: {subject}
+        # Development mode: Log email to console
+        if not self.ses_client:
+            logger.info(f"""
+            ========== EMAIL (Development Mode - SES Not Configured) ==========
+            From: {self.from_name} <{self.from_email}>
+            To: {to_email}
+            Subject: {subject}
 
-                {text_content or html_content}
-                =============================================
-                """)
-                return True
-
-            # Create message
-            message = MIMEMultipart('alternative')
-            message['From'] = f"{self.from_name} <{self.from_email}>"
-            message['To'] = to_email
-            message['Subject'] = subject
-
-            # Add plain text part
-            if text_content:
-                text_part = MIMEText(text_content, 'plain')
-                message.attach(text_part)
-
-            # Add HTML part
-            html_part = MIMEText(html_content, 'html')
-            message.attach(html_part)
-
-            # Send email via SMTP
-            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.smtp_username, self.smtp_password)
-                server.send_message(message)
-
-            logger.info(f"Email sent successfully to {to_email}")
+            {text_content or html_content[:200]}...
+            ===================================================================
+            """)
+            logger.warning("⚠️ AWS SES not configured. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in environment.")
             return True
 
+        try:
+            # Prepare email body
+            body = {}
+            if text_content:
+                body['Text'] = {'Data': text_content, 'Charset': 'UTF-8'}
+            if html_content:
+                body['Html'] = {'Data': html_content, 'Charset': 'UTF-8'}
+
+            # Send email via SES
+            response = self.ses_client.send_email(
+                Source=f"{self.from_name} <{self.from_email}>",
+                Destination={'ToAddresses': [to_email]},
+                Message={
+                    'Subject': {'Data': subject, 'Charset': 'UTF-8'},
+                    'Body': body
+                }
+            )
+
+            message_id = response.get('MessageId')
+            logger.info(f"✅ Email sent successfully to {to_email} (MessageId: {message_id})")
+            return True
+
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            error_message = e.response['Error']['Message']
+
+            # Provide helpful error messages
+            if error_code == 'MessageRejected':
+                logger.error(f"❌ SES rejected email to {to_email}: {error_message}")
+                logger.error("   💡 Tip: Check if email is verified in SES (Sandbox mode)")
+            elif error_code == 'MailFromDomainNotVerified':
+                logger.error(f"❌ Domain not verified: {error_message}")
+                logger.error("   💡 Tip: Verify your domain in SES console")
+            elif error_code == 'ConfigurationSetDoesNotExist':
+                logger.error(f"❌ Configuration set not found: {error_message}")
+            else:
+                logger.error(f"❌ SES error ({error_code}): {error_message}")
+
+            return False
+
         except Exception as e:
-            logger.error(f"Failed to send email to {to_email}: {str(e)}")
+            logger.error(f"❌ Failed to send email to {to_email}: {str(e)}")
             return False
 
     def send_verification_email(
@@ -109,13 +139,17 @@ class EmailService:
         <html>
         <head>
             <style>
-                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-                .header {{ background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }}
-                .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }}
-                .code {{ font-size: 32px; font-weight: bold; color: #14B8A6; text-align: center; letter-spacing: 8px; margin: 20px 0; }}
-                .button {{ display: inline-block; background: #14B8A6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; }}
-                .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
+                body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }}
+                .container {{ max-width: 600px; margin: 20px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+                .header {{ background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%); color: white; padding: 40px 30px; text-align: center; }}
+                .header h1 {{ margin: 0; font-size: 28px; font-weight: 600; }}
+                .content {{ padding: 40px 30px; }}
+                .code-container {{ background: #F0FDFA; border: 2px solid #14B8A6; border-radius: 8px; padding: 20px; margin: 30px 0; text-align: center; }}
+                .code {{ font-size: 36px; font-weight: bold; color: #14B8A6; letter-spacing: 10px; font-family: 'Courier New', monospace; }}
+                .button {{ display: inline-block; background: #14B8A6; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; margin: 20px 0; font-weight: 600; }}
+                .button:hover {{ background: #0D9488; }}
+                .footer {{ background: #f9f9f9; padding: 20px 30px; text-align: center; color: #666; font-size: 13px; border-top: 1px solid #eee; }}
+                .warning {{ background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 12px; margin: 20px 0; font-size: 14px; }}
             </style>
         </head>
         <body>
@@ -124,21 +158,29 @@ class EmailService:
                     <h1>🔐 Verify Your Email</h1>
                 </div>
                 <div class="content">
-                    <p>Welcome to <strong>MAIDAR</strong> - Human Risk Intelligence Platform!</p>
+                    <p>Welcome to <strong>MAIDAR</strong> - The Human Risk Intelligence Platform!</p>
 
-                    <p>Please verify your email address using the code below:</p>
+                    <p>To complete your registration, please verify your email address using the code below:</p>
 
-                    <div class="code">{verification_code}</div>
+                    <div class="code-container">
+                        <div class="code">{verification_code}</div>
+                        <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">Enter this code on the verification page</p>
+                    </div>
 
-                    <p>This code will expire in 24 hours.</p>
+                    {f'<p style="text-align: center;"><a href="{verification_link}" class="button">Verify Email Instantly</a></p>' if verification_link else ''}
 
-                    {f'<p style="text-align: center;"><a href="{verification_link}" class="button">Verify Email</a></p>' if verification_link else ''}
+                    <div class="warning">
+                        <strong>⏰ Code expires in 24 hours</strong><br>
+                        If you didn't create a MAIDAR account, you can safely ignore this email.
+                    </div>
 
-                    <p>If you didn't create a MAIDAR account, you can safely ignore this email.</p>
+                    <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                        Need help? Reply to this email or contact our support team.
+                    </p>
                 </div>
                 <div class="footer">
-                    <p>&copy; 2024 MAIDAR. All rights reserved.</p>
-                    <p>Human Risk Intelligence Platform</p>
+                    <p style="margin: 0 0 5px 0; font-weight: 600;">MAIDAR - Human Risk Intelligence</p>
+                    <p style="margin: 0;">© 2024 MAIDAR. All rights reserved.</p>
                 </div>
             </div>
         </body>
@@ -148,15 +190,19 @@ class EmailService:
         text_content = f"""
         Verify Your MAIDAR Account
 
-        Welcome to MAIDAR - Human Risk Intelligence Platform!
+        Welcome to MAIDAR - The Human Risk Intelligence Platform!
 
-        Please verify your email address using this code: {verification_code}
+        Please verify your email address using this code:
+
+        {verification_code}
 
         This code will expire in 24 hours.
 
         {f'Or click this link: {verification_link}' if verification_link else ''}
 
         If you didn't create a MAIDAR account, you can safely ignore this email.
+
+        Need help? Reply to this email or contact our support team.
 
         © 2024 MAIDAR. All rights reserved.
         """
@@ -185,13 +231,14 @@ class EmailService:
         <html>
         <head>
             <style>
-                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-                .header {{ background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }}
-                .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }}
-                .button {{ display: inline-block; background: #14B8A6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; }}
-                .warning {{ background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 12px; margin: 20px 0; }}
-                .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
+                body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }}
+                .container {{ max-width: 600px; margin: 20px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+                .header {{ background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%); color: white; padding: 40px 30px; text-align: center; }}
+                .header h1 {{ margin: 0; font-size: 28px; font-weight: 600; }}
+                .content {{ padding: 40px 30px; }}
+                .button {{ display: inline-block; background: #14B8A6; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; margin: 20px 0; font-weight: 600; }}
+                .warning {{ background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; }}
+                .footer {{ background: #f9f9f9; padding: 20px 30px; text-align: center; color: #666; font-size: 13px; border-top: 1px solid #eee; }}
             </style>
         </head>
         <body>
@@ -211,11 +258,13 @@ class EmailService:
                         This link will expire in 1 hour. If you didn't request a password reset, please ignore this email or contact support if you're concerned about your account security.
                     </div>
 
-                    <p>For your security, never share your password with anyone.</p>
+                    <p style="color: #666; font-size: 14px;">
+                        For your security, never share your password with anyone.
+                    </p>
                 </div>
                 <div class="footer">
-                    <p>&copy; 2024 MAIDAR. All rights reserved.</p>
-                    <p>Human Risk Intelligence Platform</p>
+                    <p style="margin: 0 0 5px 0; font-weight: 600;">MAIDAR - Human Risk Intelligence</p>
+                    <p style="margin: 0;">© 2024 MAIDAR. All rights reserved.</p>
                 </div>
             </div>
         </body>
@@ -261,12 +310,14 @@ class EmailService:
         <html>
         <head>
             <style>
-                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-                .header {{ background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }}
-                .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }}
-                .feature {{ background: white; padding: 15px; margin: 10px 0; border-left: 4px solid #14B8A6; }}
-                .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
+                body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }}
+                .container {{ max-width: 600px; margin: 20px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+                .header {{ background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%); color: white; padding: 40px 30px; text-align: center; }}
+                .header h1 {{ margin: 0; font-size: 28px; font-weight: 600; }}
+                .content {{ padding: 40px 30px; }}
+                .feature {{ background: #F0FDFA; padding: 20px; margin: 15px 0; border-left: 4px solid #14B8A6; border-radius: 6px; }}
+                .feature-title {{ font-weight: 600; color: #0D9488; margin: 0 0 8px 0; font-size: 16px; }}
+                .footer {{ background: #f9f9f9; padding: 20px 30px; text-align: center; color: #666; font-size: 13px; border-top: 1px solid #eee; }}
             </style>
         </head>
         <body>
@@ -275,32 +326,34 @@ class EmailService:
                     <h1>🎉 Welcome to MAIDAR!</h1>
                 </div>
                 <div class="content">
-                    <p>Hi {full_name},</p>
+                    <p>Hi <strong>{full_name}</strong>,</p>
 
                     <p>Your account has been successfully verified! You're now ready to start measuring and reducing human cyber risk in your organization.</p>
 
-                    <h3>What's next?</h3>
+                    <h3 style="color: #0D9488; margin-top: 30px;">What's next?</h3>
 
                     <div class="feature">
-                        <strong>📊 Import Your Team</strong><br>
-                        Upload employee data to begin risk assessment
+                        <p class="feature-title">📊 Import Your Team</p>
+                        <p style="margin: 0; color: #666;">Upload employee data to begin comprehensive risk assessment</p>
                     </div>
 
                     <div class="feature">
-                        <strong>🎯 Run Simulations</strong><br>
-                        Launch AI-powered phishing simulations
+                        <p class="feature-title">🎯 Launch Simulations</p>
+                        <p style="margin: 0; color: #666;">Run AI-powered phishing campaigns to test awareness</p>
                     </div>
 
                     <div class="feature">
-                        <strong>📈 View Analytics</strong><br>
-                        Track risk scores and identify vulnerabilities
+                        <p class="feature-title">📈 View Analytics</p>
+                        <p style="margin: 0; color: #666;">Track risk scores and identify vulnerabilities</p>
                     </div>
 
-                    <p>If you have any questions, our team is here to help!</p>
+                    <p style="margin-top: 30px; color: #666;">
+                        If you have any questions, our team is here to help!
+                    </p>
                 </div>
                 <div class="footer">
-                    <p>&copy; 2024 MAIDAR. All rights reserved.</p>
-                    <p>Human Risk Intelligence Platform</p>
+                    <p style="margin: 0 0 5px 0; font-weight: 600;">MAIDAR - Human Risk Intelligence</p>
+                    <p style="margin: 0;">© 2024 MAIDAR. All rights reserved.</p>
                 </div>
             </div>
         </body>
@@ -317,7 +370,7 @@ class EmailService:
         What's next?
 
         📊 Import Your Team - Upload employee data to begin risk assessment
-        🎯 Run Simulations - Launch AI-powered phishing simulations
+        🎯 Launch Simulations - Run AI-powered phishing campaigns
         📈 View Analytics - Track risk scores and identify vulnerabilities
 
         If you have any questions, our team is here to help!
