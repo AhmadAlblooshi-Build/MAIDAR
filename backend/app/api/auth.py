@@ -242,12 +242,13 @@ def login(
             detail="User account is inactive"
         )
 
-    # Check if email is verified (PLATFORM_SUPER_ADMIN and SUPER_ADMIN bypass this)
-    if not user.email_verified and user.role not in [UserRole.PLATFORM_SUPER_ADMIN, UserRole.SUPER_ADMIN]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Please verify your email before logging in. Check your inbox for the verification code."
-        )
+    # Email verification check - TEMPORARILY DISABLED
+    # TODO: Re-enable this when email delivery is configured with a proper domain
+    # if not user.email_verified and user.role not in [UserRole.PLATFORM_SUPER_ADMIN, UserRole.SUPER_ADMIN]:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_403_FORBIDDEN,
+    #         detail="Please verify your email before logging in. Check your inbox for the verification code."
+    #     )
 
     # Update last login time
     user.last_login = datetime.utcnow()
@@ -658,45 +659,3 @@ def change_password(
     logger.info(f"Password changed for user: {current_user.email}")
 
     return {"message": "Password changed successfully"}
-
-
-@router.get("/admin/verify-email-manual")
-async def manually_verify_email(
-    email: str,
-    admin_key: str,
-    db: Session = Depends(get_db)
-):
-    """
-    TEMPORARY ENDPOINT: Manually verify an email address for testing.
-    This should be removed in production.
-
-    Requires admin_key to match SECRET_KEY for security.
-    """
-    # Verify admin key matches SECRET_KEY
-    if admin_key != settings.SECRET_KEY:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid admin key"
-        )
-
-    # Find user by email
-    user = db.query(User).filter(User.email == email).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with email {email} not found"
-        )
-
-    # Update email_verified to True
-    user.email_verified = True
-    user.email_verified_at = datetime.utcnow()
-    db.commit()
-
-    logger.info(f"✅ Manually verified email: {email}")
-
-    return {
-        "message": f"Email {email} has been verified successfully",
-        "user_id": user.id,
-        "email": user.email,
-        "email_verified": user.email_verified
-    }
