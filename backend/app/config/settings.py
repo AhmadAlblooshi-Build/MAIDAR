@@ -59,12 +59,15 @@ class Settings(BaseSettings):
     # Risk Engine
     RISK_ENGINE_VERSION: str = "v1.0"
 
-    # Email (Amazon SES)
-    AWS_REGION: str = "us-east-1"  # SES region (use us-east-1 for global delivery)
-    AWS_ACCESS_KEY_ID: Optional[str] = None
-    AWS_SECRET_ACCESS_KEY: Optional[str] = None
+    # Email (SendGrid)
+    SENDGRID_API_KEY: Optional[str] = None  # SendGrid API key for sending emails
     FROM_EMAIL: str = "noreply@maidar.com"
     FROM_NAME: str = "MAIDAR"
+
+    # Legacy AWS SES (kept for future use)
+    AWS_REGION: str = "us-east-1"
+    AWS_ACCESS_KEY_ID: Optional[str] = None
+    AWS_SECRET_ACCESS_KEY: Optional[str] = None
 
     # Legacy SMTP (kept for backward compatibility, not used)
     SMTP_SERVER: Optional[str] = None

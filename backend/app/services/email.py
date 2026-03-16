@@ -1,11 +1,11 @@
 """
-Email service using Amazon SES for sending authentication and notification emails.
+Email service using SendGrid for sending authentication and notification emails.
 """
 
 import logging
 from typing import Optional
-import boto3
-from botocore.exceptions import ClientError
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail, Email, To, Content
 
 from app.config.settings import settings
 
@@ -13,30 +13,23 @@ logger = logging.getLogger(__name__)
 
 
 class EmailService:
-    """Service for sending emails via Amazon SES."""
+    """Service for sending emails via SendGrid."""
 
     def __init__(self):
         """Initialize email service."""
-        self.aws_region = getattr(settings, 'AWS_REGION', 'us-east-1')
-        self.aws_access_key = getattr(settings, 'AWS_ACCESS_KEY_ID', None)
-        self.aws_secret_key = getattr(settings, 'AWS_SECRET_ACCESS_KEY', None)
+        self.api_key = getattr(settings, 'SENDGRID_API_KEY', None)
         self.from_email = getattr(settings, 'FROM_EMAIL', 'noreply@maidar.com')
         self.from_name = getattr(settings, 'FROM_NAME', 'MAIDAR')
 
-        # Initialize SES client if credentials are provided
-        self.ses_client = None
-        if self.aws_access_key and self.aws_secret_key:
+        # Initialize SendGrid client if API key is provided
+        self.client = None
+        if self.api_key:
             try:
-                self.ses_client = boto3.client(
-                    'ses',
-                    region_name=self.aws_region,
-                    aws_access_key_id=self.aws_access_key,
-                    aws_secret_access_key=self.aws_secret_key
-                )
-                logger.info(f"✅ Amazon SES initialized (region: {self.aws_region})")
+                self.client = SendGridAPIClient(self.api_key)
+                logger.info(f"✅ SendGrid initialized successfully")
             except Exception as e:
-                logger.error(f"❌ Failed to initialize SES client: {str(e)}")
-                self.ses_client = None
+                logger.error(f"❌ Failed to initialize SendGrid client: {str(e)}")
+                self.client = None
 
     def send_email(
         self,
@@ -46,7 +39,7 @@ class EmailService:
         text_content: Optional[str] = None
     ) -> bool:
         """
-        Send an email via Amazon SES.
+        Send an email via SendGrid.
 
         Args:
             to_email: Recipient email address
@@ -58,9 +51,9 @@ class EmailService:
             True if email sent successfully, False otherwise
         """
         # Development mode: Log email to console
-        if not self.ses_client:
+        if not self.client:
             logger.info(f"""
-            ========== EMAIL (Development Mode - SES Not Configured) ==========
+            ========== EMAIL (Development Mode - SendGrid Not Configured) ==========
             From: {self.from_name} <{self.from_email}>
             To: {to_email}
             Subject: {subject}
@@ -68,51 +61,42 @@ class EmailService:
             {text_content or html_content[:200]}...
             ===================================================================
             """)
-            logger.warning("⚠️ AWS SES not configured. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in environment.")
+            logger.warning("⚠️ SendGrid not configured. Set SENDGRID_API_KEY in environment.")
             return True
 
         try:
-            # Prepare email body
-            body = {}
-            if text_content:
-                body['Text'] = {'Data': text_content, 'Charset': 'UTF-8'}
-            if html_content:
-                body['Html'] = {'Data': html_content, 'Charset': 'UTF-8'}
-
-            # Send email via SES
-            response = self.ses_client.send_email(
-                Source=f"{self.from_name} <{self.from_email}>",
-                Destination={'ToAddresses': [to_email]},
-                Message={
-                    'Subject': {'Data': subject, 'Charset': 'UTF-8'},
-                    'Body': body
-                }
+            # Create email message
+            message = Mail(
+                from_email=Email(self.from_email, self.from_name),
+                to_emails=To(to_email),
+                subject=subject,
+                html_content=Content("text/html", html_content)
             )
 
-            message_id = response.get('MessageId')
-            logger.info(f"✅ Email sent successfully to {to_email} (MessageId: {message_id})")
-            return True
+            # Add plain text content if provided
+            if text_content:
+                message.add_content(Content("text/plain", text_content))
 
-        except ClientError as e:
-            error_code = e.response['Error']['Code']
-            error_message = e.response['Error']['Message']
+            # Send email via SendGrid
+            response = self.client.send(message)
 
-            # Provide helpful error messages
-            if error_code == 'MessageRejected':
-                logger.error(f"❌ SES rejected email to {to_email}: {error_message}")
-                logger.error("   💡 Tip: Check if email is verified in SES (Sandbox mode)")
-            elif error_code == 'MailFromDomainNotVerified':
-                logger.error(f"❌ Domain not verified: {error_message}")
-                logger.error("   💡 Tip: Verify your domain in SES console")
-            elif error_code == 'ConfigurationSetDoesNotExist':
-                logger.error(f"❌ Configuration set not found: {error_message}")
+            if response.status_code in [200, 201, 202]:
+                logger.info(f"✅ Email sent successfully to {to_email} (Status: {response.status_code})")
+                return True
             else:
-                logger.error(f"❌ SES error ({error_code}): {error_message}")
-
-            return False
+                logger.error(f"❌ SendGrid returned status {response.status_code}: {response.body}")
+                return False
 
         except Exception as e:
-            logger.error(f"❌ Failed to send email to {to_email}: {str(e)}")
+            error_message = str(e)
+            logger.error(f"❌ Failed to send email to {to_email}: {error_message}")
+
+            # Provide helpful error messages
+            if "authorization" in error_message.lower() or "api key" in error_message.lower():
+                logger.error("   💡 Tip: Check if SENDGRID_API_KEY is correct")
+            elif "not verified" in error_message.lower():
+                logger.error("   💡 Tip: Verify sender email in SendGrid dashboard")
+
             return False
 
     def send_verification_email(
