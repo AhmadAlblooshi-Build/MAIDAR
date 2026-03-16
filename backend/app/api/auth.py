@@ -242,8 +242,8 @@ def login(
             detail="User account is inactive"
         )
 
-    # Check if email is verified
-    if not user.email_verified:
+    # Check if email is verified (PLATFORM_SUPER_ADMIN and SUPER_ADMIN bypass this)
+    if not user.email_verified and user.role not in [UserRole.PLATFORM_SUPER_ADMIN, UserRole.SUPER_ADMIN]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Please verify your email before logging in. Check your inbox for the verification code."
